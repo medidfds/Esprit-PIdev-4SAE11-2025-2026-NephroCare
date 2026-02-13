@@ -1,53 +1,114 @@
 package esprit.dialysisservice.services;
 
+import esprit.dialysisservice.dtos.request.DialysisTreatmentRequestDTO;
+import esprit.dialysisservice.dtos.response.DialysisTreatmentResponseDTO;
 import esprit.dialysisservice.entities.DialysisTreatment;
 import esprit.dialysisservice.entities.enums.TreatmentStatus;
+import esprit.dialysisservice.exceptions.EntityNotFoundException;
+import esprit.dialysisservice.mapper.DialysisMapper;
 import esprit.dialysisservice.repositories.DialysisTreatmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class DialysisTreatmentServiceImpl implements IDialysisTreatmentService {
 
     private final DialysisTreatmentRepository treatmentRepository;
+    private final DialysisMapper mapper;
 
+    /*
+    ========================
+        CREATE
+    ========================
+     */
     @Override
-    public DialysisTreatment addTreatment(DialysisTreatment treatment) {
-        // Business Logic: Set default status and date
+    public DialysisTreatmentResponseDTO addTreatment(DialysisTreatmentRequestDTO dto) {
+
+        DialysisTreatment treatment = mapper.toEntity(dto);
+
         treatment.setStatus(TreatmentStatus.ACTIVE);
-        if(treatment.getStartDate() == null) {
+
+        if (treatment.getStartDate() == null)
             treatment.setStartDate(LocalDate.now());
-        }
-        return treatmentRepository.save(treatment);
+
+        return mapper.toResponse(treatmentRepository.save(treatment));
     }
 
+    /*
+    ========================
+        UPDATE
+    ========================
+     */
     @Override
-    public DialysisTreatment updateTreatment(DialysisTreatment treatment) {
-        return treatmentRepository.save(treatment);
+    public DialysisTreatmentResponseDTO updateTreatment(UUID id, DialysisTreatmentRequestDTO dto) {
+
+        DialysisTreatment existing = treatmentRepository.findById(id)
+                .orElseThrow(() ->new EntityNotFoundException("Treatment not found with id: " + id));
+
+        mapper.updateTreatmentFromDto(dto, existing);
+
+        return mapper.toResponse(treatmentRepository.save(existing));
     }
 
+    /*
+    ========================
+        GET ALL
+    ========================
+     */
     @Override
-    public List<DialysisTreatment> getAllTreatments() {
-        return treatmentRepository.findAll();
+    public List<DialysisTreatmentResponseDTO> getAllTreatments() {
+
+        return treatmentRepository.findAll()
+                .stream()
+                .map(mapper::toResponse)
+                .collect(Collectors.toList());
     }
 
+    /*
+    ========================
+        GET BY ID
+    ========================
+     */
     @Override
-    public List<DialysisTreatment> getTreatmentsByPatient(UUID patientId) {
-        return treatmentRepository.findByPatientId(patientId);
+    public DialysisTreatmentResponseDTO getTreatmentById(UUID id) {
+
+        DialysisTreatment treatment = treatmentRepository.findById(id)
+                .orElseThrow(() ->new EntityNotFoundException("Treatment not found with id: " + id));
+
+        return mapper.toResponse(treatment);
     }
 
+    /*
+    ========================
+        GET BY PATIENT
+    ========================
+     */
     @Override
-    public DialysisTreatment getTreatmentById(UUID id) {
-        return treatmentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Treatment not found"));
+    public List<DialysisTreatmentResponseDTO> getTreatmentsByPatient(UUID patientId) {
+
+        return treatmentRepository.findByPatientId(patientId)
+                .stream()
+                .map(mapper::toResponse)
+                .collect(Collectors.toList());
     }
 
+    /*
+    ========================
+        DELETE
+    ========================
+     */
     @Override
     public void deleteTreatment(UUID id) {
+
+        if (!treatmentRepository.existsById(id))
+            throw new RuntimeException("Treatment not found");
+
         treatmentRepository.deleteById(id);
     }
 }

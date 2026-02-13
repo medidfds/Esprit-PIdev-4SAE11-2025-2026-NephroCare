@@ -1,11 +1,14 @@
 package esprit.dialysisservice.controllers;
 
-
-import esprit.dialysisservice.entities.DialysisTreatment;
+import esprit.dialysisservice.dtos.request.DialysisTreatmentRequestDTO;
+import esprit.dialysisservice.dtos.response.DialysisTreatmentResponseDTO;
 import esprit.dialysisservice.services.IDialysisTreatmentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,41 +19,92 @@ public class DialysisTreatmentController {
 
     private final IDialysisTreatmentService treatmentService;
 
-    // 1. Create (Already there)
+    /*
+    ========================
+            CREATE
+    ========================
+     */
     @PostMapping
-    public DialysisTreatment createTreatment(@RequestBody DialysisTreatment treatment) {
-        return treatmentService.addTreatment(treatment);
+    public ResponseEntity<DialysisTreatmentResponseDTO> createTreatment(
+            @Valid @RequestBody DialysisTreatmentRequestDTO requestDTO
+    ) {
+
+        DialysisTreatmentResponseDTO createdTreatment =
+                treatmentService.addTreatment(requestDTO);
+
+        return ResponseEntity
+                .created(URI.create("/api/treatments/" + createdTreatment.getId()))
+                .body(createdTreatment);
     }
 
-    // 2. Get All Treatments (MISSING - Added now)
+    /*
+    ========================
+            GET ALL
+    ========================
+     */
     @GetMapping
-    public List<DialysisTreatment> getAllTreatments() {
-        return treatmentService.getAllTreatments();
+    public ResponseEntity<List<DialysisTreatmentResponseDTO>> getAllTreatments() {
+
+        return ResponseEntity.ok(
+                treatmentService.getAllTreatments()
+        );
     }
 
-    // 3. Get Single Treatment
+    /*
+    ========================
+        GET BY ID
+    ========================
+     */
     @GetMapping("/{id}")
-    public DialysisTreatment getById(@PathVariable UUID id) {
-        return treatmentService.getTreatmentById(id);
+    public ResponseEntity<DialysisTreatmentResponseDTO> getTreatmentById(
+            @PathVariable UUID id
+    ) {
+
+        return ResponseEntity.ok(
+                treatmentService.getTreatmentById(id)
+        );
     }
 
-    // 4. Get by Patient
+    /*
+    ========================
+        GET BY PATIENT
+    ========================
+     */
     @GetMapping("/patient/{patientId}")
-    public List<DialysisTreatment> getByPatient(@PathVariable UUID patientId) {
-        return treatmentService.getTreatmentsByPatient(patientId);
+    public ResponseEntity<List<DialysisTreatmentResponseDTO>> getTreatmentsByPatient(
+            @PathVariable UUID patientId
+    ) {
+
+        return ResponseEntity.ok(
+                treatmentService.getTreatmentsByPatient(patientId)
+        );
     }
 
-    // 5. Update Treatment (MISSING - Added now)
+    /*
+    ========================
+            UPDATE
+    ========================
+     */
     @PutMapping("/{id}")
-    public DialysisTreatment updateTreatment(@PathVariable UUID id, @RequestBody DialysisTreatment treatmentDetails) {
-        // Ensure the ID in the body matches the URL or set it here
-        treatmentDetails.setId(id);
-        return treatmentService.updateTreatment(treatmentDetails);
+    public ResponseEntity<DialysisTreatmentResponseDTO> updateTreatment(
+            @PathVariable UUID id,
+            @Valid @RequestBody DialysisTreatmentRequestDTO requestDTO
+    ) {
+
+        return ResponseEntity.ok(
+                treatmentService.updateTreatment(id, requestDTO)
+        );
     }
 
-    // 6. Delete Treatment (MISSING - Added now)
+    /*
+    ========================
+            DELETE
+    ========================
+     */
     @DeleteMapping("/{id}")
-    public void deleteTreatment(@PathVariable UUID id) {
+    public ResponseEntity<Void> deleteTreatment(@PathVariable UUID id) {
+
         treatmentService.deleteTreatment(id);
+        return ResponseEntity.noContent().build();
     }
 }

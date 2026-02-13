@@ -1,9 +1,11 @@
 package esprit.dialysisservice.controllers;
 
-
-import esprit.dialysisservice.entities.DialysisSession;
+import esprit.dialysisservice.dtos.request.DialysisSessionRequestDTO;
+import esprit.dialysisservice.dtos.response.DialysisSessionResponseDTO;
 import esprit.dialysisservice.services.IDialysisSessionService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,48 +18,50 @@ public class DialysisSessionController {
 
     private final IDialysisSessionService sessionService;
 
-    // 1. Start Session
-    @PostMapping("/start")
-    public DialysisSession startSession(@RequestParam UUID treatmentId,
-                                        @RequestParam Double weight,
-                                        @RequestParam UUID nurseId) {
-        return sessionService.startSession(treatmentId, weight, nurseId);
+    // 1. Start Session (Create)
+    @PostMapping
+    public ResponseEntity<DialysisSessionResponseDTO> createSession(
+            @Valid @RequestBody DialysisSessionRequestDTO dto) {
+        return ResponseEntity.ok(sessionService.createSession(dto));
     }
 
-    // 2. End Session
+    // 2. End Session (Update with Calculations)
+    // We use a custom endpoint for "Ending" because it triggers the Math logic
     @PutMapping("/{id}/end")
-    public DialysisSession endSession(@PathVariable UUID id,
-                                      @RequestParam Double weightAfter) {
-        return sessionService.endSession(id, weightAfter);
+    public ResponseEntity<DialysisSessionResponseDTO> endSession(
+            @PathVariable UUID id,
+            @RequestParam Double weightAfter,
+            @RequestParam Double postDialysisUrea) {
+        return ResponseEntity.ok(sessionService.endSession(id, weightAfter, postDialysisUrea));
     }
 
-    // 3. Get All Sessions (MISSING - Added now)
-    @GetMapping
-    public List<DialysisSession> getAllSessions() {
-        return sessionService.getAllSessions();
-    }
-
-    // 4. Get Single Session
-    @GetMapping("/{id}")
-    public DialysisSession getSessionById(@PathVariable UUID id) {
-        return sessionService.getSessionById(id);
-    }
-
-    // 5. Get History by Treatment
-    @GetMapping("/treatment/{treatmentId}")
-    public List<DialysisSession> getHistory(@PathVariable UUID treatmentId) {
-        return sessionService.getSessionsByTreatment(treatmentId);
-    }
-
-    // 6. Update Session
+    // 3. Update Session (Correction)
     @PutMapping("/{id}")
-    public DialysisSession updateSession(@PathVariable UUID id, @RequestBody DialysisSession sessionDetails) {
-        return sessionService.updateSession(id, sessionDetails);
+    public ResponseEntity<DialysisSessionResponseDTO> updateSession(
+            @PathVariable UUID id,
+            @Valid @RequestBody DialysisSessionRequestDTO dto) {
+        return ResponseEntity.ok(sessionService.updateSession(id, dto));
     }
 
-    // 7. Delete Session
+    // 4. Getters
+    @GetMapping("/treatment/{treatmentId}")
+    public ResponseEntity<List<DialysisSessionResponseDTO>> getSessionsByTreatment(@PathVariable UUID treatmentId) {
+        return ResponseEntity.ok(sessionService.getSessionsByTreatment(treatmentId));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<DialysisSessionResponseDTO> getById(@PathVariable UUID id) {
+        return ResponseEntity.ok(sessionService.getSessionById(id));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<DialysisSessionResponseDTO>> getAll() {
+        return ResponseEntity.ok(sessionService.getAllSessions());
+    }
+
     @DeleteMapping("/{id}")
-    public void deleteSession(@PathVariable UUID id) {
+    public ResponseEntity<Void> delete(@PathVariable UUID id) {
         sessionService.deleteSession(id);
+        return ResponseEntity.noContent().build();
     }
 }

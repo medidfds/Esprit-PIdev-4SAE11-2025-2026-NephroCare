@@ -2,6 +2,8 @@ package esprit.dialysisservice.entities;
 
 import esprit.dialysisservice.entities.enums.DialysisType;
 import esprit.dialysisservice.entities.enums.TreatmentStatus;
+
+import esprit.dialysisservice.entities.enums.VascularAccessType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -32,10 +34,12 @@ public class DialysisTreatment {
 
     // Configuration Fields
     @Enumerated(EnumType.STRING)
+    @Column(name = "dialysis_type", length = 50)
     private DialysisType dialysisType;
 
+    @Column(name = "vascular_access_type", length = 50)
     @Enumerated(EnumType.STRING)
-    private AccessType vascularAccessType;
+    private VascularAccessType vascularAccessType;
 
     private Integer frequencyPerWeek; // e.g., 3
     private Integer prescribedDurationMinutes; // e.g., 240
@@ -45,6 +49,7 @@ public class DialysisTreatment {
 
     // Status
     @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 50)
     private TreatmentStatus status;
 
     private LocalDate startDate;

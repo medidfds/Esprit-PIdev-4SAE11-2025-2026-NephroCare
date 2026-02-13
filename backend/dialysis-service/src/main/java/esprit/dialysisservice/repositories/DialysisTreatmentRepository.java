@@ -13,5 +13,4 @@ import java.util.UUID;
 public interface DialysisTreatmentRepository extends JpaRepository<DialysisTreatment, UUID> {
     // Find active plan for a specific patient
     List<DialysisTreatment> findByPatientId(UUID patientId);
-    Optional<DialysisTreatment> findByPatientIdAndStatus(UUID patientId, TreatmentStatus status);
 }

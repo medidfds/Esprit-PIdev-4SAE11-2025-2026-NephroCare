@@ -1,97 +1,157 @@
 package esprit.dialysisservice.services;
 
+import esprit.dialysisservice.dtos.request.DialysisSessionRequestDTO;
+import esprit.dialysisservice.dtos.response.DialysisSessionResponseDTO;
 import esprit.dialysisservice.entities.DialysisSession;
 import esprit.dialysisservice.entities.DialysisTreatment;
+import esprit.dialysisservice.entities.enums.TreatmentStatus;
+import esprit.dialysisservice.exceptions.EntityNotFoundException;
+import esprit.dialysisservice.mapper.DialysisMapper;
 import esprit.dialysisservice.repositories.DialysisSessionRepository;
 import esprit.dialysisservice.repositories.DialysisTreatmentRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j // For logging
 public class DialysisSessionServiceImpl implements IDialysisSessionService {
 
     private final DialysisSessionRepository sessionRepository;
     private final DialysisTreatmentRepository treatmentRepository;
+    private final DialysisMapper mapper;
 
     @Override
-    public DialysisSession startSession(UUID treatmentId, Double weightBefore, UUID nurseId) {
-        // We must fetch the parent Treatment first
-        DialysisTreatment treatment = treatmentRepository.findById(treatmentId)
-                .orElseThrow(() -> new RuntimeException("Treatment Plan not found"));
+    @Transactional
+    public DialysisSessionResponseDTO createSession(DialysisSessionRequestDTO dto) {
+        // 1. Verify Treatment Exists
+        DialysisTreatment treatment = treatmentRepository.findById(dto.getTreatmentId())
+                .orElseThrow(() -> new EntityNotFoundException("Treatment not found with ID: " + dto.getTreatmentId()));
 
-        DialysisSession session = DialysisSession.builder()
-                .treatment(treatment) // Link the session to the treatment
-                .nurseId(nurseId)
-                .weightBefore(weightBefore)
-                .sessionDate(LocalDateTime.now())
-                .build();
+        // 2. Business Rule: Can only start session if Treatment is ACTIVE
+        if (treatment.getStatus() != TreatmentStatus.ACTIVE) {
+            throw new IllegalStateException("Cannot start session. Treatment status is: " + treatment.getStatus());
+        }
 
-        return sessionRepository.save(session);
+        // 3. Map DTO to Entity
+        DialysisSession session = mapper.toEntity(dto);
+        session.setTreatment(treatment);
+        session.setSessionDate(LocalDateTime.now());
+
+        // 4. Save and Return
+        DialysisSession savedSession = sessionRepository.save(session);
+        log.info("Session created successfully for Treatment ID: {}", treatment.getId());
+
+        return mapper.toSessionResponse(savedSession);
     }
 
     @Override
-    public DialysisSession endSession(UUID sessionId, Double weightAfter) {
+    @Transactional
+    public DialysisSessionResponseDTO endSession(UUID sessionId, Double weightAfter, Double postDialysisUrea) {
         DialysisSession session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Session not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Session not found with ID: " + sessionId));
 
+        // 1. Set Physical Data
         session.setWeightAfter(weightAfter);
+        session.setPostDialysisUrea(postDialysisUrea);
 
-        // Simple Math (Level 1)
-        if (session.getWeightBefore() != null) {
-            session.setUltrafiltrationVolume(session.getWeightBefore() - weightAfter);
+        // 2. Automatic Calculations
+        calculateSessionMetrics(session);
+
+        return mapper.toSessionResponse(sessionRepository.save(session));
+    }
+
+    // Helper method for Math Logic
+    private void calculateSessionMetrics(DialysisSession session) {
+        Double weightBefore = session.getWeightBefore();
+        Double weightAfter = session.getWeightAfter();
+        Double preUrea = session.getPreDialysisUrea();
+        Double postUrea = session.getPostDialysisUrea();
+
+        // A. Ultrafiltration Volume Calculation (Weight Loss)
+        if (weightBefore != null && weightAfter != null) {
+            double uf = weightBefore - weightAfter;
+            session.setUltrafiltrationVolume(uf);
+            log.debug("Calculated UF Volume: {} kg", uf);
         }
 
-        return sessionRepository.save(session);
+        // B. Kt/V Calculation (Daugirdas Second Generation Formula)
+        // Kt/V = -ln(R - 0.008*t) + (4 - 3.5*R) * UF/W
+        // R = PostUrea / PreUrea
+        // t = duration in hours (We need to get this from Treatment)
+        if (preUrea != null && postUrea != null && preUrea > 0 && weightAfter != null) {
+
+            // Get duration from parent treatment (convert minutes to hours)
+            Double durationMinutes = (double) session.getTreatment().getPrescribedDurationMinutes();
+            if (durationMinutes == null) durationMinutes = 240.0; // Default fallback
+
+            double t = durationMinutes / 60.0;
+            double r = postUrea / preUrea;
+            double uf = session.getUltrafiltrationVolume() != null ? session.getUltrafiltrationVolume() : 0.0;
+            double w = weightAfter;
+
+            // Daugirdas Formula
+            double ktV = -Math.log(r - 0.008 * t) + (4.0 - 3.5 * r) * (uf / w);
+
+            // Round to 2 decimal places
+            session.setAchievedKtV(Math.round(ktV * 100.0) / 100.0);
+            log.info("Calculated Kt/V: {}", session.getAchievedKtV());
+        }
     }
 
     @Override
-    public List<DialysisSession> getSessionsByTreatment(UUID treatmentId) {
-        return sessionRepository.findByTreatmentId(treatmentId);
+    @Transactional
+    public DialysisSessionResponseDTO updateSession(UUID id, DialysisSessionRequestDTO dto) {
+        DialysisSession existing = sessionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Session not found"));
+
+        // Update allowed fields
+        existing.setWeightBefore(dto.getWeightBefore());
+        existing.setWeightAfter(dto.getWeightAfter());
+        existing.setPreBloodPressure(dto.getPreBloodPressure());
+        existing.setComplications(dto.getComplications());
+
+        // Re-calculate metrics if data changed
+        if (dto.getWeightBefore() != null && dto.getWeightAfter() != null) {
+            existing.setUltrafiltrationVolume(dto.getWeightBefore() - dto.getWeightAfter());
+        }
+
+        return mapper.toSessionResponse(sessionRepository.save(existing));
     }
+
     @Override
-    public DialysisSession getSessionById(UUID id) {
+    public List<DialysisSessionResponseDTO> getSessionsByTreatment(UUID treatmentId) {
+        return sessionRepository.findByTreatmentId(treatmentId)
+                .stream()
+                .map(mapper::toSessionResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public DialysisSessionResponseDTO getSessionById(UUID id) {
         return sessionRepository.findById(id)
+                .map(mapper::toSessionResponse)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
     }
 
     @Override
-    public DialysisSession updateSession(UUID id, DialysisSession sessionDetails) {
-        DialysisSession existingSession = getSessionById(id);
-
-        // Update editable fields (e.g. Nurse made a typo)
-        existingSession.setWeightBefore(sessionDetails.getWeightBefore());
-        existingSession.setWeightAfter(sessionDetails.getWeightAfter());
-        existingSession.setPreBloodPressure(sessionDetails.getPreBloodPressure());
-        existingSession.setComplications(sessionDetails.getComplications());
-
-        // If dates need correction
-        if(sessionDetails.getSessionDate() != null) {
-            existingSession.setSessionDate(sessionDetails.getSessionDate());
-        }
-
-        // Re-calculate Ultrafiltration if weights changed (Mini-Math logic)
-        if(existingSession.getWeightBefore() != null && existingSession.getWeightAfter() != null) {
-            existingSession.setUltrafiltrationVolume(
-                    existingSession.getWeightBefore() - existingSession.getWeightAfter()
-            );
-        }
-
-        return sessionRepository.save(existingSession);
+    public List<DialysisSessionResponseDTO> getAllSessions() {
+        return sessionRepository.findAll()
+                .stream()
+                .map(mapper::toSessionResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
     public void deleteSession(UUID id) {
-        if (!sessionRepository.existsById(id)) {
-            throw new RuntimeException("Session not found");
-        }
+        if (!sessionRepository.existsById(id)) throw new RuntimeException("Session not found");
         sessionRepository.deleteById(id);
-    }
-    @Override
-    public List<DialysisSession> getAllSessions() {
-        return sessionRepository.findAll();
     }
 }
