@@ -1,0 +1,203 @@
+<div class="clinical-container">
+  <!-- Success Alert -->
+  <div *ngIf="success" class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+    <i class="bi bi-check-circle me-2"></i>
+    {{ success }}
+    <button type="button" class="btn-close" (click)="success = null"></button>
+  </div>
+
+  <!-- Error Alert -->
+  <div *ngIf="error" class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+    <i class="bi bi-exclamation-circle me-2"></i>
+    {{ error }}
+    <button type="button" class="btn-close" (click)="error = null"></button>
+  </div>
+
+  <!-- Header Section -->
+  <div class="clinical-header mb-5">
+    <div class="row align-items-center">
+      <div class="col-md-8">
+        <h1 class="clinical-title mb-2">Clinical Consultations</h1>
+        <p class="clinical-subtitle text-muted">Manage and track patient consultations with care</p>
+      </div>
+      <div class="col-md-4 text-end">
+        <span class="badge bg-primary">{{ consultations.length }} Consultations</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form Section -->
+  <div class="card clinical-card mb-5 shadow-sm">
+    <div class="card-header bg-gradient">
+      <h5 class="mb-0">
+        <i class="bi bi-pencil-square me-2"></i>
+        {{ editingId != null ? 'Update Consultation' : 'New Consultation' }}
+      </h5>
+    </div>
+    <div class="card-body">
+      <form [formGroup]="form" (ngSubmit)="saveConsultation()">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="patientId" class="form-label">Patient ID</label>
+            <input
+              id="patientId"
+              type="number"
+              min="1"
+              class="form-control"
+              formControlName="patientId"
+              placeholder="Enter patient ID"
+            />
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label for="doctorId" class="form-label">Doctor ID</label>
+            <input
+              id="doctorId"
+              type="number"
+              min="1"
+              class="form-control"
+              formControlName="doctorId"
+              placeholder="Enter doctor ID"
+            />
+          </div>
+
+          <!-- Dates -->
+          <div class="col-md-6 mb-3">
+            <label for="consultationDate" class="form-label">Consultation Date</label>
+            <input
+              id="consultationDate"
+              type="datetime-local"
+              class="form-control"
+              formControlName="consultationDate"
+            />
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <label for="followUpDate" class="form-label">Follow-up Date</label>
+            <input
+              id="followUpDate"
+              type="date"
+              class="form-control"
+              formControlName="followUpDate"
+            />
+          </div>
+
+          <!-- Diagnosis and Treatment -->
+          <div class="col-12 mb-3">
+            <label for="diagnosis" class="form-label">Diagnosis</label>
+            <input
+              id="diagnosis"
+              type="text"
+              class="form-control"
+              placeholder="Enter diagnosis"
+              formControlName="diagnosis"
+            />
+          </div>
+
+          <div class="col-12 mb-3">
+            <label for="treatmentPlan" class="form-label">Treatment Plan</label>
+            <textarea
+              id="treatmentPlan"
+              class="form-control"
+              placeholder="Enter treatment plan"
+              formControlName="treatmentPlan"
+              rows="3"
+            ></textarea>
+          </div>
+
+          <!-- Status -->
+          <div class="col-md-6 mb-3">
+            <label for="status" class="form-label">Status</label>
+            <select id="status" class="form-select" formControlName="status">
+              <option value="">Select a status</option>
+              <option *ngFor="let status of statuses" [value]="status">
+                {{ status }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="form-actions mt-4 d-flex gap-2">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle me-2"></i>
+            {{ editingId != null ? 'Update' : 'Create' }}
+          </button>
+          <button
+            *ngIf="editingId != null"
+            type="button"
+            class="btn btn-secondary"
+            (click)="cancelEdit()"
+          >
+            <i class="bi bi-x-circle me-2"></i>Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Table Section -->
+  <div class="card clinical-card shadow-sm">
+    <div class="card-header bg-gradient">
+      <h5 class="mb-0">
+        <i class="bi bi-table me-2"></i>Consultations List
+      </h5>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="text-muted">Patient ID</th>
+              <th class="text-muted">Doctor ID</th>
+              <th class="text-muted">Diagnosis</th>
+              <th class="text-muted">Consultation Date</th>
+              <th class="text-muted">Status</th>
+              <th class="text-muted text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="consultations.length === 0">
+              <td colspan="6" class="text-center py-4 text-muted">
+                <i class="bi bi-inbox me-2"></i>No consultations found
+              </td>
+            </tr>
+            <tr *ngFor="let consultation of consultations">
+              <td>{{ consultation.patientId }}</td>
+              <td>{{ consultation.doctorId }}</td>
+              <td>
+                <span class="text-truncate d-inline-block" style="max-width: 200px;" [title]="consultation.diagnosis">
+                  {{ consultation.diagnosis }}
+                </span>
+              </td>
+              <td>{{ consultation.consultationDate | date: 'short' }}</td>
+              <td>
+                <span [ngClass]="getStatusBadgeClass(consultation.status)" class="badge">
+                  {{ consultation.status }}
+                </span>
+              </td>
+              <td>
+                <div class="action-buttons text-end">
+                  <button
+                    class="btn btn-sm btn-outline-primary me-2"
+                    (click)="editConsultation(consultation)"
+                    title="Edit"
+                  >
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button
+                    class="btn btn-sm btn-outline-danger"
+                    (click)="deleteConsultation(consultation.id)"
+                    title="Delete"
+                  >
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

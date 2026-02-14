@@ -1,16 +1,19 @@
 package esprit.clinicalservice.services.impl;
 
 import esprit.clinicalservice.entities.Consultation;
+import esprit.clinicalservice.exceptions.ResourceNotFoundException;
 import esprit.clinicalservice.repositories.ConsultationRepository;
 import esprit.clinicalservice.services.ConsultationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class ConsultationServiceImpl implements ConsultationService {
 
+    private static final Logger logger = LoggerFactory.getLogger(ConsultationServiceImpl.class);
     private final ConsultationRepository consultationRepository;
 
     public ConsultationServiceImpl(ConsultationRepository consultationRepository) {
@@ -19,25 +22,27 @@ public class ConsultationServiceImpl implements ConsultationService {
 
     @Override
     public Consultation create(Consultation consultation) {
+        logger.info("Creating consultation for patient: {}", consultation.getPatientId());
         return consultationRepository.save(consultation);
     }
 
     @Override
-    public Consultation update(UUID id, Consultation consultation) {
+    public Consultation update(Long id, Consultation consultation) {
         Consultation existing = getById(id);
         consultation.setId(existing.getId());
         return consultationRepository.save(consultation);
     }
 
     @Override
-    public void delete(UUID id) {
+    public void delete(Long id) {
         consultationRepository.deleteById(id);
     }
 
     @Override
-    public Consultation getById(UUID id) {
+    public Consultation getById(Long id) {
+        logger.info("Fetching consultation with id: {}", id);
         return consultationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Consultation not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Consultation not found with id: " + id));
     }
 
     @Override
@@ -46,12 +51,12 @@ public class ConsultationServiceImpl implements ConsultationService {
     }
 
     @Override
-    public List<Consultation> getByPatientId(UUID patientId) {
+    public List<Consultation> getByPatientId(Long patientId) {
         return consultationRepository.findByPatientId(patientId);
     }
 
     @Override
-    public List<Consultation> getByDoctorId(UUID doctorId) {
+    public List<Consultation> getByDoctorId(Long doctorId) {
         return consultationRepository.findByDoctorId(doctorId);
     }
 }

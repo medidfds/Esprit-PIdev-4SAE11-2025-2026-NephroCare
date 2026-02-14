@@ -5,15 +5,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.UUID;
 
 @Repository
-public interface ConsultationRepository extends JpaRepository<Consultation, UUID> {
+public interface ConsultationRepository extends JpaRepository<Consultation, Long> {
 
-    List<Consultation> findByPatientId(UUID patientId);
+    List<Consultation> findByPatientId(Long patientId);
 
-    List<Consultation> findByDoctorId(UUID doctorId);
+    List<Consultation> findByDoctorId(Long doctorId);
 
-    List<Consultation> findByMedicalHistoryId(UUID medicalHistoryId);
+    List<Consultation> findByMedicalHistoryId(Long medicalHistoryId);
 }
 

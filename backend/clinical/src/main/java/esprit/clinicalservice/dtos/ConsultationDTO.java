@@ -1,54 +1,44 @@
-package esprit.clinicalservice.entities;
+package esprit.clinicalservice.dtos;
 
 import esprit.clinicalservice.entities.enums.ConsultationStatus;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "consultations")
-public class Consultation {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
+public class ConsultationDTO {
     private Long id;
 
-    // Patient receiving the consultation (no User entity, just the ID)
-    @Column(name = "patient_id", nullable = false)
+    @NotNull(message = "Patient ID is required")
     private Long patientId;
 
-    // Doctor conducting the consultation (no User entity, just the ID)
-    @Column(name = "doctor_id", nullable = false)
+    @NotNull(message = "Doctor ID is required")
     private Long doctorId;
 
-    @ManyToOne
-    @JoinColumn(name = "medical_history_id")
-    private MedicalHistory medicalHistory;
+    private Long medicalHistoryId;
 
+    @NotNull(message = "Consultation date is required")
     private LocalDateTime consultationDate;
 
+    @NotBlank(message = "Diagnosis cannot be blank")
     private String diagnosis;
 
-    @Column(columnDefinition = "TEXT")
     private String treatmentPlan;
 
     private LocalDate followUpDate;
 
-    @Enumerated(EnumType.STRING)
+    @NotNull(message = "Status is required")
     private ConsultationStatus status;
 
-    public Consultation() {
+    public ConsultationDTO() {
+    }
+
+    public ConsultationDTO(Long patientId, Long doctorId, LocalDateTime consultationDate, String diagnosis) {
+        this.patientId = patientId;
+        this.doctorId = doctorId;
+        this.consultationDate = consultationDate;
+        this.diagnosis = diagnosis;
     }
 
     public Long getId() {
@@ -75,12 +65,12 @@ public class Consultation {
         this.doctorId = doctorId;
     }
 
-    public MedicalHistory getMedicalHistory() {
-        return medicalHistory;
+    public Long getMedicalHistoryId() {
+        return medicalHistoryId;
     }
 
-    public void setMedicalHistory(MedicalHistory medicalHistory) {
-        this.medicalHistory = medicalHistory;
+    public void setMedicalHistoryId(Long medicalHistoryId) {
+        this.medicalHistoryId = medicalHistoryId;
     }
 
     public LocalDateTime getConsultationDate() {

@@ -1,41 +1,28 @@
-package esprit.clinicalservice.entities;
+package esprit.clinicalservice.dtos;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 
-@Entity
-@Table(name = "medical_histories")
-public class MedicalHistory {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
+public class MedicalHistoryDTO {
     private Long id;
 
-    // Direct reference to user identifier (no User entity)
-    @Column(name = "user_id", nullable = false, unique = true)
+    @NotNull(message = "User ID is required")
     private Long userId;
 
-    @Column(columnDefinition = "TEXT")
     private String diagnosis;
 
-    @Column(columnDefinition = "TEXT")
     private String allergies;
 
-    @Column(name = "chronic_conditions", columnDefinition = "TEXT")
     private String chronicConditions;
 
-    @Column(name = "family_history", columnDefinition = "TEXT")
     private String familyHistory;
 
-    @Column(columnDefinition = "TEXT")
     private String notes;
 
-    public MedicalHistory() {
+    public MedicalHistoryDTO() {
+    }
+
+    public MedicalHistoryDTO(Long userId) {
+        this.userId = userId;
     }
 
     public Long getId() {

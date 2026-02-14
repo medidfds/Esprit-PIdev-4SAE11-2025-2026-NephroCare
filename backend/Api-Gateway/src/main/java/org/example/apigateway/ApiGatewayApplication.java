@@ -47,6 +47,13 @@ public class ApiGatewayApplication {
 						.uri("lb://diagnostic-service") // Eureka service name (lowercase)
 				)
 
+				// Clinical Service
+				.route("clinical-service", r -> r
+						.path("/clinical/**")
+						.filters(f -> f.stripPrefix(1))
+						.uri("lb://clinical-service")
+				)
+
 				.build();
 	}
 
