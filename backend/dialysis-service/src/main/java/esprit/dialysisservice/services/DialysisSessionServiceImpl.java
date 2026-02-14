@@ -54,15 +54,18 @@ public class DialysisSessionServiceImpl implements IDialysisSessionService {
 
     @Override
     @Transactional
-    public DialysisSessionResponseDTO endSession(UUID sessionId, Double weightAfter, Double postDialysisUrea) {
+    public DialysisSessionResponseDTO endSession(UUID sessionId, Double weightAfter, Double postDialysisUrea, Double preDialysisUrea) {
         DialysisSession session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new EntityNotFoundException("Session not found with ID: " + sessionId));
+                .orElseThrow(() -> new EntityNotFoundException("Session not found"));
 
-        // 1. Set Physical Data
         session.setWeightAfter(weightAfter);
         session.setPostDialysisUrea(postDialysisUrea);
 
-        // 2. Automatic Calculations
+        // Set Pre-Urea if provided (essential for Kt/V)
+        if (preDialysisUrea != null) {
+            session.setPreDialysisUrea(preDialysisUrea);
+        }
+
         calculateSessionMetrics(session);
 
         return mapper.toSessionResponse(sessionRepository.save(session));
@@ -153,5 +156,39 @@ public class DialysisSessionServiceImpl implements IDialysisSessionService {
     public void deleteSession(UUID id) {
         if (!sessionRepository.existsById(id)) throw new RuntimeException("Session not found");
         sessionRepository.deleteById(id);
+    }
+    @Override
+    public List<DialysisSessionResponseDTO> getPatientHistory(UUID patientId) {
+        // This finds all sessions by looking up the PatientID in the parent Treatment table
+        // You need to add this method to your SessionRepository (see step 3 below)
+        return sessionRepository.findByTreatmentPatientId(patientId)
+                .stream()
+                .map(mapper::toSessionResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public Double calculateAverageKtV(UUID treatmentId) {
+        // Get all sessions for this treatment
+        List<DialysisSession> sessions = sessionRepository.findByTreatmentId(treatmentId);
+
+        // Filter only sessions where Kt/V was actually calculated (not null)
+        double avg = sessions.stream()
+                .filter(s -> s.getAchievedKtV() != null)
+                .mapToDouble(DialysisSession::getAchievedKtV)
+                .average()
+                .orElse(0.0); // Return 0.0 if no data
+
+        return Math.round(avg * 100.0) / 100.0; // Round to 2 decimals
+    }
+    // NEW: Add a method to check if treatment is adequate
+    public String getDialysisAdequacyStatus(UUID treatmentId) {
+        Double avgKtV = calculateAverageKtV(treatmentId);
+
+        if (avgKtV >= 1.2) {
+            return "ADEQUATE (Avg Kt/V: " + avgKtV + ")";
+        } else {
+            return "INSUFFICIENT (Avg Kt/V: " + avgKtV + ") - Review Prescription";
+        }
     }
 }

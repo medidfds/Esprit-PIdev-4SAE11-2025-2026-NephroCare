@@ -107,4 +107,16 @@ public class DialysisTreatmentController {
         treatmentService.deleteTreatment(id);
         return ResponseEntity.noContent().build();
     }
+    @PatchMapping("/{id}/suspend")
+    public ResponseEntity<DialysisTreatmentResponseDTO> suspendTreatment(
+            @PathVariable UUID id,
+            @RequestParam String reason) {
+        return ResponseEntity.ok(treatmentService.suspendTreatment(id, reason));
+    }
+
+    @PatchMapping("/{id}/archive")
+    public ResponseEntity<DialysisTreatmentResponseDTO> archiveTreatment(
+            @PathVariable UUID id) {
+        return ResponseEntity.ok(treatmentService.archiveTreatment(id));
+    }
 }

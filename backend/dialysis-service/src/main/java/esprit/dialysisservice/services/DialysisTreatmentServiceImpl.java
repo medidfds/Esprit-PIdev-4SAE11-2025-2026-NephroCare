@@ -7,6 +7,7 @@ import esprit.dialysisservice.entities.enums.TreatmentStatus;
 import esprit.dialysisservice.exceptions.EntityNotFoundException;
 import esprit.dialysisservice.mapper.DialysisMapper;
 import esprit.dialysisservice.repositories.DialysisTreatmentRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -110,5 +111,29 @@ public class DialysisTreatmentServiceImpl implements IDialysisTreatmentService {
             throw new RuntimeException("Treatment not found");
 
         treatmentRepository.deleteById(id);
+    }
+    @Override
+    @Transactional
+    public DialysisTreatmentResponseDTO suspendTreatment(UUID id, String reason) {
+        DialysisTreatment treatment = treatmentRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Treatment not found"));
+
+        if (treatment.getStatus() != TreatmentStatus.ACTIVE) {
+            throw new IllegalStateException("Only ACTIVE treatments can be suspended.");
+        }
+
+        treatment.setStatus(TreatmentStatus.SUSPENDED);
+        // In a real app, you would save the 'reason' in a separate table or audit log
+        return mapper.toResponse(treatmentRepository.save(treatment));
+    }
+
+    @Override
+    @Transactional
+    public DialysisTreatmentResponseDTO archiveTreatment(UUID id) {
+        DialysisTreatment treatment = treatmentRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Treatment not found"));
+
+        treatment.setStatus(TreatmentStatus.ARCHIVED);
+        return mapper.toResponse(treatmentRepository.save(treatment));
     }
 }

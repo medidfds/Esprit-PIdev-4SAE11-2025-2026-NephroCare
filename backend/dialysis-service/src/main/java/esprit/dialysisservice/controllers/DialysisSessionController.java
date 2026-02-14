@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -31,8 +32,10 @@ public class DialysisSessionController {
     public ResponseEntity<DialysisSessionResponseDTO> endSession(
             @PathVariable UUID id,
             @RequestParam Double weightAfter,
-            @RequestParam Double postDialysisUrea) {
-        return ResponseEntity.ok(sessionService.endSession(id, weightAfter, postDialysisUrea));
+            @RequestParam Double postDialysisUrea,
+            @RequestParam(required = false) Double preDialysisUrea) { // Add this
+
+        return ResponseEntity.ok(sessionService.endSession(id, weightAfter, postDialysisUrea, preDialysisUrea));
     }
 
     // 3. Update Session (Correction)
@@ -63,5 +66,19 @@ public class DialysisSessionController {
     public ResponseEntity<Void> delete(@PathVariable UUID id) {
         sessionService.deleteSession(id);
         return ResponseEntity.noContent().build();
+    }
+    // Analytics: Patient History
+    @GetMapping("/patient/{patientId}/history")
+    public ResponseEntity<List<DialysisSessionResponseDTO>> getPatientHistory(
+            @PathVariable UUID patientId) {
+        return ResponseEntity.ok(sessionService.getPatientHistory(patientId));
+    }
+
+    // Analytics: Average Kt/V
+    @GetMapping("/treatment/{treatmentId}/ktv-average")
+    public ResponseEntity<Map<String, Double>> getAverageKtV(
+            @PathVariable UUID treatmentId) {
+        Double avg = sessionService.calculateAverageKtV(treatmentId);
+        return ResponseEntity.ok(Map.of("averageKtV", avg));
     }
 }

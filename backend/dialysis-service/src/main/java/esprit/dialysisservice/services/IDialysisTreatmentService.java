@@ -20,4 +20,6 @@ public interface IDialysisTreatmentService {
     List<DialysisTreatmentResponseDTO> getTreatmentsByPatient(UUID patientId);
 
     void deleteTreatment(UUID id);
+    DialysisTreatmentResponseDTO suspendTreatment(UUID id, String reason);
+    DialysisTreatmentResponseDTO archiveTreatment(UUID id);
 }

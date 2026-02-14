@@ -13,8 +13,7 @@ public interface IDialysisSessionService {
     DialysisSessionResponseDTO createSession(DialysisSessionRequestDTO dto);
 
     // specific method for ending a session (calculations happen here)
-    DialysisSessionResponseDTO endSession(UUID sessionId, Double weightAfter, Double postDialysisUrea);
-
+    DialysisSessionResponseDTO endSession(UUID sessionId, Double weightAfter, Double postDialysisUrea, Double preDialysisUrea);
     DialysisSessionResponseDTO updateSession(UUID id, DialysisSessionRequestDTO dto);
 
     DialysisSessionResponseDTO getSessionById(UUID id);
@@ -24,4 +23,9 @@ public interface IDialysisSessionService {
     List<DialysisSessionResponseDTO> getAllSessions();
 
     void deleteSession(UUID id);
+    // Analytics: Get all sessions for a patient (cross-treatment)
+    List<DialysisSessionResponseDTO> getPatientHistory(UUID patientId);
+
+    // Analytics: Calculate Average Kt/V for a specific treatment
+    Double calculateAverageKtV(UUID treatmentId);
 }
