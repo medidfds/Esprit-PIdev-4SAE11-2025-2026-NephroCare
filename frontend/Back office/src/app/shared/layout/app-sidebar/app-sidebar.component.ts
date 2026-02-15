@@ -33,6 +33,7 @@ export class AppSidebarComponent {
       name: "Dashboard",
       subItems: [
         { name: "Ecommerce", path: "/" },
+        { name: "Dialysis Management", path: "/dialysis/treatments" }
       ],
     },
     {

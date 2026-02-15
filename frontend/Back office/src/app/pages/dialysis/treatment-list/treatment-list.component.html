@@ -1,0 +1,175 @@
+<!-- PAGE CONTAINER -->
+<div class="grid grid-cols-1 gap-9">
+
+    <!-- CARD COMPONENT -->
+    <div class="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
+
+        <!-- CARD HEADER -->
+        <div class="border-b border-stroke py-4 px-6.5 dark:border-strokedark flex justify-between items-center">
+            <h3 class="font-medium text-black dark:text-white">Dialysis Treatments</h3>
+
+            <!-- ADD BUTTON (TailAdmin Primary Style) -->
+            <button (click)="openAddModal()" class="inline-flex items-center justify-center rounded-md bg-primary py-2 px-6 text-center font-medium text-white hover:bg-opacity-90 lg:px-8">
+        <span class="mr-2">
+           <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none">
+             <path d="M15 7H9V1C9 0.4 8.6 0 8 0C7.4 0 7 0.4 7 1V7H1C0.4 7 0 7.4 0 8C0 8.6 0.4 9 1 9H7V15C7 15.6 7.4 16 8 16C8.6 16 9 15.6 9 15V9H15C15.6 9 16 8.6 16 8C16 7.4 15.6 7 15 7Z" fill="black"/>
+           </svg>
+        </span>
+                Add Treatment
+            </button>
+        </div>
+
+        <!-- CARD BODY (Table) -->
+        <div class="max-w-full overflow-x-auto p-6">
+            <table class="w-full table-auto">
+                <thead>
+                <tr class="bg-gray-2 text-left dark:bg-meta-4">
+                    <th class="min-w-[60px] py-4 px-4 font-medium text-black dark:text-white">ID</th>
+                    <th class="min-w-[120px] py-4 px-4 font-medium text-black dark:text-white">Patient</th>
+                    <th class="py-4 px-4 font-medium text-black dark:text-white">Type</th>
+                    <th class="py-4 px-4 font-medium text-black dark:text-white">Status</th>
+                    <th class="py-4 px-4 font-medium text-black dark:text-white">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr *ngFor="let t of treatments" class="border-b border-[#eee] dark:border-strokedark">
+                    <td class="py-5 px-4">
+                        <p class="text-black dark:text-white text-sm">{{ t.id | slice:0:5 }}...</p>
+                    </td>
+                    <td class="py-5 px-4">
+                        <h5 class="font-medium text-black dark:text-white">{{ t.patientId | slice:0:8 }}...</h5>
+                    </td>
+                    <td class="py-5 px-4">
+                        <p class="text-black dark:text-white">{{ t.dialysisType }}</p>
+                        <p class="text-sm text-body-color">{{ t.frequencyPerWeek }}x / week</p>
+                    </td>
+                    <td class="py-5 px-4">
+              <span class="inline-flex rounded-full py-1 px-3 text-sm font-medium"
+                    [ngClass]="{
+                      'bg-success text-white': t.status === 'ACTIVE',
+                      'bg-warning text-white': t.status === 'SUSPENDED',
+                      'bg-danger text-white': t.status === 'ARCHIVED'
+                    }">
+                {{ t.status }}
+              </span>
+                    </td>
+                    <td class="py-5 px-4">
+                        <div class="flex items-center space-x-3.5">
+                            <!-- View Sessions Button -->
+                            <button (click)="viewSessions(t.id)" class="hover:text-primary">
+                                <svg class="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none">
+                                    <path d="M9 0.5C4.5 0.5 0.5 4.5 0.5 9C0.5 13.5 4.5 17.5 9 17.5C13.5 17.5 17.5 13.5 17.5 9C17.5 4.5 13.5 0.5 9 0.5ZM9 15.5C5.6 15.5 2.5 12.4 2.5 9C2.5 5.6 5.6 2.5 9 2.5C12.4 2.5 15.5 5.6 15.5 9C15.5 12.4 12.4 15.5 9 15.5Z" fill=""/>
+                                    <circle cx="9" cy="9" r="3" fill=""/>
+                                </svg>
+                            </button>
+
+                            <!-- Edit Button -->
+                            <button (click)="openEditModal(t)" class="hover:text-primary">
+                                <svg class="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none">
+                                    <path d="M16.8 4.8L13.2 1.2C12.9 0.9 12.5 0.9 12.2 1.2L1.5 11.9C1.4 12 1.3 12.2 1.3 12.4V16C1.3 16.6 1.8 17 2.3 17H6C6.2 17 6.4 16.9 6.5 16.8L17.2 6.1C17.5 5.8 17.5 5.2 17.2 4.9L16.8 4.8ZM5.8 15.5H2.8V12.5L12 3.3L15 6.3L5.8 15.5Z" fill=""/>
+                                </svg>
+                            </button>
+
+                            <!-- Delete Button -->
+                            <button (click)="deleteTreatment(t.id)" class="hover:text-danger">
+                                <svg class="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none">
+                                    <path d="M14.5 3H11.5V2C11.5 1.4 11.1 1 10.5 1H7.5C6.9 1 6.5 1.4 6.5 2V3H3.5C3.2 3 3 3.2 3 3.5C3 3.8 3.2 4 3.5 4H4.3V15C4.3 16.1 5.2 17 6.3 17H11.8C12.9 17 13.8 16.1 13.8 15V4H14.5C14.8 4 15 3.8 15 3.5C15 3.2 14.8 3 14.5 3ZM7.5 2H10.5V3H7.5V2ZM12.8 15C12.8 15.6 12.4 16 11.8 16H6.3C5.7 16 5.3 15.6 5.3 15V4H12.8V15Z" fill=""/>
+                                </svg>
+                            </button>
+
+                            <!-- Suspend Button (Conditional) -->
+                            <button *ngIf="t.status === 'ACTIVE'" (click)="suspendTreatment(t.id)" class="hover:text-warning">
+                                <svg class="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none">
+                                    <path d="M9 0.5C4.3 0.5 0.5 4.3 0.5 9C0.5 13.7 4.3 17.5 9 17.5C13.7 17.5 17.5 13.7 17.5 9C17.5 4.3 13.7 0.5 9 0.5ZM9 16.5C4.9 16.5 1.5 13.1 1.5 9C1.5 4.9 4.9 1.5 9 1.5C13.1 1.5 16.5 4.9 16.5 9C16.5 13.1 13.1 16.5 9 16.5Z" fill=""/>
+                                    <path d="M12.5 8.5H5.5C5.2 8.5 5 8.7 5 9C5 9.3 5.2 9.5 5.5 9.5H12.5C12.8 9.5 13 9.3 13 9C13 8.7 12.8 8.5 12.5 8.5Z" fill=""/>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL COMPONENT (TailAdmin Style) -->
+<div *ngIf="isModalOpen" class="fixed inset-0 z-999 flex items-center justify-center bg-black bg-opacity-50 p-4">
+    <div class="w-full max-w-142.5 rounded-lg border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark overflow-hidden">
+
+        <!-- Modal Header -->
+        <div class="border-b border-stroke py-4 px-6.5 dark:border-strokedark flex justify-between items-center">
+            <h3 class="font-medium text-black dark:text-white">
+                {{ modalMode === 'add' ? 'Add New Treatment' : 'Edit Treatment' }}
+            </h3>
+            <button (click)="closeModal()" class="text-gray-500 hover:text-black dark:hover:text-white">
+                <svg class="fill-current" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M6 6L18 18M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="p-6.5">
+            <form (ngSubmit)="onSubmit()">
+
+                <div class="mb-4.5 flex gap-4">
+                    <div class="w-1/2">
+                        <label class="mb-2.5 block text-black dark:text-white">Patient ID</label>
+                        <input type="text" [(ngModel)]="formData.patientId" name="patientId" required
+                               class="w-full rounded border-[1.5px] border-stroke bg-transparent py-3 px-5 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary">
+                    </div>
+                    <div class="w-1/2">
+                        <label class="mb-2.5 block text-black dark:text-white">Doctor ID</label>
+                        <input type="text" [(ngModel)]="formData.doctorId" name="doctorId" required
+                               class="w-full rounded border-[1.5px] border-stroke bg-transparent py-3 px-5 font-medium outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary">
+                    </div>
+                </div>
+
+                <div class="mb-4.5 flex gap-4">
+                    <div class="w-1/2">
+                        <label class="mb-2.5 block text-black dark:text-white">Dialysis Type</label>
+                        <select [(ngModel)]="formData.dialysisType" name="dialysisType" required
+                                class="w-full rounded border-[1.5px] border-stroke bg-transparent py-3 px-5 font-medium outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary">
+                            <option value="HEMODIALYSIS">Hemodialysis</option>
+                            <option value="PERITONEAL">Peritoneal</option>
+                        </select>
+                    </div>
+                    <div class="w-1/2">
+                        <label class="mb-2.5 block text-black dark:text-white">Vascular Access</label>
+                        <select [(ngModel)]="formData.vascularAccessType" name="vascularAccessType" required
+                                class="w-full rounded border-[1.5px] border-stroke bg-transparent py-3 px-5 font-medium outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary">
+                            <option value="AV_FISTULA">AV Fistula</option>
+                            <option value="GRAFT">Graft</option>
+                            <option value="CATHETER">Catheter</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-4.5 flex gap-4">
+                    <div class="w-1/2">
+                        <label class="mb-2.5 block text-black dark:text-white">Frequency (Week)</label>
+                        <input type="number" [(ngModel)]="formData.frequencyPerWeek" name="frequencyPerWeek" required min="1" max="7"
+                               class="w-full rounded border-[1.5px] border-stroke bg-transparent py-3 px-5 font-medium outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary">
+                    </div>
+                    <div class="w-1/2">
+                        <label class="mb-2.5 block text-black dark:text-white">Duration (Minutes)</label>
+                        <input type="number" [(ngModel)]="formData.prescribedDurationMinutes" name="prescribedDurationMinutes" required
+                               class="w-full rounded border-[1.5px] border-stroke bg-transparent py-3 px-5 font-medium outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary">
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="mb-2.5 block text-black dark:text-white">Target Dry Weight (kg)</label>
+                    <input type="number" [(ngModel)]="formData.targetDryWeight" name="targetDryWeight" required step="0.1"
+                           class="w-full rounded border-[1.5px] border-stroke bg-transparent py-3 px-5 font-medium outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary">
+                </div>
+
+                <button type="submit" class="flex w-full justify-center rounded bg-primary p-3 font-medium text-white hover:bg-opacity-90">
+                    {{ modalMode === 'add' ? 'Save Treatment' : 'Update Treatment' }}
+                </button>
+
+            </form>
+        </div>
+    </div>
+</div>

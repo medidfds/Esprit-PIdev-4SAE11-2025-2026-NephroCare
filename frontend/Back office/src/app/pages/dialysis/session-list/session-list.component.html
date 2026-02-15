@@ -1,0 +1,106 @@
+<div class="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
+    <!-- Card Header -->
+    <div class="border-b border-stroke py-4 px-6.5 dark:border-strokedark">
+        <h3 class="font-medium text-black dark:text-white">
+            Sessions for Treatment: <span class="text-primary">{{ treatmentId | slice:0:8 }}...</span>
+        </h3>
+    </div>
+
+    <!-- Card Body -->
+    <div class="max-w-full overflow-x-auto p-6">
+        <table class="w-full table-auto">
+            <thead>
+            <tr class="bg-gray-2 text-left dark:bg-meta-4">
+                <th class="py-4 px-4 font-medium text-black dark:text-white">Weight (Before)</th>
+                <th class="py-4 px-4 font-medium text-black dark:text-white">Weight (After)</th>
+                <th class="py-4 px-4 font-medium text-black dark:text-white">UF Volume</th>
+                <th class="py-4 px-4 font-medium text-black dark:text-white">Status</th>
+                <th class="py-4 px-4 font-medium text-black dark:text-white">Action</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let s of sessions" class="border-b border-[#eee] dark:border-strokedark">
+                <!-- Weight Before -->
+                <td class="py-5 px-4">
+                    <p class="text-black dark:text-white">{{ s.weightBefore }} kg</p>
+                </td>
+
+                <!-- Weight After -->
+                <td class="py-5 px-4">
+                    <p class="text-black dark:text-white">{{ s.weightAfter || '-' }} kg</p>
+                </td>
+
+                <!-- UF Volume -->
+                <td class="py-5 px-4">
+                    <p class="text-black dark:text-white">{{ s.ultrafiltrationVolume || '-' }} L</p>
+                </td>
+
+                <!-- Status -->
+                <td class="py-5 px-4">
+            <span *ngIf="s.weightAfter === null" class="inline-flex rounded-full bg-warning py-1 px-3 text-sm font-medium text-white">
+              In Progress
+            </span>
+                    <span *ngIf="s.weightAfter !== null" class="inline-flex rounded-full bg-success py-1 px-3 text-sm font-medium text-white">
+              Completed
+            </span>
+                </td>
+
+                <!-- Actions -->
+                <td class="py-5 px-4">
+                    <button (click)="openEndModal(s)" [disabled]="s.weightAfter !== null"
+                            class="inline-flex items-center justify-center rounded-md bg-success py-2 px-4 text-center font-medium text-white hover:bg-opacity-90 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                        End Session
+                    </button>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL: End Session (TailAdmin Style) -->
+<div *ngIf="isModalOpen" class="fixed inset-0 z-999 flex items-center justify-center bg-black bg-opacity-50 p-4">
+    <div class="w-full max-w-xl rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
+
+        <!-- Modal Header -->
+        <div class="border-b border-stroke py-4 px-6.5 dark:border-strokedark flex justify-between items-center">
+            <h3 class="font-medium text-black dark:text-white">End Session & Calculate Kt/V</h3>
+            <button (click)="isModalOpen = false" class="text-gray-500 hover:text-black dark:hover:text-white">
+                <svg class="fill-current" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M6 6L18 18M6 18L18 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="p-6.5">
+
+            <!-- Input: Weight After -->
+            <div class="mb-4.5">
+                <label class="mb-2.5 block text-black dark:text-white">Weight After (kg)</label>
+                <input type="number" [(ngModel)]="weightAfter"
+                       class="w-full rounded border-[1.5px] border-stroke bg-transparent py-3 px-5 font-medium outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary">
+            </div>
+
+            <!-- Input: Pre Urea -->
+            <div class="mb-4.5">
+                <label class="mb-2.5 block text-black dark:text-white">Pre-Dialysis Urea (mg/dL)</label>
+                <input type="number" [(ngModel)]="preUrea"
+                       class="w-full rounded border-[1.5px] border-stroke bg-transparent py-3 px-5 font-medium outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary">
+            </div>
+
+            <!-- Input: Post Urea -->
+            <div class="mb-4.5">
+                <label class="mb-2.5 block text-black dark:text-white">Post-Dialysis Urea (mg/dL)</label>
+                <input type="number" [(ngModel)]="postUrea"
+                       class="w-full rounded border-[1.5px] border-stroke bg-transparent py-3 px-5 font-medium outline-none transition focus:border-primary active:border-primary dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary">
+            </div>
+
+            <button (click)="submitEndSession()"
+                    class="flex w-full justify-center rounded bg-primary p-3 font-medium text-white hover:bg-opacity-90">
+                Save & Calculate
+            </button>
+
+        </div>
+    </div>
+</div>
