@@ -1,10 +1,7 @@
 package org.example.hospitalizationservice.entities;
 
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,9 +13,11 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class VitalSigns {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     private LocalDateTime recordDate;
     private Float temperature;
     private String bloodPressure;
@@ -26,6 +25,11 @@ public class VitalSigns {
     private Integer respiratoryRate;
     private Float oxygenSaturation;
     private String notes;
-    private String hospitalizationId;
     private String recordedBy;
+
+    // Many VitalSigns belong to one Hospitalization
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hospitalization_id")
+    @JsonBackReference // Helps avoid infinite recursion in JSON
+    private Hospitalization hospitalization;
 }

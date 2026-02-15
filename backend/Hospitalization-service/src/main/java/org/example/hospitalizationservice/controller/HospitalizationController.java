@@ -20,7 +20,7 @@ public class HospitalizationController {
     }
 
     @GetMapping("/{id}")
-    public Hospitalization getById(@PathVariable Long id) { // <-- Long
+    public Hospitalization getById(@PathVariable Long id) {
         return service.findById(id);
     }
 
@@ -29,8 +29,14 @@ public class HospitalizationController {
         return service.save(hospitalization);
     }
 
+    @PutMapping("/{id}")
+    public Hospitalization update(@PathVariable Long id, @RequestBody Hospitalization hospitalization) {
+        hospitalization.setId(id);
+        return service.save(hospitalization);
+    }
+
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) { // <-- Long
+    public void delete(@PathVariable Long id) {
         service.deleteById(id);
     }
 }

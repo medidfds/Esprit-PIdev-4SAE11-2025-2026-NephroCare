@@ -1,0 +1,191 @@
+<div class="container-fluid py-5">
+  <div class="container">
+
+    <div class="text-center mx-auto mb-5" style="max-width: 500px;">
+      <h5 class="d-inline-block text-primary text-uppercase border-bottom border-5">
+        Patient Management
+      </h5>
+      <h1 class="display-4">Hospitalization Records</h1>
+    </div>
+
+    <!-- ================= FORM ================= -->
+    <div class="row justify-content-center mb-5">
+      <div class="col-lg-10">
+        <div class="bg-light rounded p-5">
+
+          <h3 class="mb-4 text-primary">
+            {{ editingId ? 'Edit' : 'Add' }} Hospitalization
+          </h3>
+
+          <form [formGroup]="form" (ngSubmit)="save()">
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Admission Date</label>
+                <input type="datetime-local"
+                       class="form-control bg-white border-0"
+                       formControlName="admissionDate">
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Discharge Date</label>
+                <input type="datetime-local"
+                       class="form-control bg-white border-0"
+                       formControlName="dischargeDate">
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Room Number</label>
+                <input type="text"
+                       class="form-control bg-white border-0"
+                       formControlName="roomNumber">
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-bold">Admission Reason</label>
+                <input type="text"
+                       class="form-control bg-white border-0"
+                       formControlName="admissionReason">
+              </div>
+            </div>
+
+            <div class="row g-3 mb-4">
+
+              <div class="col-md-4">
+                <label class="form-label fw-bold">Status</label>
+                <select class="form-select bg-white border-0"
+                        formControlName="status">
+                  <option value="">Select Status</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="DISCHARGED">Discharged</option>
+                  <option value="TRANSFERRED">Transferred</option>
+                </select>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label fw-bold">Patient ID</label>
+                <input type="number"
+                       class="form-control bg-white border-0"
+                       formControlName="userId">
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label fw-bold">Attending Doctor ID</label>
+                <input type="number"
+                       class="form-control bg-white border-0"
+                       formControlName="attendingDoctorId">
+              </div>
+
+            </div>
+
+            <div class="d-flex gap-2">
+              <button type="submit"
+                      class="btn btn-primary rounded-pill py-3 px-5">
+                {{ editingId ? 'Update' : 'Save' }}
+              </button>
+
+              <button type="button"
+                      class="btn btn-outline-primary rounded-pill py-3 px-5"
+                      (click)="cancel()">
+                Cancel
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= TABLE ================= -->
+    <div class="row">
+      <div class="col-12">
+        <div class="bg-light rounded p-4">
+
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="text-primary mb-0">Current Hospitalizations</h3>
+
+            <!-- ✅ FIXED SEARCH -->
+            <div class="input-group" style="max-width: 300px;">
+              <input type="text"
+                     class="form-control"
+                     placeholder="Search..."
+                     [(ngModel)]="searchTerm"
+                     (input)="filterHospitalizations()"
+                     name="search"
+                     [ngModelOptions]="{standalone: true}">
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0">
+
+              <thead class="table-primary">
+              <tr>
+                <th>ID</th>
+                <th>Admission Date</th>
+                <th>Discharge Date</th>
+                <th>Room</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Patient ID</th>
+                <th>Doctor ID</th>
+                <th class="text-center">Actions</th>
+              </tr>
+              </thead>
+
+              <tbody>
+
+              <!-- ✅ SAFE LOOP -->
+              <tr *ngFor="let h of filteredHospitalizations">
+
+                <td>{{ h.id }}</td>
+
+                <td>
+                  {{ h.admissionDate ? (h.admissionDate | date:'yyyy-MM-dd HH:mm') : '-' }}
+                </td>
+
+                <td>
+                  {{ h.dischargeDate ? (h.dischargeDate | date:'yyyy-MM-dd HH:mm') : '-' }}
+                </td>
+
+                <td>{{ h.roomNumber }}</td>
+                <td>{{ h.admissionReason }}</td>
+                <td>{{ h.status }}</td>
+                <td>{{ h.userId }}</td>
+                <td>{{ h.attendingDoctorId }}</td>
+
+                <td class="text-center">
+                  <button class="btn btn-sm btn-warning me-1"
+                          (click)="edit(h)">
+                    Edit
+                  </button>
+
+                  <button class="btn btn-sm btn-danger"
+                          (click)="delete(h.id)">
+                    Delete
+                  </button>
+                </td>
+
+              </tr>
+
+              <!-- ✅ EMPTY STATE -->
+              <tr *ngIf="filteredHospitalizations.length === 0">
+                <td colspan="9"
+                    class="text-center text-muted">
+                  No hospitalizations found.
+                </td>
+              </tr>
+
+              </tbody>
+
+            </table>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

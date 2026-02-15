@@ -3,6 +3,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { HomeComponent } from './home/home.component';
 import { AuthGuard } from './guards/auth-guard';
 import {DiagnosticComponent} from './diagnostic/diagnostic.component';
+import {HospitalizationComponent} from './hospitalization/hospitalization.component';
 
 
 
@@ -17,12 +18,12 @@ const routes: Routes = [
     component: DiagnosticComponent
   },
   {
-    path: '**',
-    redirectTo: ''
+    path: 'hospitalization',
+    component: HospitalizationComponent
   },
   {
-    path: 'diagnostic',
-    component: DiagnosticComponent
+    path: '**',
+    redirectTo: ''
   }
 
 ];

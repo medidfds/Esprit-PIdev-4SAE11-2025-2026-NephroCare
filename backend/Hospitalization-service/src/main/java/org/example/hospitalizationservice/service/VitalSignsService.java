@@ -17,7 +17,7 @@ public class VitalSignsService {
         return repository.findAll();
     }
 
-    public VitalSigns findById(String id) {
+    public VitalSigns findById(Long id) {
         return repository.findById(id).orElse(null);
     }
 
@@ -25,7 +25,7 @@ public class VitalSignsService {
         return repository.save(vitalSigns);
     }
 
-    public void deleteById(String id) {
+    public void deleteById(Long id) {
         repository.deleteById(id);
     }
 }

@@ -9,10 +9,12 @@ import { HomeComponent } from './home/home.component';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { ReactiveFormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 
 import { KeycloakAngularModule, KeycloakService } from 'keycloak-angular';
 import keycloakConfig from './keycloak.config';
 import { DiagnosticComponent } from './diagnostic/diagnostic.component';
+import { HospitalizationComponent } from './hospitalization/hospitalization.component';
 
 
 function initializeKeycloak(keycloak: KeycloakService) {
@@ -32,9 +34,11 @@ function initializeKeycloak(keycloak: KeycloakService) {
     NavbarComponent,
     FooterComponent,
     HomeComponent,
-    DiagnosticComponent
+    DiagnosticComponent,
+    HospitalizationComponent
   ],
   imports: [
+    CommonModule,
     BrowserModule,
     AppRoutingModule,
     FormsModule,

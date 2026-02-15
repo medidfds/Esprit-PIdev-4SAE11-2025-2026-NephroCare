@@ -2,19 +2,21 @@ package org.example.hospitalizationservice.entities;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonInclude(JsonInclude.Include.ALWAYS) // Force all fields in JSON
+@JsonInclude(JsonInclude.Include.ALWAYS) // Always include fields in JSON
 public class Hospitalization {
 
     @Id
@@ -27,19 +29,14 @@ public class Hospitalization {
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime dischargeDate;
 
-    @JsonProperty
     private String roomNumber;
-
-    @JsonProperty
     private String admissionReason;
-
-    @JsonProperty
     private String status;
-
-    @JsonProperty
     private String userId;
-
-    @JsonProperty
     private String attendingDoctorId;
-}
 
+    // One Hospitalization has many VitalSigns
+    @OneToMany(mappedBy = "hospitalization", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference // Helps avoid infinite recursion in JSON
+    private List<VitalSigns> vitalSignsRecords = new ArrayList<>();
+}

@@ -20,7 +20,7 @@ public class VitalSignsController {
     }
 
     @GetMapping("/{id}")
-    public VitalSigns getById(@PathVariable String id) {
+    public VitalSigns getById(@PathVariable Long id) {  // <-- Fixed type
         return service.findById(id);
     }
 
@@ -29,8 +29,14 @@ public class VitalSignsController {
         return service.save(vitalSigns);
     }
 
+    @PutMapping("/{id}")
+    public VitalSigns update(@PathVariable Long id, @RequestBody VitalSigns vitalSigns) {
+        vitalSigns.setId(id);
+        return service.save(vitalSigns);
+    }
+
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable String id) {
+    public void delete(@PathVariable Long id) {  // <-- Fixed type
         service.deleteById(id);
     }
 }
