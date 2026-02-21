@@ -1,195 +1,245 @@
-<div class="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
-  <!-- Success Alert -->
-  <div *ngIf="success" class="mb-4 rounded-lg bg-green-50 p-4 text-sm text-green-800" role="alert">
-    <div class="flex items-center">
-      <svg class="mr-2 h-5 w-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-      </svg>
-      {{ success }}
-      <button (click)="success = null" class="ml-auto text-green-600 hover:text-green-700">✕</button>
+<div class="space-y-6">
+  <section class="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
+    <div class="border-b border-stroke px-4 py-6 dark:border-strokedark sm:px-6">
+      <h3 class="font-medium text-black dark:text-white">Triage Prioritization and Queue</h3>
+      <p class="text-sm text-bodydark">Urgency scoring, max wait SLA, and queue actions.</p>
     </div>
-  </div>
 
-  <!-- Error Alert -->
-  <div *ngIf="error" class="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-800" role="alert">
-    <div class="flex items-center">
-      <svg class="mr-2 h-5 w-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-      </svg>
-      {{ error }}
-      <button (click)="error = null" class="ml-auto text-red-600 hover:text-red-700">✕</button>
+    <div *ngIf="triageSuccess" class="mx-4 mt-4 rounded-lg bg-green-50 p-4 text-sm text-green-800 sm:mx-6">
+      {{ triageSuccess }}
     </div>
-  </div>
+    <div *ngIf="triageError" class="mx-4 mt-4 rounded-lg bg-red-50 p-4 text-sm text-red-800 sm:mx-6">
+      {{ triageError }}
+    </div>
 
-  <!-- Header -->
-  <div class="border-b border-stroke px-4 py-6 dark:border-strokedark sm:px-6">
-    <h3 class="font-medium text-black dark:text-white">Medical Histories</h3>
-    <p class="text-sm text-bodydark">Manage patient medical history records</p>
-  </div>
-
-  <!-- Form Section -->
-  <div class="border-b border-stroke p-4 dark:border-strokedark sm:p-6">
-    <h4 class="mb-4 text-lg font-semibold text-black dark:text-white">
-      {{ editingId != null ? 'Update Medical History' : 'New Medical History' }}
-    </h4>
-    <form [formGroup]="form" (ngSubmit)="saveMedicalHistory()" class="space-y-4">
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <!-- User ID -->
-        <div>
-          <label class="mb-2 block text-sm font-medium text-black dark:text-white">
-            User ID
-            <span *ngIf="editingId == null" class="text-red-500">*</span>
-          </label>
-          <input
-            type="number"
-            min="1"
-            formControlName="userId"
-            [placeholder]="editingId != null ? 'User ID (read-only)' : 'Enter user ID'"
-            [readonly]="editingId != null"
-            class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
-          />
+    <div class="border-b border-stroke p-4 dark:border-strokedark sm:p-6">
+      <h4 class="mb-4 text-base font-semibold text-black dark:text-white">New Triage Assessment</h4>
+      <form [formGroup]="triageForm" (ngSubmit)="submitTriageAssessment()" class="space-y-4">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div>
+            <label class="mb-2 block text-sm font-medium text-black dark:text-white">Patient ID *</label>
+            <input type="number" min="1" formControlName="patientId" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none focus:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white">
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-medium text-black dark:text-white">Arrival Time *</label>
+            <input type="datetime-local" formControlName="arrivalTime" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none focus:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white">
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-medium text-black dark:text-white">Age</label>
+            <input type="number" min="0" max="130" formControlName="age" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none focus:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white">
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-medium text-black dark:text-white">Heart Rate</label>
+            <input type="number" min="20" max="250" formControlName="heartRate" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none focus:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white">
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-medium text-black dark:text-white">Systolic BP</label>
+            <input type="number" min="40" max="300" formControlName="systolicBp" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none focus:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white">
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-medium text-black dark:text-white">SpO2</label>
+            <input type="number" min="50" max="100" formControlName="spo2" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none focus:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white">
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-medium text-black dark:text-white">Pain Score (0-10)</label>
+            <input type="number" min="0" max="10" formControlName="painScore" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none focus:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white">
+          </div>
+          <div class="flex items-center gap-6 pt-8">
+            <label class="inline-flex items-center gap-2 text-sm text-black dark:text-white">
+              <input type="checkbox" formControlName="severeComorbidity">
+              Severe comorbidity
+            </label>
+            <label class="inline-flex items-center gap-2 text-sm text-black dark:text-white">
+              <input type="checkbox" formControlName="respiratoryDistress">
+              Respiratory distress
+            </label>
+          </div>
         </div>
 
-        <!-- Allergies -->
-        <div>
-          <label class="mb-2 block text-sm font-medium text-black dark:text-white">Allergies</label>
-          <input
-            type="text"
-            formControlName="allergies"
-            placeholder="e.g., Penicillin, Ibuprofen"
-            class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
-          />
-        </div>
-      </div>
-
-      <!-- Diagnosis -->
-      <div>
-        <label class="mb-2 block text-sm font-medium text-black dark:text-white">Diagnosis</label>
-        <input
-          type="text"
-          formControlName="diagnosis"
-          placeholder="Enter diagnosis"
-          class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
-        />
-      </div>
-
-      <!-- Chronic Conditions -->
-      <div>
-        <label class="mb-2 block text-sm font-medium text-black dark:text-white">Chronic Conditions</label>
-        <textarea
-          formControlName="chronicConditions"
-          placeholder="e.g., Diabetes, High Blood Pressure"
-          rows="2"
-          class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
-        ></textarea>
-      </div>
-
-      <!-- Family History -->
-      <div>
-        <label class="mb-2 block text-sm font-medium text-black dark:text-white">Family History</label>
-        <textarea
-          formControlName="familyHistory"
-          placeholder="e.g., Diabetes in family, Cancer history"
-          rows="2"
-          class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
-        ></textarea>
-      </div>
-
-      <!-- Notes -->
-      <div>
-        <label class="mb-2 block text-sm font-medium text-black dark:text-white">Notes</label>
-        <textarea
-          formControlName="notes"
-          placeholder="Additional notes"
-          rows="3"
-          class="w-full rounded border-[1.5px] border-stroke bg-transparent px-5 py-3 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
-        ></textarea>
-      </div>
-
-      <!-- Form Actions -->
-      <div class="flex gap-3 pt-4">
         <button
           type="submit"
-          class="flex justify-center rounded bg-primary px-6 py-2 font-medium text-gray hover:bg-opacity-90"
-        >
-          {{ editingId != null ? 'Update' : 'Create' }}
+          [disabled]="submittingTriage"
+          class="rounded bg-primary px-5 py-2.5 font-medium text-white hover:bg-opacity-90 disabled:opacity-70">
+          {{ submittingTriage ? 'Saving...' : 'Create Assessment' }}
         </button>
-        <button
-          *ngIf="editingId != null"
-          type="button"
-          (click)="cancelEdit()"
-          class="flex justify-center rounded border border-stroke px-6 py-2 font-medium text-black hover:shadow-1 dark:border-strokedark dark:text-white"
-        >
-          Cancel
-        </button>
+      </form>
+    </div>
+
+    <div class="p-4 sm:p-6">
+      <div class="mb-4 flex items-center justify-between">
+        <h4 class="text-base font-semibold text-black dark:text-white">Priority Queue</h4>
+        <div class="flex items-center gap-3">
+          <span class="inline-flex rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white">
+            {{ queueItems.length }} items
+          </span>
+          <button (click)="loadQueue()" class="rounded border border-stroke px-3 py-1.5 text-xs font-medium text-black hover:bg-gray-2 dark:border-strokedark dark:text-white">
+            Refresh
+          </button>
+        </div>
       </div>
-    </form>
-  </div>
 
-  <!-- Table Section -->
-  <div class="px-4 py-6 sm:px-6">
-    <div class="mb-4 flex items-center justify-between">
-      <h4 class="text-lg font-semibold text-black dark:text-white">Medical Histories List</h4>
-      <span class="inline-flex rounded-full bg-primary px-3 py-1 text-sm font-medium text-white">
-        {{ medicalHistories.length }} Total
-      </span>
+      <div *ngIf="loadingQueue" class="py-4 text-sm text-bodydark">Loading queue...</div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[900px] table-auto">
+          <thead>
+            <tr class="bg-gray-2 text-left dark:bg-meta-4">
+              <th class="px-3 py-3 text-sm font-medium text-black dark:text-white">Queue #</th>
+              <th class="px-3 py-3 text-sm font-medium text-black dark:text-white">Patient</th>
+              <th class="px-3 py-3 text-sm font-medium text-black dark:text-white">Score</th>
+              <th class="px-3 py-3 text-sm font-medium text-black dark:text-white">Level</th>
+              <th class="px-3 py-3 text-sm font-medium text-black dark:text-white">Status</th>
+              <th class="px-3 py-3 text-sm font-medium text-black dark:text-white">Arrival</th>
+              <th class="px-3 py-3 text-sm font-medium text-black dark:text-white">Deadline</th>
+              <th class="px-3 py-3 text-sm font-medium text-black dark:text-white">SLA</th>
+              <th class="px-3 py-3 text-sm font-medium text-black dark:text-white">Escalation</th>
+              <th class="px-3 py-3 text-sm font-medium text-black dark:text-white">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="queueItems.length === 0" class="border-b border-stroke dark:border-strokedark">
+              <td colspan="10" class="px-3 py-4 text-center text-sm text-bodydark">No queue items found.</td>
+            </tr>
+            <tr *ngFor="let item of queueItems" class="border-b border-stroke dark:border-strokedark">
+              <td class="px-3 py-3 text-sm text-black dark:text-white">{{ item.queueItemId }}</td>
+              <td class="px-3 py-3 text-sm text-black dark:text-white">{{ item.patientId }}</td>
+              <td class="px-3 py-3 text-sm text-black dark:text-white">{{ item.score }}</td>
+              <td class="px-3 py-3 text-sm">
+                <span class="rounded-full px-2 py-1 text-xs font-semibold" [ngClass]="levelClass(item.triageLevel)">
+                  {{ item.triageLevel }}
+                </span>
+              </td>
+              <td class="px-3 py-3 text-sm text-black dark:text-white">{{ item.status }}</td>
+              <td class="px-3 py-3 text-xs text-bodydark">{{ formatTime(item.arrivalTime) }}</td>
+              <td class="px-3 py-3 text-xs text-bodydark">{{ formatTime(item.deadlineAt) }}</td>
+              <td class="px-3 py-3 text-xs" [ngClass]="slaClass(item.deadlineAt, item.status)">
+                {{ minutesToDeadline(item.deadlineAt) }} min
+              </td>
+              <td class="px-3 py-3 text-xs text-bodydark">
+                {{ item.lastEscalationType || '-' }}
+              </td>
+              <td class="px-3 py-3">
+                <div class="flex gap-2">
+                  <button
+                    type="button"
+                    (click)="startCare(item)"
+                    [disabled]="!canStart(item)"
+                    class="rounded bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white disabled:opacity-40">
+                    Start
+                  </button>
+                  <button
+                    type="button"
+                    (click)="closeQueueItem(item)"
+                    [disabled]="!canClose(item)"
+                    class="rounded bg-green-600 px-2.5 py-1.5 text-xs font-medium text-white disabled:opacity-40">
+                    Close
+                  </button>
+                  <button
+                    type="button"
+                    (click)="overrideQueueItem(item)"
+                    [disabled]="!canOverride(item)"
+                    class="rounded bg-orange-600 px-2.5 py-1.5 text-xs font-medium text-white disabled:opacity-40">
+                    Override
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
+    <div class="border-b border-stroke px-4 py-6 dark:border-strokedark sm:px-6">
+      <h3 class="font-medium text-black dark:text-white">Medical Histories</h3>
+      <p class="text-sm text-bodydark">Update and delete medical histories (creation is handled in Front Office).</p>
     </div>
 
-    <div class="overflow-x-auto">
-      <table class="w-full table-auto">
-        <thead>
-          <tr class="bg-gray-2 text-left dark:bg-meta-4">
-            <th class="px-4 py-4 font-medium text-black dark:text-white">User ID</th>
-            <th class="px-4 py-4 font-medium text-black dark:text-white">Allergies</th>
-            <th class="px-4 py-4 font-medium text-black dark:text-white">Diagnosis</th>
-            <th class="px-4 py-4 font-medium text-black dark:text-white">Chronic Conditions</th>
-            <th class="px-4 py-4 font-medium text-black dark:text-white">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngIf="medicalHistories.length === 0" class="border-b border-stroke dark:border-strokedark">
-            <td colspan="5" class="px-4 py-5 text-center text-bodydark">No medical histories found</td>
-          </tr>
-          <tr *ngFor="let medicalHistory of medicalHistories" class="border-b border-stroke dark:border-strokedark">
-            <td class="px-4 py-5">{{ medicalHistory.userId }}</td>
-            <td class="px-4 py-5">
-              <span class="line-clamp-1" [title]="medicalHistory.allergies || 'N/A'">{{ medicalHistory.allergies || 'N/A' }}</span>
-            </td>
-            <td class="px-4 py-5">
-              <span class="line-clamp-1" [title]="medicalHistory.diagnosis || 'N/A'">{{ medicalHistory.diagnosis || 'N/A' }}</span>
-            </td>
-            <td class="px-4 py-5">
-              <span class="line-clamp-1" [title]="medicalHistory.chronicConditions || 'N/A'">{{ medicalHistory.chronicConditions || 'N/A' }}</span>
-            </td>
-            <td class="px-4 py-5">
-              <div class="flex items-center gap-3">
-                <button
-                  (click)="editMedicalHistory(medicalHistory)"
-                  class="hover:text-primary"
-                  title="Edit"
-                >
-                  <svg class="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M16.8754 11.6719C16.5379 11.6719 16.2129 11.9531 16.2129 12.3187V15.8969C16.2129 16.0512 16.0754 16.1856 15.9004 16.1856H2.1692C1.99385 16.1856 1.85635 16.0512 1.85635 15.8969V12.3187C1.85635 11.9812 1.55761 11.6719 1.21348 11.6719C0.875899 11.6719 0.584505 11.9531 0.584505 12.3187V15.8969C0.584505 16.721 1.22654 17.3625 2.1692 17.3625H15.9004C16.8429 17.3625 17.4849 16.721 17.4849 15.8969V12.3187C17.5004 11.9531 17.2129 11.6719 16.8754 11.6719Z" fill=""></path>
-                    <path d="M8.55074 12.3469C8.66293 12.4875 8.81909 12.588 9.04127 12.588C9.26346 12.588 9.41962 12.4875 9.53181 12.3469L13.4157 8.23125C13.8779 7.73969 14.4114 7.30156 15.2157 7.30156C16.1273 7.30156 16.9316 8.05469 16.9316 9.10937V10.0313C16.9316 10.5625 16.5497 11.0937 15.9004 11.0937H2.43282C1.78348 11.0937 1.40159 10.5625 1.40159 10.0313V9.10937C1.40159 8.05156 2.20593 7.30156 3.11752 7.30156C3.92217 7.30156 4.45564 7.73969 4.91721 8.23125L8.55074 12.3469Z" fill=""></path>
-                  </svg>
-                </button>
-                <button
-                  (click)="deleteMedicalHistory(medicalHistory.id)"
-                  class="hover:text-danger"
-                  title="Delete"
-                >
-                  <svg class="fill-current" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M13.7071 2.70712H11.07V2.07178C11.07 1.02713 10.2271 0.184082 9.18034 0.184082H8.81991C7.77316 0.184082 6.93022 1.02713 6.93022 2.07178V2.70712H4.29291C3.15315 2.70712 2.35625 3.50401 2.35625 4.64377V5.14502C2.35625 5.434 2.54706 5.68721 2.77946 5.75625L4.8 15.2511C4.97568 16.0808 5.70651 16.6314 6.54945 16.6314H11.4504C12.2933 16.6314 13.0242 16.0808 13.2 15.2511L15.2206 5.75625C15.4529 5.64256 15.6438 5.40401 15.6438 5.14502V4.64377C15.6438 3.50401 14.8469 2.70712 13.7071 2.70712ZM8.55074 2.70712H9.44926V2.07178C9.44926 1.96809 9.54468 1.87266 9.64838 1.87266H10.0088C10.1125 1.87266 10.2079 1.96809 10.2079 2.07178V2.70712H8.55074Z" fill=""></path>
-                    <path d="M9.5 9.11255C9.80624 9.11255 10.0504 8.86789 10.0504 8.56165V4.92624C10.0504 4.62001 9.80624 4.37535 9.5 4.37535C9.19376 4.37535 8.94956 4.62001 8.94956 4.92624V8.56165C8.94956 8.86789 9.19376 9.11255 9.5 9.11255Z" fill=""></path>
-                    <path d="M7.70247 9.67504C7.59339 9.56234 7.43247 9.5 7.25665 9.5C7.08083 9.5 6.91991 9.56234 6.81083 9.67504C6.70175 9.78774 6.63942 9.54789 6.63942 9.72365V13.3741C6.63942 13.7272 6.90247 14.0077 7.25665 14.0077C7.61082 14.0077 7.87388 13.7272 7.87388 13.3741V9.72365C7.87388 9.54789 7.81155 9.78774 7.70247 9.67504Z" fill=""></path>
-                    <path d="M11.2257 9.67504C11.1166 9.56234 10.9557 9.5 10.7799 9.5C10.6041 9.5 10.4432 9.56234 10.3341 9.67504C10.225 9.78774 10.1626 9.54789 10.1626 9.72365V13.3741C10.1626 13.7272 10.4257 14.0077 10.7799 14.0077C11.134 14.0077 11.3971 13.7272 11.3971 13.3741V9.72365C11.3971 9.54789 11.3348 9.78774 11.2257 9.67504Z" fill=""></path>
-                  </svg>
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div *ngIf="success" class="mx-4 mt-4 rounded-lg bg-green-50 p-4 text-sm text-green-800 sm:mx-6">
+      {{ success }}
     </div>
-  </div>
+    <div *ngIf="error" class="mx-4 mt-4 rounded-lg bg-red-50 p-4 text-sm text-red-800 sm:mx-6">
+      {{ error }}
+    </div>
+
+    <div *ngIf="editingId != null" class="border-b border-stroke p-4 dark:border-strokedark sm:p-6">
+      <h4 class="mb-4 text-base font-semibold text-black dark:text-white">Update Medical History</h4>
+      <form [formGroup]="form" (ngSubmit)="saveMedicalHistory()" class="space-y-4">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label class="mb-2 block text-sm font-medium text-black dark:text-white">User ID</label>
+            <input type="number" formControlName="userId" readonly class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none dark:border-form-strokedark dark:bg-form-input dark:text-white">
+          </div>
+          <div>
+            <label class="mb-2 block text-sm font-medium text-black dark:text-white">Allergies</label>
+            <input type="text" formControlName="allergies" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none dark:border-form-strokedark dark:bg-form-input dark:text-white">
+          </div>
+        </div>
+
+        <div>
+          <label class="mb-2 block text-sm font-medium text-black dark:text-white">Diagnosis</label>
+          <input type="text" formControlName="diagnosis" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none dark:border-form-strokedark dark:bg-form-input dark:text-white">
+        </div>
+
+        <div>
+          <label class="mb-2 block text-sm font-medium text-black dark:text-white">Chronic Conditions</label>
+          <textarea formControlName="chronicConditions" rows="2" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none dark:border-form-strokedark dark:bg-form-input dark:text-white"></textarea>
+        </div>
+
+        <div>
+          <label class="mb-2 block text-sm font-medium text-black dark:text-white">Family History</label>
+          <textarea formControlName="familyHistory" rows="2" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none dark:border-form-strokedark dark:bg-form-input dark:text-white"></textarea>
+        </div>
+
+        <div>
+          <label class="mb-2 block text-sm font-medium text-black dark:text-white">Notes</label>
+          <textarea formControlName="notes" rows="3" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none dark:border-form-strokedark dark:bg-form-input dark:text-white"></textarea>
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <button type="submit" class="rounded bg-primary px-5 py-2.5 font-medium text-white hover:bg-opacity-90">Update</button>
+          <button type="button" (click)="cancelEdit()" class="rounded border border-stroke px-5 py-2.5 font-medium text-black hover:bg-gray-2 dark:border-strokedark dark:text-white">Cancel</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="p-4 sm:p-6">
+      <div class="mb-4 flex items-center justify-between">
+        <h4 class="text-base font-semibold text-black dark:text-white">Medical Histories List</h4>
+        <span class="inline-flex rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white">{{ medicalHistories.length }} total</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[760px] table-auto">
+          <thead>
+            <tr class="bg-gray-2 text-left dark:bg-meta-4">
+              <th class="px-3 py-3 text-sm font-medium text-black dark:text-white">User ID</th>
+              <th class="px-3 py-3 text-sm font-medium text-black dark:text-white">Allergies</th>
+              <th class="px-3 py-3 text-sm font-medium text-black dark:text-white">Diagnosis</th>
+              <th class="px-3 py-3 text-sm font-medium text-black dark:text-white">Chronic Conditions</th>
+              <th class="px-3 py-3 text-sm font-medium text-black dark:text-white">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngIf="medicalHistories.length === 0" class="border-b border-stroke dark:border-strokedark">
+              <td colspan="5" class="px-3 py-4 text-center text-sm text-bodydark">No medical histories found.</td>
+            </tr>
+            <tr *ngFor="let medicalHistory of medicalHistories" class="border-b border-stroke dark:border-strokedark">
+              <td class="px-3 py-4 text-sm text-black dark:text-white">{{ medicalHistory.userId }}</td>
+              <td class="px-3 py-4 text-sm text-bodydark">{{ medicalHistory.allergies || 'N/A' }}</td>
+              <td class="px-3 py-4 text-sm text-bodydark">{{ medicalHistory.diagnosis || 'N/A' }}</td>
+              <td class="px-3 py-4 text-sm text-bodydark">{{ medicalHistory.chronicConditions || 'N/A' }}</td>
+              <td class="px-3 py-4">
+                <div class="flex gap-2">
+                  <button (click)="editMedicalHistory(medicalHistory)" class="rounded bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white">Edit</button>
+                  <button (click)="deleteMedicalHistory(medicalHistory.id)" class="rounded bg-red-600 px-2.5 py-1.5 text-xs font-medium text-white">Delete</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
 </div>

@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { ClinicalService, Consultation } from '../services/clinical.service';
+import { ClinicalService, Consultation, MedicalHistory } from '../services/clinical.service';
+import { UserService } from '../services/user.service';
+import { KeycloakService } from 'keycloak-angular';
 
 @Component({
   selector: 'app-clinical',
@@ -9,44 +11,50 @@ import { ClinicalService, Consultation } from '../services/clinical.service';
   styleUrls: ['./clinical.component.css']
 })
 export class ClinicalComponent implements OnInit {
-  consultations: Consultation[] = [];
   form: FormGroup;
-  editingId: number | null = null;
+  medicalHistoryForm: FormGroup;
   error: string | null = null;
   success: string | null = null;
+  currentPatientId: number | null = null;
+  loadingProfile = false;
+  showMedicalHistoryModal = false;
+  savingMedicalHistory = false;
 
-  readonly statuses = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW'];
-
-  constructor(private fb: FormBuilder, private clinicalService: ClinicalService) {
+  constructor(
+    private fb: FormBuilder,
+    private clinicalService: ClinicalService,
+    private userService: UserService,
+    private keycloakService: KeycloakService
+  ) {
     this.form = this.fb.group({
-      patientId: [null, Validators.required],
+      patientId: [null],
       doctorId: [null, Validators.required],
       consultationDate: ['', Validators.required],
       diagnosis: ['', Validators.required],
-      treatmentPlan: ['', Validators.required],
-      followUpDate: [''],
-      status: ['SCHEDULED']
+      treatmentPlan: ['', Validators.required]
+    });
+
+    this.medicalHistoryForm = this.fb.group({
+      allergies: [''],
+      diagnosis: [''],
+      chronicConditions: [''],
+      familyHistory: [''],
+      notes: ['']
     });
   }
 
   ngOnInit(): void {
-    this.loadConsultations();
-  }
-
-  loadConsultations(): void {
-    this.error = null;
-    this.clinicalService.getAllConsultations().subscribe({
-      next: (data) => {
-        this.consultations = data;
-      },
-      error: (err) => {
-        this.error = 'Failed to load consultations: ' + err.message;
-        console.error('Error loading consultations', err);
-      }
-    });
+    this.loadCurrentPatient();
   }
 
   saveConsultation(): void {
+    const effectivePatientId = this.getEffectivePatientId();
+
+    if (effectivePatientId == null) {
+      this.error = 'Unable to determine patient account. Enter Patient ID manually and try again.';
+      return;
+    }
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.error = 'Please fill in all required fields';
@@ -58,37 +66,20 @@ export class ClinicalComponent implements OnInit {
 
     const formValue = this.form.value;
     const consultation: Consultation = {
-      patientId: Number(formValue.patientId),
+      patientId: effectivePatientId,
       doctorId: Number(formValue.doctorId),
       consultationDate: formValue.consultationDate,
       diagnosis: formValue.diagnosis,
       treatmentPlan: formValue.treatmentPlan,
-      followUpDate: formValue.followUpDate || null,
-      status: formValue.status || 'SCHEDULED'
+      followUpDate: null,
+      status: 'SCHEDULED'
     };
-
-    if (this.editingId != null) {
-      this.clinicalService.updateConsultation(this.editingId, consultation).subscribe({
-        next: () => {
-          this.success = 'Consultation updated successfully!';
-          this.loadConsultations();
-          this.cancelEdit();
-          setTimeout(() => this.success = null, 3000);
-        },
-        error: (err) => {
-          this.error = 'Error updating consultation: ' + err.message;
-          console.error('Error updating consultation', err);
-        }
-      });
-      return;
-    }
 
     this.clinicalService.createConsultation(consultation).subscribe({
       next: () => {
         this.success = 'Consultation created successfully!';
-        this.loadConsultations();
-        this.form.reset({ status: 'SCHEDULED' });
-        setTimeout(() => this.success = null, 3000);
+        this.form.reset({ patientId: null, doctorId: null });
+        setTimeout(() => (this.success = null), 3000);
       },
       error: (err) => {
         this.error = 'Error creating consultation: ' + err.message;
@@ -97,72 +88,126 @@ export class ClinicalComponent implements OnInit {
     });
   }
 
-  editConsultation(consultation: Consultation): void {
+  openMedicalHistoryModal(): void {
     this.error = null;
-    this.success = null;
-    this.editingId = consultation.id ?? null;
-    this.form.patchValue({
-      patientId: consultation.patientId,
-      doctorId: consultation.doctorId,
-      consultationDate: this.toDateTimeLocal(consultation.consultationDate),
-      diagnosis: consultation.diagnosis,
-      treatmentPlan: consultation.treatmentPlan,
-      followUpDate: consultation.followUpDate,
-      status: consultation.status
-    });
-    // Scroll to form
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    this.showMedicalHistoryModal = true;
   }
 
-  deleteConsultation(id: number | undefined): void {
-    if (id == null) {
+  closeMedicalHistoryModal(): void {
+    this.showMedicalHistoryModal = false;
+    this.medicalHistoryForm.reset();
+  }
+
+  saveMedicalHistory(): void {
+    const effectivePatientId = this.getEffectivePatientId();
+    if (effectivePatientId == null) {
+      this.error = 'Unable to determine patient account. Enter Patient ID first.';
       return;
     }
 
-    if (!confirm('Are you sure you want to delete this consultation?')) {
-      return;
-    }
+    const formValue = this.medicalHistoryForm.value;
+    const medicalHistory: MedicalHistory = {
+      userId: effectivePatientId,
+      diagnosis: formValue.diagnosis || '',
+      allergies: formValue.allergies || '',
+      chronicConditions: formValue.chronicConditions || '',
+      familyHistory: formValue.familyHistory || '',
+      notes: formValue.notes || ''
+    };
 
     this.error = null;
-    this.clinicalService.deleteConsultation(id).subscribe({
+    this.savingMedicalHistory = true;
+
+    this.clinicalService.createMedicalHistory(medicalHistory).subscribe({
       next: () => {
-        this.success = 'Consultation deleted successfully!';
-        this.loadConsultations();
-        setTimeout(() => this.success = null, 3000);
+        this.success = 'Medical history created successfully!';
+        this.closeMedicalHistoryModal();
+        setTimeout(() => (this.success = null), 3000);
       },
       error: (err) => {
-        this.error = 'Error deleting consultation: ' + err.message;
-        console.error('Error deleting consultation', err);
+        this.error = 'Error creating medical history: ' + err.message;
+        console.error('Error creating medical history', err);
+      },
+      complete: () => {
+        this.savingMedicalHistory = false;
       }
     });
   }
 
-  cancelEdit(): void {
-    this.editingId = null;
-    this.form.reset({ status: 'SCHEDULED', patientId: null, doctorId: null });
+  private async loadCurrentPatient(): Promise<void> {
+    this.loadingProfile = true;
     this.error = null;
+
+    try {
+      const profile = await this.userService.getProfile();
+      this.currentPatientId = this.extractProfileUserId(profile);
+
+      if (this.currentPatientId == null) {
+        this.currentPatientId = this.extractTokenUserId();
+        if (this.currentPatientId == null) {
+          this.error = 'Could not resolve your patient account from profile or token.';
+        }
+      }
+    } catch (err: any) {
+      console.warn('Profile endpoint unavailable, trying token fallback', err);
+      this.currentPatientId = this.extractTokenUserId();
+
+      if (this.currentPatientId == null) {
+        this.error =
+          'Failed to load your profile and could not resolve patient ID from token. ' +
+          'Please ensure User service is running on http://localhost:8069.';
+      }
+    } finally {
+      this.loadingProfile = false;
+    }
   }
 
-  getStatusBadgeClass(status: string): string {
-    const statusClasses: { [key: string]: string } = {
-      'SCHEDULED': 'bg-info',
-      'IN_PROGRESS': 'bg-warning',
-      'COMPLETED': 'bg-success',
-      'CANCELLED': 'bg-danger',
-      'NO_SHOW': 'bg-secondary'
-    };
-    return statusClasses[status] || 'bg-secondary';
+  private extractProfileUserId(profile: any): number | null {
+    const candidates = [
+      profile?.id,
+      profile?.userId,
+      profile?.user?.id,
+      profile?.data?.id,
+      profile?.data?.userId
+    ];
+
+    for (const value of candidates) {
+      const parsed = Number(value);
+      if (Number.isInteger(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+
+    return null;
   }
 
-  private toDateTimeLocal(value: string): string {
-    if (!value) {
-      return '';
+  private extractTokenUserId(): number | null {
+    const tokenParsed: any = this.keycloakService.getKeycloakInstance()?.tokenParsed;
+    if (!tokenParsed) {
+      return null;
     }
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return value;
+
+    const candidates = [
+      tokenParsed?.id,
+      tokenParsed?.userId,
+      tokenParsed?.user_id,
+      tokenParsed?.uid,
+      tokenParsed?.sub
+    ];
+
+    for (const value of candidates) {
+      const parsed = Number(value);
+      if (Number.isInteger(parsed) && parsed > 0) {
+        return parsed;
+      }
     }
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+
+    return null;
+  }
+
+  private getEffectivePatientId(): number | null {
+    const manualPatientId = Number(this.form.get('patientId')?.value);
+    return this.currentPatientId ??
+      (Number.isInteger(manualPatientId) && manualPatientId > 0 ? manualPatientId : null);
   }
 }

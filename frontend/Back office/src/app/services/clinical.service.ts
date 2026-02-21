@@ -25,12 +25,67 @@ export interface MedicalHistory {
   notes?: string;
 }
 
+export type TriageLevel = 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN';
+
+export type QueueStatus = 'WAITING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+
+export interface TriageAssessmentRequest {
+  patientId: number;
+  arrivalTime: string;
+  heartRate?: number | null;
+  systolicBp?: number | null;
+  spo2?: number | null;
+  painScore?: number | null;
+  age?: number | null;
+  severeComorbidity?: boolean | null;
+  respiratoryDistress?: boolean | null;
+}
+
+export interface TriageAssessmentResponse {
+  assessmentId: number;
+  queueItemId: number;
+  patientId: number;
+  score: number;
+  triageLevel: TriageLevel;
+  recommendedMaxWaitMinutes: number;
+  deadlineAt: string;
+  queueStatus: QueueStatus;
+}
+
+export interface TriageQueueItem {
+  queueItemId: number;
+  assessmentId: number;
+  patientId: number;
+  score: number;
+  triageLevel: TriageLevel;
+  maxWaitMinutes: number;
+  arrivalTime: string;
+  deadlineAt: string;
+  status: QueueStatus;
+  assignedDoctorId?: number | null;
+  lastEscalationType?: 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3' | null;
+  lastEscalationAt?: string | null;
+  manualOverride: boolean;
+  overrideReason?: string | null;
+}
+
+export interface TriageQueueAction {
+  doctorId: number;
+}
+
+export interface TriageOverride {
+  triageLevel: TriageLevel;
+  maxWaitMinutes?: number | null;
+  overrideReason: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class ClinicalService {
   private consulationBaseUrl = 'http://localhost:8079/api/consultations';
   private medicalHistoryBaseUrl = 'http://localhost:8079/api/medical-histories';
+  private triageBaseUrl = 'http://localhost:8079/api/triage';
 
   constructor(private http: HttpClient) {}
 
@@ -113,6 +168,38 @@ export class ClinicalService {
   deleteMedicalHistory(id: number): Observable<void> {
     return this.http.delete<void>(`${this.medicalHistoryBaseUrl}/${id}`).pipe(
       catchError((error) => this.handleError('deleteMedicalHistory', error))
+    );
+  }
+
+  // ==================== TRIAGE METHODS ====================
+
+  createTriageAssessment(payload: TriageAssessmentRequest): Observable<TriageAssessmentResponse> {
+    return this.http.post<TriageAssessmentResponse>(`${this.triageBaseUrl}/assessments`, payload).pipe(
+      catchError((error) => this.handleError('createTriageAssessment', error))
+    );
+  }
+
+  getTriageQueue(): Observable<TriageQueueItem[]> {
+    return this.http.get<TriageQueueItem[]>(`${this.triageBaseUrl}/queue`).pipe(
+      catchError((error) => this.handleError('getTriageQueue', error))
+    );
+  }
+
+  startCare(queueItemId: number, payload: TriageQueueAction): Observable<TriageQueueItem> {
+    return this.http.post<TriageQueueItem>(`${this.triageBaseUrl}/queue/${queueItemId}/start-care`, payload).pipe(
+      catchError((error) => this.handleError('startCare', error))
+    );
+  }
+
+  closeQueueItem(queueItemId: number): Observable<TriageQueueItem> {
+    return this.http.post<TriageQueueItem>(`${this.triageBaseUrl}/queue/${queueItemId}/close`, {}).pipe(
+      catchError((error) => this.handleError('closeQueueItem', error))
+    );
+  }
+
+  overrideQueueItem(queueItemId: number, payload: TriageOverride): Observable<TriageQueueItem> {
+    return this.http.post<TriageQueueItem>(`${this.triageBaseUrl}/queue/${queueItemId}/override`, payload).pipe(
+      catchError((error) => this.handleError('overrideQueueItem', error))
     );
   }
 

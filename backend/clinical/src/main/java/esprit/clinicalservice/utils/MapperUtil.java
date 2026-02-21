@@ -2,8 +2,13 @@ package esprit.clinicalservice.utils;
 
 import esprit.clinicalservice.dtos.ConsultationDTO;
 import esprit.clinicalservice.dtos.MedicalHistoryDTO;
+import esprit.clinicalservice.dtos.TriageAssessmentRequestDTO;
+import esprit.clinicalservice.dtos.TriageAssessmentResponseDTO;
+import esprit.clinicalservice.dtos.TriageQueueItemDTO;
 import esprit.clinicalservice.entities.Consultation;
 import esprit.clinicalservice.entities.MedicalHistory;
+import esprit.clinicalservice.entities.TriageAssessment;
+import esprit.clinicalservice.entities.TriageQueueItem;
 
 public class MapperUtil {
 
@@ -70,5 +75,63 @@ public class MapperUtil {
         medicalHistory.setFamilyHistory(dto.getFamilyHistory());
         medicalHistory.setNotes(dto.getNotes());
         return medicalHistory;
+    }
+
+    public static TriageAssessment toTriageAssessment(TriageAssessmentRequestDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+
+        TriageAssessment assessment = new TriageAssessment();
+        assessment.setPatientId(dto.getPatientId());
+        assessment.setArrivalTime(dto.getArrivalTime());
+        assessment.setHeartRate(dto.getHeartRate());
+        assessment.setSystolicBp(dto.getSystolicBp());
+        assessment.setSpo2(dto.getSpo2());
+        assessment.setPainScore(dto.getPainScore());
+        assessment.setAge(dto.getAge());
+        assessment.setSevereComorbidity(dto.getSevereComorbidity());
+        assessment.setRespiratoryDistress(dto.getRespiratoryDistress());
+        return assessment;
+    }
+
+    public static TriageAssessmentResponseDTO toTriageAssessmentResponseDTO(TriageQueueItem queueItem) {
+        if (queueItem == null || queueItem.getAssessment() == null) {
+            return null;
+        }
+
+        TriageAssessmentResponseDTO dto = new TriageAssessmentResponseDTO();
+        dto.setAssessmentId(queueItem.getAssessment().getId());
+        dto.setQueueItemId(queueItem.getId());
+        dto.setPatientId(queueItem.getAssessment().getPatientId());
+        dto.setScore(queueItem.getAssessment().getScore());
+        dto.setTriageLevel(queueItem.getTriageLevel());
+        dto.setRecommendedMaxWaitMinutes(queueItem.getMaxWaitMinutes());
+        dto.setDeadlineAt(queueItem.getDeadlineAt());
+        dto.setQueueStatus(queueItem.getStatus());
+        return dto;
+    }
+
+    public static TriageQueueItemDTO toTriageQueueItemDTO(TriageQueueItem queueItem) {
+        if (queueItem == null || queueItem.getAssessment() == null) {
+            return null;
+        }
+
+        TriageQueueItemDTO dto = new TriageQueueItemDTO();
+        dto.setQueueItemId(queueItem.getId());
+        dto.setAssessmentId(queueItem.getAssessment().getId());
+        dto.setPatientId(queueItem.getAssessment().getPatientId());
+        dto.setScore(queueItem.getAssessment().getScore());
+        dto.setTriageLevel(queueItem.getTriageLevel());
+        dto.setMaxWaitMinutes(queueItem.getMaxWaitMinutes());
+        dto.setArrivalTime(queueItem.getAssessment().getArrivalTime());
+        dto.setDeadlineAt(queueItem.getDeadlineAt());
+        dto.setStatus(queueItem.getStatus());
+        dto.setAssignedDoctorId(queueItem.getAssignedDoctorId());
+        dto.setLastEscalationType(queueItem.getLastEscalationType());
+        dto.setLastEscalationAt(queueItem.getLastEscalationAt());
+        dto.setManualOverride(queueItem.isManualOverride());
+        dto.setOverrideReason(queueItem.getOverrideReason());
+        return dto;
     }
 }
