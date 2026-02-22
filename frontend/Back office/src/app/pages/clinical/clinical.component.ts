@@ -242,30 +242,30 @@ export class ClinicalComponent implements OnInit, OnDestroy {
   levelClass(level: TriageLevel): string {
     switch (level) {
       case 'RED':
-        return 'bg-red-100 text-red-700';
+        return 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400';
       case 'ORANGE':
-        return 'bg-orange-100 text-orange-700';
+        return 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-400';
       case 'YELLOW':
-        return 'bg-yellow-100 text-yellow-700';
+        return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300';
       case 'GREEN':
       default:
-        return 'bg-green-100 text-green-700';
+        return 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400';
     }
   }
 
   slaClass(deadlineAt: string, status: string): string {
     if (status === 'COMPLETED' || status === 'CANCELLED') {
-      return 'text-slate-500';
+      return 'text-slate-500 dark:text-slate-400';
     }
 
     const minutes = this.minutesToDeadline(deadlineAt);
     if (minutes < 0) {
-      return 'text-red-600 font-semibold';
+      return 'text-red-600 dark:text-red-400 font-semibold';
     }
     if (minutes <= 10) {
-      return 'text-orange-600 font-semibold';
+      return 'text-orange-600 dark:text-orange-400 font-semibold';
     }
-    return 'text-green-600';
+    return 'text-green-600 dark:text-green-400';
   }
 
   minutesToDeadline(deadlineAt: string): number {

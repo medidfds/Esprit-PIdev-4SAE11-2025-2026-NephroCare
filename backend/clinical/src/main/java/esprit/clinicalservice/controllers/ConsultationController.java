@@ -77,4 +77,14 @@ public class ConsultationController {
                 .map(MapperUtil::toConsultationDTO)
                 .collect(Collectors.toList()));
     }
+
+    @GetMapping("/patient-ids")
+    public ResponseEntity<List<Long>> getAvailablePatientIds() {
+        return ResponseEntity.ok(consultationService.getAvailablePatientIds());
+    }
+
+    @GetMapping("/doctor-ids")
+    public ResponseEntity<List<Long>> getAvailableDoctorIds() {
+        return ResponseEntity.ok(consultationService.getAvailableDoctorIds());
+    }
 }

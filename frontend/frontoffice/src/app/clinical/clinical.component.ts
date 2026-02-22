@@ -15,8 +15,11 @@ export class ClinicalComponent implements OnInit {
   medicalHistoryForm: FormGroup;
   error: string | null = null;
   success: string | null = null;
+  availablePatientIds: number[] = [];
+  availableDoctorIds: number[] = [];
   currentPatientId: number | null = null;
   loadingProfile = false;
+  loadingIds = false;
   showMedicalHistoryModal = false;
   savingMedicalHistory = false;
 
@@ -45,13 +48,14 @@ export class ClinicalComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadCurrentPatient();
+    this.loadAvailableIds();
   }
 
   saveConsultation(): void {
     const effectivePatientId = this.getEffectivePatientId();
 
     if (effectivePatientId == null) {
-      this.error = 'Unable to determine patient account. Enter Patient ID manually and try again.';
+      this.error = 'Unable to determine patient account. Select Patient ID manually and try again.';
       return;
     }
 
@@ -101,7 +105,7 @@ export class ClinicalComponent implements OnInit {
   saveMedicalHistory(): void {
     const effectivePatientId = this.getEffectivePatientId();
     if (effectivePatientId == null) {
-      this.error = 'Unable to determine patient account. Enter Patient ID first.';
+      this.error = 'Unable to determine patient account. Select Patient ID first.';
       return;
     }
 
@@ -144,18 +148,14 @@ export class ClinicalComponent implements OnInit {
 
       if (this.currentPatientId == null) {
         this.currentPatientId = this.extractTokenUserId();
-        if (this.currentPatientId == null) {
-          this.error = 'Could not resolve your patient account from profile or token.';
-        }
       }
     } catch (err: any) {
       console.warn('Profile endpoint unavailable, trying token fallback', err);
       this.currentPatientId = this.extractTokenUserId();
 
       if (this.currentPatientId == null) {
-        this.error =
-          'Failed to load your profile and could not resolve patient ID from token. ' +
-          'Please ensure User service is running on http://localhost:8069.';
+        // Fall back to manual patient selection without surfacing a blocking error.
+        this.error = null;
       }
     } finally {
       this.loadingProfile = false;
@@ -209,5 +209,32 @@ export class ClinicalComponent implements OnInit {
     const manualPatientId = Number(this.form.get('patientId')?.value);
     return this.currentPatientId ??
       (Number.isInteger(manualPatientId) && manualPatientId > 0 ? manualPatientId : null);
+  }
+
+  private loadAvailableIds(): void {
+    this.loadingIds = true;
+
+    this.clinicalService.getAvailablePatientIds().subscribe({
+      next: (ids) => {
+        this.availablePatientIds = ids ?? [];
+      },
+      error: (err) => {
+        console.error('Error loading patient IDs', err);
+        this.error = 'Unable to load patient IDs from database.';
+      }
+    });
+
+    this.clinicalService.getAvailableDoctorIds().subscribe({
+      next: (ids) => {
+        this.availableDoctorIds = ids ?? [];
+      },
+      error: (err) => {
+        console.error('Error loading doctor IDs', err);
+        this.error = 'Unable to load doctor IDs from database.';
+      },
+      complete: () => {
+        this.loadingIds = false;
+      }
+    });
   }
 }

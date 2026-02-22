@@ -60,6 +60,18 @@ export class ClinicalService {
     );
   }
 
+  getAvailablePatientIds(): Observable<number[]> {
+    return this.http.get<number[]>(`${this.consulationBaseUrl}/patient-ids`).pipe(
+      catchError((error) => this.handleError('getAvailablePatientIds', error))
+    );
+  }
+
+  getAvailableDoctorIds(): Observable<number[]> {
+    return this.http.get<number[]>(`${this.consulationBaseUrl}/doctor-ids`).pipe(
+      catchError((error) => this.handleError('getAvailableDoctorIds', error))
+    );
+  }
+
   createConsultation(consultation: Consultation): Observable<Consultation> {
     return this.http.post<Consultation>(this.consulationBaseUrl, consultation).pipe(
       catchError((error) => this.handleError('createConsultation', error))

@@ -2,7 +2,6 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { HomeComponent } from './home/home.component';
 import { AuthGuard } from './guards/auth-guard';
-import { RoleRedirectGuard } from './guards/role-redirect.guard';
 import {DiagnosticComponent} from './diagnostic/diagnostic.component';
 import {HospitalizationComponent} from './hospitalization/hospitalization.component';
 import { ClinicalComponent } from './clinical/clinical.component';
@@ -13,23 +12,19 @@ const routes: Routes = [
   {
     path: '',
     component: HomeComponent,
-    canActivate: [AuthGuard, RoleRedirectGuard]
+    canActivate: [AuthGuard]
   },
   {
     path: 'diagnostic',
     component: DiagnosticComponent
   },
   {
-    path: 'hospitalization',
-    component: HospitalizationComponent
-  },
-  {
     path: 'clinical',
     component: ClinicalComponent
   },
   {
-    path: 'Clinical',
-    redirectTo: 'clinical'
+    path: 'hospitalization',
+    component: HospitalizationComponent
   },
   {
     path: '**',

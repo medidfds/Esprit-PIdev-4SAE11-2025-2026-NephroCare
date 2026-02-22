@@ -19,5 +19,9 @@ public interface ConsultationService {
     List<Consultation> getByPatientId(Long patientId);
 
     List<Consultation> getByDoctorId(Long doctorId);
+
+    List<Long> getAvailablePatientIds();
+
+    List<Long> getAvailableDoctorIds();
 }
 

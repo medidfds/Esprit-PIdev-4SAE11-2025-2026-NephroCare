@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   keycloak:
     image: quay.io/keycloak/keycloak:23.0.0
@@ -11,10 +13,4 @@ services:
       KC_HTTP_ENABLED: "true"
     ports:
       - "8180:8080"
-    volumes:
-      - keycloak_data:/opt/keycloak/data
-      - ./import-realm.json:/opt/keycloak/data/import/import-realm.json:ro
-    command: start-dev --import-realm
-
-volumes:
-  keycloak_data:
+    command: start-dev

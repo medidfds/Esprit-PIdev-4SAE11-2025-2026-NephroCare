@@ -37,34 +37,33 @@
           <i class="bi bi-person-check me-2"></i>
           Patient account is set automatically from your login session.
         </div>
-        <div *ngIf="currentPatientId == null" class="alert alert-warning mb-3" role="alert">
-          <i class="bi bi-exclamation-triangle me-2"></i>
-          Auto-detection failed. Enter your Patient ID manually to continue.
-        </div>
-
         <div class="row">
           <div *ngIf="currentPatientId == null" class="col-md-6 mb-3">
             <label for="patientId" class="form-label">Patient ID</label>
-            <input
+            <select
               id="patientId"
-              type="number"
-              min="1"
               class="form-control"
               formControlName="patientId"
-              placeholder="Enter your patient ID"
-            />
+            >
+              <option [ngValue]="null" disabled>Select patient ID</option>
+              <option *ngFor="let patientId of availablePatientIds" [ngValue]="patientId">
+                {{ patientId }}
+              </option>
+            </select>
           </div>
 
           <div class="col-md-6 mb-3">
             <label for="doctorId" class="form-label">Doctor ID</label>
-            <input
+            <select
               id="doctorId"
-              type="number"
-              min="1"
               class="form-control"
               formControlName="doctorId"
-              placeholder="Enter doctor ID"
-            />
+            >
+              <option [ngValue]="null" disabled>Select doctor ID</option>
+              <option *ngFor="let doctorId of availableDoctorIds" [ngValue]="doctorId">
+                {{ doctorId }}
+              </option>
+            </select>
           </div>
 
           <div class="col-md-6 mb-3">

@@ -1,48 +1,48 @@
-<div class="space-y-6">
-  <section class="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
-    <div class="border-b border-stroke px-4 py-6 dark:border-strokedark sm:px-6">
+<div class="min-h-screen space-y-6">
+  <section class="rounded-sm border border-gray-200 bg-white shadow-default dark:border-gray-800 dark:bg-white/[0.03]">
+    <div class="border-b border-gray-200 px-4 py-6 dark:border-gray-800 sm:px-6">
       <h3 class="font-medium text-black dark:text-white">Triage Prioritization and Queue</h3>
-      <p class="text-sm text-bodydark">Urgency scoring, max wait SLA, and queue actions.</p>
+      <p class="text-sm text-gray-500 dark:text-gray-400">Urgency scoring, max wait SLA, and queue actions.</p>
     </div>
 
-    <div *ngIf="triageSuccess" class="mx-4 mt-4 rounded-lg bg-green-50 p-4 text-sm text-green-800 sm:mx-6">
+    <div *ngIf="triageSuccess" class="mx-4 mt-4 rounded-lg bg-green-50 p-4 text-sm text-green-800 dark:bg-green-500/15 dark:text-green-400 sm:mx-6">
       {{ triageSuccess }}
     </div>
-    <div *ngIf="triageError" class="mx-4 mt-4 rounded-lg bg-red-50 p-4 text-sm text-red-800 sm:mx-6">
+    <div *ngIf="triageError" class="mx-4 mt-4 rounded-lg bg-red-50 p-4 text-sm text-red-800 dark:bg-red-500/15 dark:text-red-400 sm:mx-6">
       {{ triageError }}
     </div>
 
-    <div class="border-b border-stroke p-4 dark:border-strokedark sm:p-6">
+    <div class="border-b border-gray-200 p-4 dark:border-gray-800 sm:p-6">
       <h4 class="mb-4 text-base font-semibold text-black dark:text-white">New Triage Assessment</h4>
       <form [formGroup]="triageForm" (ngSubmit)="submitTriageAssessment()" class="space-y-4">
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div>
             <label class="mb-2 block text-sm font-medium text-black dark:text-white">Patient ID *</label>
-            <input type="number" min="1" formControlName="patientId" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none focus:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white">
+            <input type="number" min="1" formControlName="patientId" class="w-full rounded border border-gray-300 bg-transparent px-4 py-2.5 text-gray-800 outline-none focus:border-primary dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
           </div>
           <div>
             <label class="mb-2 block text-sm font-medium text-black dark:text-white">Arrival Time *</label>
-            <input type="datetime-local" formControlName="arrivalTime" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none focus:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white">
+            <input type="datetime-local" formControlName="arrivalTime" class="w-full rounded border border-gray-300 bg-transparent px-4 py-2.5 text-gray-800 outline-none focus:border-primary dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
           </div>
           <div>
             <label class="mb-2 block text-sm font-medium text-black dark:text-white">Age</label>
-            <input type="number" min="0" max="130" formControlName="age" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none focus:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white">
+            <input type="number" min="0" max="130" formControlName="age" class="w-full rounded border border-gray-300 bg-transparent px-4 py-2.5 text-gray-800 outline-none focus:border-primary dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
           </div>
           <div>
             <label class="mb-2 block text-sm font-medium text-black dark:text-white">Heart Rate</label>
-            <input type="number" min="20" max="250" formControlName="heartRate" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none focus:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white">
+            <input type="number" min="20" max="250" formControlName="heartRate" class="w-full rounded border border-gray-300 bg-transparent px-4 py-2.5 text-gray-800 outline-none focus:border-primary dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
           </div>
           <div>
             <label class="mb-2 block text-sm font-medium text-black dark:text-white">Systolic BP</label>
-            <input type="number" min="40" max="300" formControlName="systolicBp" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none focus:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white">
+            <input type="number" min="40" max="300" formControlName="systolicBp" class="w-full rounded border border-gray-300 bg-transparent px-4 py-2.5 text-gray-800 outline-none focus:border-primary dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
           </div>
           <div>
             <label class="mb-2 block text-sm font-medium text-black dark:text-white">SpO2</label>
-            <input type="number" min="50" max="100" formControlName="spo2" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none focus:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white">
+            <input type="number" min="50" max="100" formControlName="spo2" class="w-full rounded border border-gray-300 bg-transparent px-4 py-2.5 text-gray-800 outline-none focus:border-primary dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
           </div>
           <div>
             <label class="mb-2 block text-sm font-medium text-black dark:text-white">Pain Score (0-10)</label>
-            <input type="number" min="0" max="10" formControlName="painScore" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none focus:border-primary dark:border-form-strokedark dark:bg-form-input dark:text-white">
+            <input type="number" min="0" max="10" formControlName="painScore" class="w-full rounded border border-gray-300 bg-transparent px-4 py-2.5 text-gray-800 outline-none focus:border-primary dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
           </div>
           <div class="flex items-center gap-6 pt-8">
             <label class="inline-flex items-center gap-2 text-sm text-black dark:text-white">
@@ -72,18 +72,18 @@
           <span class="inline-flex rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white">
             {{ queueItems.length }} items
           </span>
-          <button (click)="loadQueue()" class="rounded border border-stroke px-3 py-1.5 text-xs font-medium text-black hover:bg-gray-2 dark:border-strokedark dark:text-white">
+          <button (click)="loadQueue()" class="rounded border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100 dark:border-gray-700 dark:text-white/90 dark:hover:bg-white/[0.03]">
             Refresh
           </button>
         </div>
       </div>
 
-      <div *ngIf="loadingQueue" class="py-4 text-sm text-bodydark">Loading queue...</div>
+      <div *ngIf="loadingQueue" class="py-4 text-sm text-gray-500 dark:text-gray-400">Loading queue...</div>
 
       <div class="overflow-x-auto">
         <table class="w-full min-w-[900px] table-auto">
           <thead>
-            <tr class="bg-gray-2 text-left dark:bg-meta-4">
+            <tr class="bg-gray-100 text-left dark:bg-gray-800/60">
               <th class="px-3 py-3 text-sm font-medium text-black dark:text-white">Queue #</th>
               <th class="px-3 py-3 text-sm font-medium text-black dark:text-white">Patient</th>
               <th class="px-3 py-3 text-sm font-medium text-black dark:text-white">Score</th>
@@ -97,10 +97,10 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngIf="queueItems.length === 0" class="border-b border-stroke dark:border-strokedark">
-              <td colspan="10" class="px-3 py-4 text-center text-sm text-bodydark">No queue items found.</td>
+            <tr *ngIf="queueItems.length === 0" class="border-b border-gray-200 dark:border-gray-800">
+              <td colspan="10" class="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">No queue items found.</td>
             </tr>
-            <tr *ngFor="let item of queueItems" class="border-b border-stroke dark:border-strokedark">
+            <tr *ngFor="let item of queueItems" class="border-b border-gray-200 dark:border-gray-800">
               <td class="px-3 py-3 text-sm text-black dark:text-white">{{ item.queueItemId }}</td>
               <td class="px-3 py-3 text-sm text-black dark:text-white">{{ item.patientId }}</td>
               <td class="px-3 py-3 text-sm text-black dark:text-white">{{ item.score }}</td>
@@ -110,12 +110,12 @@
                 </span>
               </td>
               <td class="px-3 py-3 text-sm text-black dark:text-white">{{ item.status }}</td>
-              <td class="px-3 py-3 text-xs text-bodydark">{{ formatTime(item.arrivalTime) }}</td>
-              <td class="px-3 py-3 text-xs text-bodydark">{{ formatTime(item.deadlineAt) }}</td>
+              <td class="px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{{ formatTime(item.arrivalTime) }}</td>
+              <td class="px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{{ formatTime(item.deadlineAt) }}</td>
               <td class="px-3 py-3 text-xs" [ngClass]="slaClass(item.deadlineAt, item.status)">
                 {{ minutesToDeadline(item.deadlineAt) }} min
               </td>
-              <td class="px-3 py-3 text-xs text-bodydark">
+              <td class="px-3 py-3 text-xs text-gray-500 dark:text-gray-400">
                 {{ item.lastEscalationType || '-' }}
               </td>
               <td class="px-3 py-3">
@@ -150,56 +150,56 @@
     </div>
   </section>
 
-  <section class="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
-    <div class="border-b border-stroke px-4 py-6 dark:border-strokedark sm:px-6">
+  <section class="rounded-sm border border-gray-200 bg-white shadow-default dark:border-gray-800 dark:bg-white/[0.03]">
+    <div class="border-b border-gray-200 px-4 py-6 dark:border-gray-800 sm:px-6">
       <h3 class="font-medium text-black dark:text-white">Medical Histories</h3>
-      <p class="text-sm text-bodydark">Update and delete medical histories (creation is handled in Front Office).</p>
+      <p class="text-sm text-gray-500 dark:text-gray-400">Update and delete medical histories (creation is handled in Front Office).</p>
     </div>
 
-    <div *ngIf="success" class="mx-4 mt-4 rounded-lg bg-green-50 p-4 text-sm text-green-800 sm:mx-6">
+    <div *ngIf="success" class="mx-4 mt-4 rounded-lg bg-green-50 p-4 text-sm text-green-800 dark:bg-green-500/15 dark:text-green-400 sm:mx-6">
       {{ success }}
     </div>
-    <div *ngIf="error" class="mx-4 mt-4 rounded-lg bg-red-50 p-4 text-sm text-red-800 sm:mx-6">
+    <div *ngIf="error" class="mx-4 mt-4 rounded-lg bg-red-50 p-4 text-sm text-red-800 dark:bg-red-500/15 dark:text-red-400 sm:mx-6">
       {{ error }}
     </div>
 
-    <div *ngIf="editingId != null" class="border-b border-stroke p-4 dark:border-strokedark sm:p-6">
+    <div *ngIf="editingId != null" class="border-b border-gray-200 p-4 dark:border-gray-800 sm:p-6">
       <h4 class="mb-4 text-base font-semibold text-black dark:text-white">Update Medical History</h4>
       <form [formGroup]="form" (ngSubmit)="saveMedicalHistory()" class="space-y-4">
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label class="mb-2 block text-sm font-medium text-black dark:text-white">User ID</label>
-            <input type="number" formControlName="userId" readonly class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none dark:border-form-strokedark dark:bg-form-input dark:text-white">
+            <input type="number" formControlName="userId" readonly class="w-full rounded border border-gray-300 bg-transparent px-4 py-2.5 text-gray-800 outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
           </div>
           <div>
             <label class="mb-2 block text-sm font-medium text-black dark:text-white">Allergies</label>
-            <input type="text" formControlName="allergies" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none dark:border-form-strokedark dark:bg-form-input dark:text-white">
+            <input type="text" formControlName="allergies" class="w-full rounded border border-gray-300 bg-transparent px-4 py-2.5 text-gray-800 outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
           </div>
         </div>
 
         <div>
           <label class="mb-2 block text-sm font-medium text-black dark:text-white">Diagnosis</label>
-          <input type="text" formControlName="diagnosis" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none dark:border-form-strokedark dark:bg-form-input dark:text-white">
+          <input type="text" formControlName="diagnosis" class="w-full rounded border border-gray-300 bg-transparent px-4 py-2.5 text-gray-800 outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
         </div>
 
         <div>
           <label class="mb-2 block text-sm font-medium text-black dark:text-white">Chronic Conditions</label>
-          <textarea formControlName="chronicConditions" rows="2" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none dark:border-form-strokedark dark:bg-form-input dark:text-white"></textarea>
+          <textarea formControlName="chronicConditions" rows="2" class="w-full rounded border border-gray-300 bg-transparent px-4 py-2.5 text-gray-800 outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></textarea>
         </div>
 
         <div>
           <label class="mb-2 block text-sm font-medium text-black dark:text-white">Family History</label>
-          <textarea formControlName="familyHistory" rows="2" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none dark:border-form-strokedark dark:bg-form-input dark:text-white"></textarea>
+          <textarea formControlName="familyHistory" rows="2" class="w-full rounded border border-gray-300 bg-transparent px-4 py-2.5 text-gray-800 outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></textarea>
         </div>
 
         <div>
           <label class="mb-2 block text-sm font-medium text-black dark:text-white">Notes</label>
-          <textarea formControlName="notes" rows="3" class="w-full rounded border-[1.5px] border-stroke bg-transparent px-4 py-2.5 text-black outline-none dark:border-form-strokedark dark:bg-form-input dark:text-white"></textarea>
+          <textarea formControlName="notes" rows="3" class="w-full rounded border border-gray-300 bg-transparent px-4 py-2.5 text-gray-800 outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></textarea>
         </div>
 
         <div class="flex gap-3 pt-2">
           <button type="submit" class="rounded bg-primary px-5 py-2.5 font-medium text-white hover:bg-opacity-90">Update</button>
-          <button type="button" (click)="cancelEdit()" class="rounded border border-stroke px-5 py-2.5 font-medium text-black hover:bg-gray-2 dark:border-strokedark dark:text-white">Cancel</button>
+          <button type="button" (click)="cancelEdit()" class="rounded border border-gray-300 px-5 py-2.5 font-medium text-gray-800 hover:bg-gray-100 dark:border-gray-700 dark:text-white/90 dark:hover:bg-white/[0.03]">Cancel</button>
         </div>
       </form>
     </div>
@@ -213,7 +213,7 @@
       <div class="overflow-x-auto">
         <table class="w-full min-w-[760px] table-auto">
           <thead>
-            <tr class="bg-gray-2 text-left dark:bg-meta-4">
+            <tr class="bg-gray-100 text-left dark:bg-gray-800/60">
               <th class="px-3 py-3 text-sm font-medium text-black dark:text-white">User ID</th>
               <th class="px-3 py-3 text-sm font-medium text-black dark:text-white">Allergies</th>
               <th class="px-3 py-3 text-sm font-medium text-black dark:text-white">Diagnosis</th>
@@ -222,14 +222,14 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngIf="medicalHistories.length === 0" class="border-b border-stroke dark:border-strokedark">
-              <td colspan="5" class="px-3 py-4 text-center text-sm text-bodydark">No medical histories found.</td>
+            <tr *ngIf="medicalHistories.length === 0" class="border-b border-gray-200 dark:border-gray-800">
+              <td colspan="5" class="px-3 py-4 text-center text-sm text-gray-500 dark:text-gray-400">No medical histories found.</td>
             </tr>
-            <tr *ngFor="let medicalHistory of medicalHistories" class="border-b border-stroke dark:border-strokedark">
+            <tr *ngFor="let medicalHistory of medicalHistories" class="border-b border-gray-200 dark:border-gray-800">
               <td class="px-3 py-4 text-sm text-black dark:text-white">{{ medicalHistory.userId }}</td>
-              <td class="px-3 py-4 text-sm text-bodydark">{{ medicalHistory.allergies || 'N/A' }}</td>
-              <td class="px-3 py-4 text-sm text-bodydark">{{ medicalHistory.diagnosis || 'N/A' }}</td>
-              <td class="px-3 py-4 text-sm text-bodydark">{{ medicalHistory.chronicConditions || 'N/A' }}</td>
+              <td class="px-3 py-4 text-sm text-gray-500 dark:text-gray-400">{{ medicalHistory.allergies || 'N/A' }}</td>
+              <td class="px-3 py-4 text-sm text-gray-500 dark:text-gray-400">{{ medicalHistory.diagnosis || 'N/A' }}</td>
+              <td class="px-3 py-4 text-sm text-gray-500 dark:text-gray-400">{{ medicalHistory.chronicConditions || 'N/A' }}</td>
               <td class="px-3 py-4">
                 <div class="flex gap-2">
                   <button (click)="editMedicalHistory(medicalHistory)" class="rounded bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white">Edit</button>

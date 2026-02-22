@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { CanActivate, Router, ActivatedRouteSnapshot } from '@angular/router';
+import { CanActivate, Router } from '@angular/router';
 import { KeycloakService } from 'keycloak-angular';
 
 @Injectable({
@@ -8,24 +8,16 @@ import { KeycloakService } from 'keycloak-angular';
 export class RoleGuard implements CanActivate {
     constructor(private keycloak: KeycloakService, private router: Router) {}
 
-    async canActivate(route: ActivatedRouteSnapshot): Promise<boolean> {
+    async canActivate(): Promise<boolean> {
         const userRoles = await this.keycloak.getUserRoles();
-        const requiredRoles = route.data['roles'] as string[];
 
-        // If no specific roles are required, allow access
-        if (!requiredRoles || requiredRoles.length === 0) {
+        // Allow only doctor or admin
+        if (userRoles.includes('doctor') || userRoles.includes('admin')) {
             return true;
         }
 
-        // Check if user has any of the required roles
-        const hasRole = requiredRoles.some(role => userRoles.includes(role));
-
-        if (hasRole) {
-            return true;
-        }
-
-        // Deny access and navigate to home
-        this.router.navigate(['/']);
+        // Otherwise, logout and go back to Keycloak login page
+        await this.keycloak.logout(); // this will redirect to Keycloak login
         return false;
     }
 }

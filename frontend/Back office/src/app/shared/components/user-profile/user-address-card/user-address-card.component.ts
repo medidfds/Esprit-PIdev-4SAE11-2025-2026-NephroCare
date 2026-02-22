@@ -8,16 +8,17 @@ import { ModalComponent } from '../../ui/modal/modal.component';
 import { FormsModule } from '@angular/forms';
 
 @Component({
-  selector: 'app-user-address-card',
-  imports: [
-    InputFieldComponent,
-    ButtonComponent,
-    LabelComponent,
-    ModalComponent,
-    FormsModule
-],
-  templateUrl: './user-address-card.component.html',
-  styles: ``
+    selector: 'app-user-address-card',
+    imports: [
+        InputFieldComponent,
+        ButtonComponent,
+        LabelComponent,
+        ModalComponent,
+        FormsModule
+    ],
+    templateUrl: './user-address-card.component.html',
+    standalone: true,
+    styles: ``
 })
 export class UserAddressCardComponent {
 
@@ -28,10 +29,10 @@ export class UserAddressCardComponent {
   closeModal() { this.isOpen = false; }
 
   address = {
-    country: 'United States.',
-    cityState: 'Phoenix, Arizona, United States.',
-    postalCode: 'ERT 2489',
-    taxId: 'AS4568384',
+    country: 'N/A',
+    cityState: 'N/A',
+    postalCode: 'N/A',
+    taxId: 'N/A',
   };
 
   handleSave() {
