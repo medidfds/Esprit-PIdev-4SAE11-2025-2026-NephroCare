@@ -1,6 +1,7 @@
-import { Component, signal } from '@angular/core';
-import {NavigationEnd, Router} from '@angular/router';
-import {filter} from 'rxjs';
+import { Component } from '@angular/core';
+import { Router } from '@angular/router';
+import { Observable } from 'rxjs';
+import { NotificationService, ToastAlert } from './services/Notification.service';
 
 @Component({
   selector: 'app-root',
@@ -10,10 +11,16 @@ import {filter} from 'rxjs';
 })
 export class AppComponent {
 
-  constructor(private router: Router) {}
+  toasts$: Observable<ToastAlert[]>;
+
+  constructor(
+    private router: Router,
+    public notifService: NotificationService
+  ) {
+    this.toasts$ = this.notifService.toasts;
+  }
 
   showHeaderFooter(): boolean {
-    // Hide header/footer for login and register routes
     const hideOn = ['/login', '/register'];
     return !hideOn.includes(this.router.url);
   }

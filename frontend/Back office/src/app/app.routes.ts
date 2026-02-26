@@ -16,6 +16,10 @@ import { ButtonsComponent } from './pages/ui-elements/buttons/buttons.component'
 import { ImagesComponent } from './pages/ui-elements/images/images.component';
 import { VideosComponent } from './pages/ui-elements/videos/videos.component';
 import { CalenderComponent } from './pages/calender/calender.component';
+import { ClinicalComponent } from './pages/clinical/clinical.component';
+import { ConsultationsCalendarComponent } from './pages/consultations-calendar/consultations-calendar.component';
+
+
 import { RoleGuard } from './guards/role.guard';
 import {HospitalizationComponent} from "./pages/dashboard/hospitalization/hospitalization.component";
 import { StatistiqueHospitalizationComponent } from './pages/statistique/statistique-hospitalization.component';
@@ -50,6 +54,10 @@ export const routes: Routes = [
       { path: 'diagnosis', component: DiagnosisComponent },*/
       { path: 'hospitalization', component: HospitalizationComponent },
       { path: 'statistique-hospitalization', component: StatistiqueHospitalizationComponent },
+      { path: 'clinical', component: ClinicalComponent },
+      { path: 'consultations-calendar', component: ConsultationsCalendarComponent },
+
+
     ],
   },
   // Public/Error Pages

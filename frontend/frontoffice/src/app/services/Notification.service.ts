@@ -17,16 +17,32 @@ export interface CriticalNotification {
   acknowledged: boolean;
 }
 
+export interface ToastAlert {
+  id: string;
+  message: string;
+  details: string[];
+  severity: 'critical' | 'warning';
+  roomNumber: string;
+  timestamp: Date;
+}
+
 @Injectable({ providedIn: 'root' })
 export class NotificationService implements OnDestroy {
 
   private readonly POLL_INTERVAL_MS = 30_000;
 
   private notifications$ = new BehaviorSubject<CriticalNotification[]>([]);
+  private toasts$        = new BehaviorSubject<ToastAlert[]>([]);
   private pollSub?: Subscription;
+
+  // Audio instance — loaded once, reused
+  private alertAudio = new Audio('assets/template/sounds/alert.mp3');
 
   /** Observable that components subscribe to */
   notifications = this.notifications$.asObservable();
+
+  /** Observable for toast popups */
+  toasts = this.toasts$.asObservable();
 
   get unreadCount(): number {
     return this.notifications$.value.filter(n => !n.read).length;
@@ -40,8 +56,6 @@ export class NotificationService implements OnDestroy {
     private hospService: HospitalizationService,
     private keycloakService: KeycloakService
   ) {
-    // Only doctors receive notifications — guard at the service level
-    // so no HTTP calls are ever made for other roles
     if (this.keycloakService.isUserInRole('doctor')) {
       this.startPolling();
     }
@@ -55,11 +69,6 @@ export class NotificationService implements OnDestroy {
       .subscribe(() => this.checkForCriticals());
   }
 
-  /**
-   * Fetches ALL hospitalizations from the database,
-   * evaluates every vital-signs record against clinical thresholds,
-   * and pushes new notifications only for records not already tracked.
-   */
   private checkForCriticals(): void {
     this.hospService.getAll().subscribe({
       next: (data: any[]) => {
@@ -70,14 +79,10 @@ export class NotificationService implements OnDestroy {
           if (!h.vitalSignsRecords?.length) return;
 
           h.vitalSignsRecords.forEach((vs: any) => {
-            // Evaluate this record against clinical thresholds
             const alerts = this.evaluateVitals(vs);
-            if (!alerts.length) return;             // vitals are normal — skip
+            if (!alerts.length) return;
 
-            // Unique key: hospitalization id + record timestamp
             const notifId = `${h.id}-${vs.recordDate}`;
-
-            // Do not duplicate already-tracked notifications
             if (currentNotifs.some(n => n.id === notifId)) return;
 
             const severity: CriticalNotification['severity'] =
@@ -105,32 +110,69 @@ export class NotificationService implements OnDestroy {
         });
 
         if (newNotifs.length) {
-          // Prepend newest notifications and sort: critical first, then newest first
           const merged = [...newNotifs, ...currentNotifs];
           merged.sort((a, b) => {
             if (a.severity !== b.severity) return a.severity === 'critical' ? -1 : 1;
             return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
           });
           this.notifications$.next(merged);
+
+          // ── Fire sound + toasts for each new alert ────────────────────
+          this.playAlertSound(newNotifs.some(n => n.severity === 'critical'));
+          newNotifs.forEach(n => this.showToast(n));
         }
       },
       error: err => console.error('Notification poll error', err)
     });
   }
 
+  // ── Sound ─────────────────────────────────────────────────────────────────
+
+  private playAlertSound(isCritical: boolean): void {
+    try {
+      this.alertAudio.volume = isCritical ? 1.0 : 0.5; // louder for critical
+      this.alertAudio.currentTime = 0;                  // rewind to start
+      this.alertAudio.play().catch(() => {
+        // Browser blocks autoplay until user has interacted with the page — safe to ignore
+      });
+    } catch (e) {
+      console.warn('Could not play alert sound', e);
+    }
+  }
+
+  // ── Toast popups ──────────────────────────────────────────────────────────
+
+  private showToast(notif: CriticalNotification): void {
+    const toast: ToastAlert = {
+      id:         notif.id,
+      message:    notif.message,
+      details:    notif.details.slice(0, 2), // show max 2 detail lines in popup
+      severity:   notif.severity,
+      roomNumber: notif.roomNumber,
+      timestamp:  notif.timestamp
+    };
+
+    const current = this.toasts$.value;
+    this.toasts$.next([toast, ...current]);
+
+    // Auto-dismiss after 6 seconds (critical) or 4 seconds (warning)
+    const ttl = notif.severity === 'critical' ? 6000 : 4000;
+    setTimeout(() => this.dismissToast(toast.id), ttl);
+  }
+
+  dismissToast(id: string): void {
+    const updated = this.toasts$.value.filter(t => t.id !== id);
+    this.toasts$.next(updated);
+  }
+
   // ── Clinical thresholds ───────────────────────────────────────────────────
-  /**
-   * Pure evaluation of a single vital-signs record.
-   * Returns an empty array when all values are within normal range.
-   * Single source of truth for all thresholds.
-   */
+
   private evaluateVitals(
     vs: any
   ): { type: CriticalNotification['type']; message: string; critical: boolean }[] {
 
     const alerts: { type: CriticalNotification['type']; message: string; critical: boolean }[] = [];
 
-    // ── Temperature (°C) ──────────────────────────────────────────────────
     if (vs.temperature != null) {
       if (vs.temperature > 39.5)
         alerts.push({ type: 'temperature', message: `High fever: ${vs.temperature}°C (>39.5°C)`, critical: true });
@@ -142,7 +184,6 @@ export class NotificationService implements OnDestroy {
         alerts.push({ type: 'temperature', message: `Low temperature: ${vs.temperature}°C (<36°C)`, critical: false });
     }
 
-    // ── Heart rate (bpm) ──────────────────────────────────────────────────
     if (vs.heartRate != null) {
       if (vs.heartRate > 150)
         alerts.push({ type: 'heartRate', message: `Severe tachycardia: ${vs.heartRate} bpm (>150)`, critical: true });
@@ -154,7 +195,6 @@ export class NotificationService implements OnDestroy {
         alerts.push({ type: 'heartRate', message: `Bradycardia: ${vs.heartRate} bpm (<60)`, critical: false });
     }
 
-    // ── Oxygen saturation (%) ─────────────────────────────────────────────
     if (vs.oxygenSaturation != null) {
       if (vs.oxygenSaturation < 90)
         alerts.push({ type: 'oxygenSaturation', message: `Critical SpO₂: ${vs.oxygenSaturation}% (<90%)`, critical: true });
@@ -162,7 +202,6 @@ export class NotificationService implements OnDestroy {
         alerts.push({ type: 'oxygenSaturation', message: `Low SpO₂: ${vs.oxygenSaturation}% (<95%)`, critical: false });
     }
 
-    // ── Respiratory rate (/min) ───────────────────────────────────────────
     if (vs.respiratoryRate != null) {
       if (vs.respiratoryRate > 30 || vs.respiratoryRate < 8)
         alerts.push({ type: 'respiratoryRate', message: `Critical resp. rate: ${vs.respiratoryRate}/min`, critical: true });

@@ -6,6 +6,7 @@ import {DiagnosticComponent} from './diagnostic/diagnostic.component';
 import {HospitalizationComponent} from './hospitalization/hospitalization.component';
 import { NotificationsComponent } from './Notifications/Notifications.component';
 import { ProfileComponent } from './Profile/Profile.component';
+import { ClinicalComponent } from './clinical/clinical.component';
 
 
 const routes: Routes = [
@@ -17,6 +18,10 @@ const routes: Routes = [
   {
     path: 'diagnostic',
     component: DiagnosticComponent
+  },
+  {
+    path: 'clinical',
+    component: ClinicalComponent
   },
   {
     path: 'hospitalization',

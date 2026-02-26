@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SqlDialectMappings">
+    <file url="file://$PROJECT_DIR$/clinical/migrations/001_uuid_to_bigint.sql" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/clinical/migrations/002_fix_medical_histories_id.sql" dialect="GenericSQL" />
+  </component>
+</project>
