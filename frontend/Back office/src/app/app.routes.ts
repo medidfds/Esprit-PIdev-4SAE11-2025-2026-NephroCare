@@ -19,6 +19,7 @@ import { CalenderComponent } from './pages/calender/calender.component';
 import { RoleGuard } from './guards/role.guard';
 import {HospitalizationComponent} from "./pages/dashboard/hospitalization/hospitalization.component";
 import { StatistiqueHospitalizationComponent } from './pages/statistique/statistique-hospitalization.component';
+import { DiagnosticComponent } from './pages/dashboard/diagnostic/diagnostic.component';
 export const routes: Routes = [
   {
     path: '',
@@ -49,6 +50,7 @@ export const routes: Routes = [
       /*{ path: 'pharmacy', component: PharmacyComponent },
       { path: 'diagnosis', component: DiagnosisComponent },*/
       { path: 'hospitalization', component: HospitalizationComponent },
+      { path: 'diagnostic', component: DiagnosticComponent },
       { path: 'statistique-hospitalization', component: StatistiqueHospitalizationComponent },
     ],
   },

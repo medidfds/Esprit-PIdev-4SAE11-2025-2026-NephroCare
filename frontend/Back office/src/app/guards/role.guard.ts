@@ -11,13 +11,13 @@ export class RoleGuard implements CanActivate {
     async canActivate(): Promise<boolean> {
         const userRoles = await this.keycloak.getUserRoles();
 
-        // Allow only doctor or admin
-        if (userRoles.includes('doctor') || userRoles.includes('admin') || userRoles.includes('nurse')) {
+        // Allow only doctor, admin, nurse or labTech
+        if (userRoles.includes('doctor') || userRoles.includes('admin') || userRoles.includes('nurse') || userRoles.includes('labTech')) {
             return true;
         }
 
         // Otherwise, logout and go back to Keycloak login page
-        await this.keycloak.logout(); // this will redirect to Keycloak login
+        await this.keycloak.logout();
         return false;
     }
 }

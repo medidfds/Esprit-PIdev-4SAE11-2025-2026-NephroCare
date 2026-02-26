@@ -1,4 +1,4 @@
-import { NgModule,  APP_INITIALIZER } from '@angular/core';
+import { NgModule, APP_INITIALIZER } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 
 import { AppRoutingModule } from './app-routing-module';
@@ -15,6 +15,7 @@ import { KeycloakAngularModule, KeycloakService } from 'keycloak-angular';
 import keycloakConfig from './keycloak.config';
 import { DiagnosticComponent } from './diagnostic/diagnostic.component';
 import { HospitalizationComponent } from './hospitalization/hospitalization.component';
+import { DiagnosticCalendarComponent } from './diagnostic-calendar/diagnostic-calendar.component'; // ← AJOUTÉ
 
 
 function initializeKeycloak(keycloak: KeycloakService) {
@@ -22,8 +23,9 @@ function initializeKeycloak(keycloak: KeycloakService) {
     keycloak.init({
       config: keycloakConfig,
       initOptions: {
-        onLoad: 'login-required',
-        checkLoginIframe: false
+        onLoad: 'check-sso',
+        checkLoginIframe: false,
+        silentCheckSsoRedirectUri: window.location.origin + '/assets/silent-check-sso.html'
       },
     });
 }
@@ -35,7 +37,8 @@ function initializeKeycloak(keycloak: KeycloakService) {
     FooterComponent,
     HomeComponent,
     DiagnosticComponent,
-    HospitalizationComponent
+    HospitalizationComponent,
+    DiagnosticCalendarComponent,   // ← AJOUTÉ
   ],
   imports: [
     CommonModule,
@@ -45,7 +48,6 @@ function initializeKeycloak(keycloak: KeycloakService) {
     KeycloakAngularModule,
     HttpClientModule,
     ReactiveFormsModule
-
   ],
   providers: [
     {

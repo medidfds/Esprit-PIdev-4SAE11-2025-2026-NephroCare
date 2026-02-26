@@ -1,6 +1,6 @@
-package org.example.diagnosticapp.repositories;
+package org.example.diagnosticService.repositories;
 
-import org.example.diagnosticapp.entities.DiagnosticResult;
+import org.example.diagnosticService.entities.DiagnosticResult;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface DiagnosticResultRepository extends JpaRepository<DiagnosticResult, String> {

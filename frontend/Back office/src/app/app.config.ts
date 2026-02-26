@@ -1,5 +1,6 @@
 import { ApplicationConfig, provideZoneChangeDetection, APP_INITIALIZER } from '@angular/core';
 import { provideRouter } from '@angular/router';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { KeycloakService } from 'keycloak-angular';
 
 import { routes } from './app.routes';
@@ -9,6 +10,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
+    provideHttpClient(withInterceptorsFromDi()), 
     KeycloakService,
     {
       provide: APP_INITIALIZER,
