@@ -55,4 +55,7 @@ public class    Hospitalization {
     @OneToMany(mappedBy = "hospitalization", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference // Helps avoid infinite recursion in JSON
     private List<VitalSigns> vitalSignsRecords = new ArrayList<>();
+
+
+
 }

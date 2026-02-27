@@ -19,6 +19,7 @@ import { ClinicalComponent } from './clinical/clinical.component';
 
 import { NotificationsComponent } from './Notifications/Notifications.component';
 import { ProfileComponent } from './Profile/Profile.component';
+import { PharmacyComponent } from './pharmacy/pharmacy.component';
 
 
 function initializeKeycloak(keycloak: KeycloakService) {
@@ -43,6 +44,7 @@ function initializeKeycloak(keycloak: KeycloakService) {
     NotificationsComponent,
     ProfileComponent,
     ClinicalComponent,
+    PharmacyComponent
   ],
   imports: [
     CommonModule,

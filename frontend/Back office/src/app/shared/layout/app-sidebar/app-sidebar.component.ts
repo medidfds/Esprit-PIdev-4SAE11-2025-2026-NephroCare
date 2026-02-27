@@ -31,6 +31,7 @@ export class AppSidebarComponent {
       subItems: [
         { name: 'Hospitalization', path: '/hospitalization' },
         { name: 'Clinical', path: '/clinical' },
+        { name: 'pharmacy', path: '/pharmacy' },
         { name: 'Consultations Calendar', path: '/consultations-calendar' },
         { name: 'Hospitalization Stats', path: '/statistique-hospitalization' },
       ]

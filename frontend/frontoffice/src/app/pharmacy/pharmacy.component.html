@@ -1,0 +1,839 @@
+<div class="pharmacy-front">
+
+  <!-- HEADER -->
+  <div class="rx-page-header">
+    <div class="header-inner">
+      <div class="header-icon">
+        <i class="fas fa-hospital-symbol"></i>
+      </div>
+      <div>
+        <div class="breadcrumb-label">Front Office / Pharmacy</div>
+        <h1>Pharmacy</h1>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn"
+            [class.active]="activeTab === 'medications'"
+            (click)="activeTab = 'medications'">
+      <i class="fas fa-pills"></i> Medications
+      <span class="tab-count">{{ medications.length }}</span>
+    </button>
+    <button class="tab-btn"
+            [class.active]="activeTab === 'prescriptions'"
+            (click)="activeTab = 'prescriptions'">
+      <i class="fas fa-file-prescription"></i> My Prescriptions
+      <span class="tab-count">{{ prescriptions.length }}</span>
+    </button>
+    <!-- ✅ ONGLET CALCULATEUR -->
+    <button class="tab-btn tab-btn--calc"
+            [class.active]="activeTab === 'calculator'"
+            (click)="activeTab = 'calculator'">
+      <i class="fas fa-calculator"></i> Dose Calculator
+    </button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!--  TAB : MEDICATIONS                         -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div *ngIf="activeTab === 'medications'" class="pf-content">
+
+    <!-- Loading -->
+    <div class="pf-state" *ngIf="loadingMeds">
+      <i class="fas fa-spinner fa-spin pf-state-icon"></i>
+      <p>Loading medications...</p>
+    </div>
+
+    <!-- Error -->
+    <div class="pf-state pf-state--error" *ngIf="errorMeds && !loadingMeds">
+      <i class="fas fa-exclamation-circle pf-state-icon"></i>
+      <p>Failed to load medications.</p>
+      <small>Please check your connection or try again later.</small>
+      <button class="btn-retry" (click)="loadMedications()">
+        <i class="fas fa-redo"></i> Retry
+      </button>
+    </div>
+
+    <div *ngIf="!loadingMeds && !errorMeds">
+
+      <!-- ✅ STATS RAPIDES -->
+      <div class="quick-stats">
+        <div class="qs-item qs-total">
+          <div class="qs-icon"><i class="fas fa-pills"></i></div>
+          <div class="qs-body">
+            <span class="qs-value">{{ medStats.total }}</span>
+            <span class="qs-label">Total</span>
+          </div>
+        </div>
+        <div class="qs-item qs-ok">
+          <div class="qs-icon"><i class="fas fa-check-circle"></i></div>
+          <div class="qs-body">
+            <span class="qs-value">{{ medStats.available }}</span>
+            <span class="qs-label">Available</span>
+          </div>
+        </div>
+        <div class="qs-item qs-low">
+          <div class="qs-icon"><i class="fas fa-exclamation-triangle"></i></div>
+          <div class="qs-body">
+            <span class="qs-value">{{ medStats.low }}</span>
+            <span class="qs-label">Low Stock</span>
+          </div>
+        </div>
+        <div class="qs-item qs-out">
+          <div class="qs-icon"><i class="fas fa-times-circle"></i></div>
+          <div class="qs-body">
+            <span class="qs-value">{{ medStats.out }}</span>
+            <span class="qs-label">Out of Stock</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ✅ SEARCH + FILTRES -->
+      <div class="search-section">
+
+        <div class="search-bar">
+          <i class="fas fa-search search-icon"></i>
+          <input
+            type="text"
+            [(ngModel)]="searchMed"
+            placeholder="Search by name, dosage, route..."
+            class="search-input" />
+          <button *ngIf="searchMed" class="search-clear" (click)="searchMed = ''">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="filter-row">
+
+          <!-- Stock chips -->
+          <div class="filter-chips">
+            <button class="chip"
+                    [class.chip--active]="filterStock === ''"
+                    (click)="filterStock = ''">
+              All
+            </button>
+            <button class="chip chip--ok"
+                    [class.chip--active]="filterStock === 'available'"
+                    (click)="filterStock = filterStock === 'available' ? '' : 'available'">
+              <i class="fas fa-check-circle"></i> Available
+            </button>
+            <button class="chip chip--warn"
+                    [class.chip--active]="filterStock === 'low'"
+                    (click)="filterStock = filterStock === 'low' ? '' : 'low'">
+              <i class="fas fa-exclamation-triangle"></i> Low Stock
+            </button>
+            <button class="chip chip--danger"
+                    [class.chip--active]="filterStock === 'out'"
+                    (click)="filterStock = filterStock === 'out' ? '' : 'out'">
+              <i class="fas fa-times-circle"></i> Out of Stock
+            </button>
+            <button class="chip chip--expiry"
+                    [class.chip--active]="filterStock === 'expiring'"
+                    (click)="filterStock = filterStock === 'expiring' ? '' : 'expiring'">
+              <i class="fas fa-clock"></i> Expiring Soon
+            </button>
+          </div>
+
+          <div class="filter-right">
+            <!-- Route -->
+            <select class="filter-select"
+                    [(ngModel)]="filterRoute"
+                    *ngIf="availableRoutes.length > 0">
+              <option value="">All Routes</option>
+              <option *ngFor="let r of availableRoutes" [value]="r">{{ r }}</option>
+            </select>
+
+            <!-- Sort -->
+            <select class="filter-select" [(ngModel)]="sortMed">
+              <option value="name">Name A→Z</option>
+              <option value="name-desc">Name Z→A</option>
+              <option value="stock-desc">Stock ↓</option>
+              <option value="stock-asc">Stock ↑</option>
+              <option value="expiry">Expiry Date</option>
+            </select>
+
+            <!-- Reset -->
+            <button *ngIf="hasMedFilters" class="btn-reset" (click)="resetMedFilters()">
+              <i class="fas fa-xmark"></i> Reset
+            </button>
+          </div>
+        </div>
+
+        <!-- Résultats counter -->
+        <div class="results-bar" *ngIf="hasMedFilters">
+          <span class="results-count">
+            <i class="fas fa-filter"></i>
+            {{ filteredMedications.length }} result(s)
+            <span *ngIf="filteredMedications.length !== medications.length" class="results-total">
+              out of {{ medications.length }}
+            </span>
+          </span>
+          <button class="results-clear" (click)="resetMedFilters()">
+            Clear all filters
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Empty après filtre -->
+      <div class="pf-state" *ngIf="filteredMedications.length === 0 && medications.length > 0">
+        <i class="fas fa-magnifying-glass pf-state-icon"></i>
+        <p>No medications match your search.</p>
+        <button class="btn-retry" (click)="resetMedFilters()">
+          <i class="fas fa-times"></i> Clear filters
+        </button>
+      </div>
+
+      <!-- Empty global -->
+      <div class="pf-state" *ngIf="medications.length === 0">
+        <i class="fas fa-prescription-bottle pf-state-icon"></i>
+        <p>No medications available.</p>
+      </div>
+
+      <!-- Cards Grid -->
+      <div class="medication-list" *ngIf="filteredMedications.length > 0">
+
+        <div class="medication-card"
+             *ngFor="let med of filteredMedications; trackBy: trackById"
+             [class.card--expiring]="isExpiringSoon(med.endDate)"
+             [class.card--out]="med.quantity === 0">
+
+          <div class="mc-header">
+            <div class="mc-icon"><i class="fas fa-capsules"></i></div>
+            <div class="mc-title">
+              <h3>{{ med.medicationName }}</h3>
+              <span class="mc-id">#{{ med.id }}</span>
+            </div>
+          </div>
+
+          <div class="mc-meta" *ngIf="med.dosage || med.route">
+            <span *ngIf="med.dosage"><i class="fas fa-flask"></i> {{ med.dosage }}</span>
+            <span *ngIf="med.route"><i class="fas fa-route"></i> {{ med.route }}</span>
+          </div>
+
+          <div class="mc-info">
+            <div class="mc-info-item"
+                 [class.stock-low]="med.quantity > 0 && med.quantity <= 10">
+              <i class="fas fa-boxes"></i>
+              <span>Stock: <strong>{{ med.quantity }}</strong></span>
+            </div>
+            <div class="mc-info-item" *ngIf="med.duration">
+              <i class="fas fa-clock"></i>
+              <span>Duration: <strong>{{ med.duration }} days</strong></span>
+            </div>
+          </div>
+
+          <div class="mc-expiry"
+               [class.expiry-warn]="isExpiringSoon(med.endDate)"
+               *ngIf="med.endDate">
+            <i class="fas fa-calendar-check" *ngIf="!isExpiringSoon(med.endDate)"></i>
+            <i class="fas fa-calendar-times" *ngIf="isExpiringSoon(med.endDate)"></i>
+            <span>Expires: {{ med.endDate | date:'mediumDate' }}</span>
+            <span class="expiry-badge" *ngIf="isExpiringSoon(med.endDate)">Expiring soon</span>
+          </div>
+
+          <div class="mc-stock-bar">
+            <div class="mc-stock-fill"
+                 [style.width.%]="med.quantity > 100 ? 100 : med.quantity"
+                 [class.fill-ok]="med.quantity > 10"
+                 [class.fill-low]="med.quantity > 0 && med.quantity <= 10"
+                 [class.fill-out]="med.quantity === 0">
+            </div>
+          </div>
+
+          <button class="mc-btn"
+                  [disabled]="med.quantity === 0"
+                  [class.mc-btn--available]="med.quantity > 0"
+                  [class.mc-btn--out]="med.quantity === 0">
+            <i class="fas fa-check-circle" *ngIf="med.quantity > 0"></i>
+            <i class="fas fa-times-circle" *ngIf="med.quantity === 0"></i>
+            {{ med.quantity > 0 ? 'Available' : 'Out of Stock' }}
+          </button>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!--  TAB : MY PRESCRIPTIONS                    -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div *ngIf="activeTab === 'prescriptions'" class="pf-content">
+
+    <!-- Loading -->
+    <div class="pf-state" *ngIf="loadingRx">
+      <i class="fas fa-spinner fa-spin pf-state-icon"></i>
+      <p>Loading prescriptions...</p>
+    </div>
+
+    <!-- Error -->
+    <div class="pf-state pf-state--error" *ngIf="errorRx && !loadingRx">
+      <i class="fas fa-exclamation-circle pf-state-icon"></i>
+      <p>Failed to load prescriptions.</p>
+      <button class="btn-retry" (click)="loadPrescriptions()">
+        <i class="fas fa-redo"></i> Retry
+      </button>
+    </div>
+
+    <div *ngIf="!loadingRx && !errorRx">
+
+      <!-- ✅ STATS PRESCRIPTIONS -->
+      <div class="quick-stats" *ngIf="prescriptions.length > 0">
+        <div class="qs-item qs-total">
+          <div class="qs-icon"><i class="fas fa-file-prescription"></i></div>
+          <div class="qs-body">
+            <span class="qs-value">{{ rxStats.total }}</span>
+            <span class="qs-label">Total</span>
+          </div>
+        </div>
+        <div class="qs-item qs-ok">
+          <div class="qs-icon"><i class="fas fa-check-circle"></i></div>
+          <div class="qs-body">
+            <span class="qs-value">{{ rxStats.active }}</span>
+            <span class="qs-label">Active</span>
+          </div>
+        </div>
+        <div class="qs-item qs-low">
+          <div class="qs-icon"><i class="fas fa-clock"></i></div>
+          <div class="qs-body">
+            <span class="qs-value">{{ rxStats.pending }}</span>
+            <span class="qs-label">Pending</span>
+          </div>
+        </div>
+        <div class="qs-item qs-out">
+          <div class="qs-icon"><i class="fas fa-calendar-times"></i></div>
+          <div class="qs-body">
+            <span class="qs-value">{{ rxStats.expired }}</span>
+            <span class="qs-label">Expired</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ✅ SEARCH + FILTRES PRESCRIPTIONS -->
+      <div class="search-section" *ngIf="prescriptions.length > 0">
+
+        <div class="search-bar">
+          <i class="fas fa-search search-icon"></i>
+          <input
+            type="text"
+            [(ngModel)]="searchRx"
+            placeholder="Search by doctor, instructions, status..."
+            class="search-input" />
+          <button *ngIf="searchRx" class="search-clear" (click)="searchRx = ''">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="filter-row">
+
+          <!-- Status chips -->
+          <div class="filter-chips">
+            <button class="chip"
+                    [class.chip--active]="filterStatus === ''"
+                    (click)="filterStatus = ''">All</button>
+            <button class="chip chip--pending"
+                    [class.chip--active]="filterStatus === 'PENDING'"
+                    (click)="filterStatus = filterStatus === 'PENDING' ? '' : 'PENDING'">
+              <i class="fas fa-clock"></i> Pending
+            </button>
+            <button class="chip chip--ok"
+                    [class.chip--active]="filterStatus === 'APPROVED'"
+                    (click)="filterStatus = filterStatus === 'APPROVED' ? '' : 'APPROVED'">
+              <i class="fas fa-check"></i> Approved
+            </button>
+            <button class="chip chip--info"
+                    [class.chip--active]="filterStatus === 'DISPENSED'"
+                    (click)="filterStatus = filterStatus === 'DISPENSED' ? '' : 'DISPENSED'">
+              <i class="fas fa-pills"></i> Dispensed
+            </button>
+            <button class="chip chip--ok"
+                    [class.chip--active]="filterStatus === 'COMPLETED'"
+                    (click)="filterStatus = filterStatus === 'COMPLETED' ? '' : 'COMPLETED'">
+              <i class="fas fa-flag-checkered"></i> Completed
+            </button>
+            <button class="chip chip--danger"
+                    [class.chip--active]="filterStatus === 'CANCELLED'"
+                    (click)="filterStatus = filterStatus === 'CANCELLED' ? '' : 'CANCELLED'">
+              <i class="fas fa-ban"></i> Cancelled
+            </button>
+          </div>
+
+          <div class="filter-right">
+            <select class="filter-select" [(ngModel)]="filterValidity">
+              <option value="">All Validity</option>
+              <option value="valid">Valid only</option>
+              <option value="expired">Expired only</option>
+            </select>
+
+            <select class="filter-select" [(ngModel)]="sortRx">
+              <option value="date-desc">Newest first</option>
+              <option value="date-asc">Oldest first</option>
+              <option value="doctor">By doctor</option>
+              <option value="status">By status</option>
+            </select>
+
+            <button *ngIf="hasRxFilters" class="btn-reset" (click)="resetRxFilters()">
+              <i class="fas fa-xmark"></i> Reset
+            </button>
+          </div>
+        </div>
+
+        <div class="results-bar" *ngIf="hasRxFilters">
+          <span class="results-count">
+            <i class="fas fa-filter"></i>
+            {{ filteredPrescriptions.length }} result(s)
+            <span *ngIf="filteredPrescriptions.length !== prescriptions.length" class="results-total">
+              out of {{ prescriptions.length }}
+            </span>
+          </span>
+          <button class="results-clear" (click)="resetRxFilters()">
+            Clear all filters
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Empty après filtre -->
+      <div class="pf-state"
+           *ngIf="filteredPrescriptions.length === 0 && prescriptions.length > 0">
+        <i class="fas fa-magnifying-glass pf-state-icon"></i>
+        <p>No prescriptions match your search.</p>
+        <button class="btn-retry" (click)="resetRxFilters()">
+          <i class="fas fa-times"></i> Clear filters
+        </button>
+      </div>
+
+      <!-- Empty global -->
+      <div class="pf-state" *ngIf="prescriptions.length === 0">
+        <i class="fas fa-file-prescription pf-state-icon"></i>
+        <p>No prescriptions found for your account.</p>
+      </div>
+
+      <!-- Prescription Cards -->
+      <div class="rx-list" *ngIf="filteredPrescriptions.length > 0">
+
+        <div class="rx-card"
+             *ngFor="let p of filteredPrescriptions; trackBy: trackById"
+             [class.rx-card--expired]="isExpired(p.validUntil)">
+
+          <div class="rx-card-header">
+            <div class="rx-icon"><i class="fas fa-file-medical-alt"></i></div>
+            <div class="rx-card-meta">
+              <div class="rx-card-title">Dr. {{ p.prescribedBy || 'Unknown' }}</div>
+              <div class="rx-card-sub">{{ p.prescriptionDate | date:'mediumDate' }}</div>
+            </div>
+            <span class="status-badge" [ngClass]="statusClass(p.status)">{{ p.status }}</span>
+          </div>
+
+          <div class="rx-validity" [class.rx-validity--expired]="isExpired(p.validUntil)">
+            <i class="fas fa-calendar-check" *ngIf="!isExpired(p.validUntil)"></i>
+            <i class="fas fa-calendar-times" *ngIf="isExpired(p.validUntil)"></i>
+            <span>Valid until: {{ p.validUntil | date:'mediumDate' }}</span>
+            <span class="expired-badge" *ngIf="isExpired(p.validUntil)">Expired</span>
+          </div>
+
+          <p class="rx-instructions" *ngIf="p.instructions">
+            <i class="fas fa-info-circle"></i> {{ p.instructions }}
+          </p>
+
+          <div class="rx-meds-count">
+            <i class="fas fa-pills"></i>
+            <span>{{ p.medications?.length || 0 }} medication(s)</span>
+          </div>
+
+          <!-- ✅ BOUTONS AVEC CALCULATE -->
+          <div class="rx-card-actions">
+            <button class="rx-btn" (click)="view(p)">
+              <i class="fas fa-eye"></i> View Details
+            </button>
+            <button class="rx-btn-calc" (click)="loadFromPrescription(p)"
+                    [disabled]="!p.medications?.length">
+              <i class="fas fa-calculator"></i> Calculate
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!--  TAB : DOSE CALCULATOR                     -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div *ngIf="activeTab === 'calculator'" class="pf-content">
+
+    <div class="calc-layout">
+
+      <!-- ── PANNEAU GAUCHE : Formulaire ── -->
+      <div class="calc-panel">
+        <div class="calc-panel-header">
+          <div class="calc-panel-icon">
+            <i class="fas fa-calculator"></i>
+          </div>
+          <div>
+            <h2 class="calc-panel-title">Dose Calculator</h2>
+            <p class="calc-panel-sub">Calculate your treatment schedule</p>
+          </div>
+        </div>
+
+        <!-- Erreur -->
+        <div class="calc-error" *ngIf="calcError">
+          <i class="fas fa-exclamation-circle"></i> {{ calcError }}
+        </div>
+
+        <!-- Formulaire -->
+        <div class="calc-form">
+
+          <div class="calc-field">
+            <label class="calc-label">
+              <i class="fas fa-capsules"></i> Medication Name *
+            </label>
+            <input type="text"
+                   class="calc-input"
+                   [(ngModel)]="calcForm.medicationName"
+                   placeholder="e.g. Amoxicillin" />
+          </div>
+
+          <div class="calc-field">
+            <label class="calc-label">
+              <i class="fas fa-flask"></i> Dosage
+            </label>
+            <input type="text"
+                   class="calc-input"
+                   [(ngModel)]="calcForm.dosage"
+                   placeholder="e.g. 500mg" />
+          </div>
+
+          <div class="calc-row-2">
+            <div class="calc-field">
+              <label class="calc-label">
+                <i class="fas fa-redo"></i> Frequency (per day) *
+              </label>
+              <div class="calc-stepper">
+                <button class="stepper-btn"
+                        (click)="calcForm.frequency = calcForm.frequency > 1 ? calcForm.frequency - 1 : 1">
+                  <i class="fas fa-minus"></i>
+                </button>
+                <span class="stepper-val">{{ calcForm.frequency }}×</span>
+                <button class="stepper-btn"
+                        (click)="calcForm.frequency = calcForm.frequency < 12 ? calcForm.frequency + 1 : 12">
+                  <i class="fas fa-plus"></i>
+                </button>
+              </div>
+              <span class="calc-hint">
+                Every {{ 24 / calcForm.frequency | number:'1.0-1' }}h
+              </span>
+            </div>
+
+            <div class="calc-field">
+              <label class="calc-label">
+                <i class="fas fa-clock"></i> Duration (days) *
+              </label>
+              <div class="calc-stepper">
+                <button class="stepper-btn"
+                        (click)="calcForm.duration = calcForm.duration > 1 ? calcForm.duration - 1 : 1">
+                  <i class="fas fa-minus"></i>
+                </button>
+                <span class="stepper-val">{{ calcForm.duration }}d</span>
+                <button class="stepper-btn"
+                        (click)="calcForm.duration = calcForm.duration < 365 ? calcForm.duration + 1 : 365">
+                  <i class="fas fa-plus"></i>
+                </button>
+              </div>
+              <span class="calc-hint">
+                Total: {{ calcForm.frequency * calcForm.duration }} units
+              </span>
+            </div>
+          </div>
+
+          <div class="calc-row-2">
+            <div class="calc-field">
+              <label class="calc-label">
+                <i class="fas fa-calendar-plus"></i> Start Date *
+              </label>
+              <input type="date"
+                     class="calc-input"
+                     [(ngModel)]="calcForm.startDate" />
+            </div>
+
+            <div class="calc-field">
+              <label class="calc-label">
+                <i class="fas fa-boxes"></i> Stock Available
+              </label>
+              <input type="number"
+                     class="calc-input"
+                     [(ngModel)]="calcForm.quantity"
+                     min="0"
+                     placeholder="0" />
+            </div>
+          </div>
+
+          <!-- Boutons -->
+          <div class="calc-actions">
+            <button class="calc-btn-primary" (click)="calculateTreatment()">
+              <i class="fas fa-calculator"></i> Calculate Plan
+            </button>
+            <button class="calc-btn-reset" (click)="resetCalculator()" *ngIf="treatmentPlan">
+              <i class="fas fa-redo"></i> Reset
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── PANNEAU DROIT : Résultats ── -->
+      <div class="calc-results" *ngIf="treatmentPlan">
+
+        <!-- Résumé du traitement -->
+        <div class="result-card">
+          <div class="result-card-header">
+            <i class="fas fa-clipboard-list"></i>
+            <h3>Treatment Plan</h3>
+            <span class="result-med-name">{{ treatmentPlan.medication }}</span>
+          </div>
+
+          <!-- KPI Cards -->
+          <div class="result-kpis">
+            <div class="kpi">
+              <span class="kpi-icon kpi-blue"><i class="fas fa-pills"></i></span>
+              <span class="kpi-value">{{ treatmentPlan.totalUnits }}</span>
+              <span class="kpi-label">Total Units</span>
+            </div>
+            <div class="kpi">
+              <span class="kpi-icon kpi-purple"><i class="fas fa-redo"></i></span>
+              <span class="kpi-value">{{ treatmentPlan.frequency }}×</span>
+              <span class="kpi-label">Per Day</span>
+            </div>
+            <div class="kpi">
+              <span class="kpi-icon kpi-green"><i class="fas fa-calendar-check"></i></span>
+              <span class="kpi-value">{{ treatmentPlan.duration }}d</span>
+              <span class="kpi-label">Duration</span>
+            </div>
+            <div class="kpi" [class.kpi--warn]="treatmentPlan.daysLeft <= 3">
+              <span class="kpi-icon kpi-orange"><i class="fas fa-hourglass-half"></i></span>
+              <span class="kpi-value">{{ treatmentPlan.daysLeft }}</span>
+              <span class="kpi-label">Days Left</span>
+            </div>
+          </div>
+
+          <!-- Dates -->
+          <div class="result-dates">
+            <div class="date-item">
+              <i class="fas fa-play-circle"></i>
+              <span>Start: <strong>{{ treatmentPlan.startDate }}</strong></span>
+            </div>
+            <div class="date-arrow"><i class="fas fa-arrow-right"></i></div>
+            <div class="date-item">
+              <i class="fas fa-flag-checkered"></i>
+              <span>End: <strong>{{ treatmentPlan.endDate }}</strong></span>
+            </div>
+          </div>
+
+          <!-- Barre de progression -->
+          <div class="result-progress-section">
+            <div class="progress-header">
+              <span class="progress-label">Treatment Progress</span>
+              <span class="progress-pct">{{ treatmentPlan.progressPercent }}%</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill"
+                   [style.width.%]="treatmentPlan.progressPercent"
+                   [class.progress-fill--done]="treatmentPlan.progressPercent === 100">
+              </div>
+            </div>
+            <div class="progress-sub">
+              {{ treatmentPlan.duration - treatmentPlan.daysLeft }} days completed
+              of {{ treatmentPlan.duration }}
+            </div>
+          </div>
+
+          <!-- Alerte stock -->
+          <div class="stock-alert stock-alert--ok" *ngIf="calcForm.quantity > 0 && stockSufficient">
+            <i class="fas fa-check-circle"></i>
+            <div>
+              <strong>Stock sufficient</strong>
+              <span>{{ calcForm.quantity }} units available for {{ treatmentPlan.totalUnits }} needed</span>
+            </div>
+          </div>
+          <div class="stock-alert stock-alert--warn" *ngIf="calcForm.quantity > 0 && !stockSufficient">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div>
+              <strong>Insufficient stock!</strong>
+              <span>Need {{ stockNeeded }} more units to complete treatment</span>
+            </div>
+          </div>
+          <div class="stock-alert stock-alert--info" *ngIf="calcForm.quantity === 0">
+            <i class="fas fa-info-circle"></i>
+            <div>
+              <strong>{{ treatmentPlan.totalUnits }} units required</strong>
+              <span>Enter your stock quantity to check availability</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Planning journalier -->
+        <div class="result-card">
+          <div class="result-card-header">
+            <i class="fas fa-bell"></i>
+            <h3>Today's Reminder Schedule</h3>
+            <span class="taken-badge">
+              {{ takenCount }}/{{ todayReminders.length }} taken
+            </span>
+          </div>
+
+          <!-- Progress bar rappels -->
+          <div class="reminder-progress">
+            <div class="reminder-fill"
+                 [style.width.%]="todayReminders.length > 0 ? (takenCount / todayReminders.length) * 100 : 0">
+            </div>
+          </div>
+
+          <!-- Liste des rappels -->
+          <div class="reminder-list">
+            <div class="reminder-item"
+                 *ngFor="let r of todayReminders; let i = index"
+                 [class.reminder-item--taken]="r.taken"
+                 (click)="toggleReminder(i)">
+
+              <div class="reminder-check" [class.reminder-check--done]="r.taken">
+                <i class="fas" [class.fa-check]="r.taken" [class.fa-circle]="!r.taken"></i>
+              </div>
+
+              <div class="reminder-body">
+                <span class="reminder-time">{{ r.time }}</span>
+                <span class="reminder-label">{{ r.label }}</span>
+                <span class="reminder-dose" *ngIf="treatmentPlan.dosage">
+                  {{ treatmentPlan.dosage }}
+                </span>
+              </div>
+
+              <div class="reminder-status">
+                <span class="rs-taken" *ngIf="r.taken">
+                  <i class="fas fa-check-circle"></i> Taken
+                </span>
+                <span class="rs-pending" *ngIf="!r.taken">
+                  <i class="fas fa-clock"></i> Pending
+                </span>
+              </div>
+
+            </div>
+          </div>
+
+          <p class="reminder-tip">
+            <i class="fas fa-lightbulb"></i>
+            Click on a reminder to mark it as taken
+          </p>
+        </div>
+
+      </div>
+
+      <!-- ── État vide résultats ── -->
+      <div class="calc-empty" *ngIf="!treatmentPlan">
+        <div class="calc-empty-inner">
+          <div class="calc-empty-icon">
+            <i class="fas fa-calculator"></i>
+          </div>
+          <h3>Ready to Calculate</h3>
+          <p>Fill in the medication details and click <strong>Calculate Plan</strong> to generate your treatment schedule and daily reminders.</p>
+          <div class="calc-tips">
+            <div class="calc-tip">
+              <i class="fas fa-lightbulb"></i>
+              <span>You can also click <strong>Calculate</strong> directly from a prescription card</span>
+            </div>
+            <div class="calc-tip">
+              <i class="fas fa-check-circle"></i>
+              <span>Track your daily doses with the reminder checklist</span>
+            </div>
+            <div class="calc-tip">
+              <i class="fas fa-boxes"></i>
+              <span>Verify if your current stock covers the full treatment</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!--  MODAL DETAIL PRESCRIPTION                 -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="modal-overlay" *ngIf="viewingPrescription" (click)="closeView()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <h3><i class="fas fa-file-prescription"></i> Prescription Details</h3>
+        <button class="modal-close" (click)="closeView()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="detail-grid">
+          <div class="detail-item">
+            <label>Prescribed By</label>
+            <span>{{ viewingPrescription.prescribedBy || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Date</label>
+            <span>{{ viewingPrescription.prescriptionDate | date:'mediumDate' }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Valid Until</label>
+            <span [class.text-danger]="isExpired(viewingPrescription.validUntil)">
+              {{ viewingPrescription.validUntil | date:'mediumDate' }}
+              <span *ngIf="isExpired(viewingPrescription.validUntil)">⚠️ Expired</span>
+            </span>
+          </div>
+          <div class="detail-item">
+            <label>Status</label>
+            <span class="status-badge" [ngClass]="statusClass(viewingPrescription.status)">
+              {{ viewingPrescription.status }}
+            </span>
+          </div>
+          <div class="detail-item" *ngIf="viewingPrescription.consultationId">
+            <label>Consultation ID</label>
+            <span>{{ viewingPrescription.consultationId }}</span>
+          </div>
+          <div class="detail-item full" *ngIf="viewingPrescription.instructions">
+            <label>Instructions</label>
+            <span>{{ viewingPrescription.instructions }}</span>
+          </div>
+        </div>
+
+        <div class="modal-section-label">
+          <i class="fas fa-pills"></i> Medications
+        </div>
+
+        <div class="med-list" *ngIf="viewingPrescription.medications?.length; else noMeds">
+          <div class="med-item" *ngFor="let m of viewingPrescription.medications">
+            <div class="med-item__name">
+              <i class="fas fa-capsules"></i> {{ m.medicationName }}
+            </div>
+            <div class="med-item__details">
+              <span *ngIf="m.dosage"><i class="fas fa-flask"></i> {{ m.dosage }}</span>
+              <span *ngIf="m.route"><i class="fas fa-route"></i> {{ m.route }}</span>
+              <span *ngIf="m.frequency"><i class="fas fa-redo"></i> {{ m.frequency }}×/day</span>
+              <span *ngIf="m.duration"><i class="fas fa-clock"></i> {{ m.duration }} days</span>
+              <span><i class="fas fa-boxes"></i> Qty: {{ m.quantity }}</span>
+              <span *ngIf="m.startDate">
+                <i class="fas fa-calendar-plus"></i> Start: {{ m.startDate | date:'mediumDate' }}
+              </span>
+              <span *ngIf="m.endDate">
+                <i class="fas fa-calendar-alt"></i> End: {{ m.endDate | date:'mediumDate' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <ng-template #noMeds>
+          <p class="no-meds-text">No medications in this prescription.</p>
+        </ng-template>
+      </div>
+    </div>
+  </div>
+
+</div>

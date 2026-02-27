@@ -1,0 +1,428 @@
+<div class="pharmacy-page">
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <div class="page-header__icon"><i class="fas fa-hospital-symbol"></i></div>
+    <div>
+      <p class="page-header__sub">Back Office / Admin</p>
+      <h2 class="page-header__title">Pharmacy Management</h2>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn"
+            [class.active]="activeTab === 'medications'"
+            (click)="activeTab = 'medications'">
+      <i class="fas fa-pills"></i> Medications
+      <span class="tab-count">{{ medications.length }}</span>
+    </button>
+    <button class="tab-btn"
+            [class.active]="activeTab === 'prescriptions'"
+            (click)="activeTab = 'prescriptions'">
+      <i class="fas fa-file-prescription"></i> Prescriptions
+      <span class="tab-count">{{ prescriptions.length }}</span>
+    </button>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- TAB: MEDICATIONS                          -->
+  <!-- ══════════════════════════════════════════ -->
+  <div *ngIf="activeTab === 'medications'">
+
+    <div class="card form-card">
+      <div class="card-title">
+        <i class="fas fa-{{ selectedMedId ? 'pen' : 'plus-circle' }}"></i>
+        {{ selectedMedId ? 'Edit Medication' : 'Add New Medication' }}
+        <span class="mode-badge" [class.edit-mode]="selectedMedId">
+          {{ selectedMedId ? 'Edit Mode' : 'New Entry' }}
+        </span>
+      </div>
+
+      <form [formGroup]="medicationForm" (ngSubmit)="submitMedication()">
+        <div class="form-grid">
+          <div class="form-group">
+            <label><i class="fas fa-prescription-bottle-alt"></i> Name</label>
+            <input type="text" formControlName="medicationName" placeholder="e.g. Amoxicillin 250mg" />
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-flask"></i> Dosage</label>
+            <input type="text" formControlName="dosage" placeholder="e.g. 500mg" />
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-redo"></i> Frequency (×/day)</label>
+            <input type="number" formControlName="frequency" min="1" />
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-route"></i> Route</label>
+            <select formControlName="route">
+              <option [ngValue]="null" disabled>Select route</option>
+              <option *ngFor="let r of routes" [value]="r">{{ r }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-clock"></i> Duration (days)</label>
+            <input type="number" formControlName="duration" min="1" />
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-boxes"></i> Quantity</label>
+            <input type="number" formControlName="quantity" min="0" />
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-calendar-plus"></i> Start Date</label>
+            <input type="date" formControlName="startDate" />
+          </div>
+          <div class="form-group">
+            <label><i class="fas fa-calendar-alt"></i> End Date</label>
+            <input type="date" formControlName="endDate" />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn cancel" type="button" (click)="resetMedicationForm()" *ngIf="selectedMedId">
+            <i class="fas fa-times"></i> Cancel
+          </button>
+          <button class="btn primary" type="submit">
+            <i class="fas fa-{{ selectedMedId ? 'save' : 'plus' }}"></i>
+            {{ selectedMedId ? 'Update' : 'Add Medication' }}
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card table-card">
+      <div class="card-title">
+        <i class="fas fa-table"></i> Medications List
+        <span class="count-badge">{{ medications.length }} total</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Dosage</th>
+              <th>Route</th>
+              <th>Stock</th>
+              <th>End Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let med of medications">
+              <td>
+                <div class="med-cell">
+                  <div class="med-cell__icon"><i class="fas fa-capsules"></i></div>
+                  <span>{{ med.medicationName }}</span>
+                </div>
+              </td>
+              <td>{{ med.dosage || '—' }}</td>
+              <td>{{ med.route || '—' }}</td>
+              <td>
+                <span class="stock-badge"
+                      [class.low]="med.quantity < 10"
+                      [class.ok]="med.quantity >= 10">
+                  {{ med.quantity }}
+                </span>
+              </td>
+              <td>{{ med.endDate | date:'mediumDate' }}</td>
+              <td class="actions">
+                <button class="btn edit" (click)="editMedication(med)">
+                  <i class="fas fa-pen"></i> Edit
+                </button>
+                <button class="btn delete" (click)="deleteMedication(med.id)">
+                  <i class="fas fa-trash-alt"></i> Delete
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="medications.length === 0">
+              <td colspan="6" class="empty-row">
+                <i class="fas fa-prescription-bottle"></i>
+                <p>No medications yet.</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- TAB: PRESCRIPTIONS                        -->
+  <!-- ══════════════════════════════════════════ -->
+  <div *ngIf="activeTab === 'prescriptions'">
+
+    <!-- FORM — titre change selon mode -->
+    <div class="card form-card">
+      <div class="card-title">
+        <i class="fas fa-{{ selectedPrescriptionId ? 'pen' : 'plus-circle' }}"></i>
+        {{ selectedPrescriptionId ? 'Edit Prescription' : 'New Prescription' }}
+        <span class="mode-badge" [class.edit-mode]="selectedPrescriptionId">
+          {{ selectedPrescriptionId ? 'Edit Mode' : 'New Entry' }}
+        </span>
+      </div>
+
+      <form [formGroup]="prescriptionForm" (ngSubmit)="submitPrescription()">
+
+        <div class="section-label"><i class="fas fa-info-circle"></i> General Info</div>
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label><i class="fas fa-user"></i> Patient ID</label>
+            <input type="text" formControlName="userId" placeholder="Patient UUID" />
+          </div>
+
+          <div class="form-group">
+            <label><i class="fas fa-user-md"></i> Prescribed By</label>
+            <input type="text" formControlName="prescribedBy" placeholder="Doctor name or ID" />
+          </div>
+
+          <div class="form-group">
+            <label><i class="fas fa-stethoscope"></i> Consultation ID</label>
+            <input type="text" formControlName="consultationId" placeholder="Optional" />
+          </div>
+
+          <div class="form-group">
+            <label><i class="fas fa-tag"></i> Status</label>
+            <select formControlName="status">
+              <option *ngFor="let s of statuses" [value]="s">{{ s }}</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label><i class="fas fa-calendar-alt"></i> Prescription Date</label>
+            <input type="date" formControlName="prescriptionDate" />
+          </div>
+
+          <div class="form-group">
+            <label><i class="fas fa-calendar-check"></i> Valid Until</label>
+            <input type="date" formControlName="validUntil" />
+          </div>
+
+          <div class="form-group full">
+            <label><i class="fas fa-align-left"></i> Instructions</label>
+            <textarea formControlName="instructions" placeholder="Special instructions..."></textarea>
+          </div>
+
+        </div>
+
+        <!-- MEDICATIONS IN PRESCRIPTION -->
+        <div class="section-label">
+          <i class="fas fa-pills"></i> Medications
+          <button type="button" class="btn-add-med" (click)="addMedication()">
+            <i class="fas fa-plus"></i> Add Medication
+          </button>
+        </div>
+
+        <div formArrayName="medications">
+          <div *ngFor="let med of medicationsArray.controls; let i = index"
+               [formGroupName]="i"
+               class="med-row">
+
+            <div class="med-row-header">
+              <span><i class="fas fa-capsules"></i> Medication #{{ i + 1 }}</span>
+              <button type="button" class="btn-remove" (click)="removeMedication(i)">
+                <i class="fas fa-trash-alt"></i>
+              </button>
+            </div>
+
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Name</label>
+                <input type="text" formControlName="medicationName" placeholder="e.g. Amoxicillin" />
+              </div>
+              <div class="form-group">
+                <label>Dosage</label>
+                <input type="text" formControlName="dosage" placeholder="e.g. 500mg" />
+              </div>
+              <div class="form-group">
+                <label>Frequency (×/day)</label>
+                <input type="number" formControlName="frequency" min="1" />
+              </div>
+              <div class="form-group">
+                <label>Route</label>
+                <select formControlName="route">
+                  <option [ngValue]="null" disabled>Select</option>
+                  <option *ngFor="let r of routes" [value]="r">{{ r }}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Duration (days)</label>
+                <input type="number" formControlName="duration" min="1" />
+              </div>
+              <div class="form-group">
+                <label>Quantity</label>
+                <input type="number" formControlName="quantity" min="0" />
+              </div>
+              <div class="form-group">
+                <label>Start Date</label>
+                <input type="date" formControlName="startDate" />
+              </div>
+              <div class="form-group">
+                <label>End Date</label>
+                <input type="date" formControlName="endDate" />
+              </div>
+            </div>
+          </div>
+
+          <div class="no-meds" *ngIf="medicationsArray.length === 0">
+            <i class="fas fa-prescription-bottle"></i>
+            <p>No medications added yet.</p>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn cancel" type="button" (click)="resetPrescriptionForm()">
+            <i class="fas fa-times"></i> Cancel
+          </button>
+          <button class="btn primary" type="submit">
+            <i class="fas fa-{{ selectedPrescriptionId ? 'save' : 'plus' }}"></i>
+            {{ selectedPrescriptionId ? 'Update Prescription' : 'Create Prescription' }}
+          </button>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- TABLE -->
+    <div class="card table-card">
+      <div class="card-title">
+        <i class="fas fa-table"></i> Prescriptions List
+        <span class="count-badge">{{ prescriptions.length }} total</span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Patient</th>
+              <th>Doctor</th>
+              <th>Date</th>
+              <th>Valid Until</th>
+              <th>Status</th>
+              <th>Meds</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let p of prescriptions"
+                [class.row-editing]="p.id === selectedPrescriptionId">
+              <td class="id-cell">{{ p.id | slice:0:8 }}…</td>
+              <td>{{ p.userId || '—' }}</td>
+              <td>{{ p.prescribedBy || '—' }}</td>
+              <td>{{ p.prescriptionDate | date:'mediumDate' }}</td>
+              <td [class.text-danger]="isExpired(p.validUntil)">
+                {{ p.validUntil | date:'mediumDate' }}
+              </td>
+              <td>
+                <span class="status-badge" [ngClass]="statusClass(p.status)">
+                  {{ p.status }}
+                </span>
+              </td>
+              <td>
+                <span class="count-pill">{{ p.medications?.length || 0 }}</span>
+              </td>
+              <td class="actions">
+                <!-- View -->
+                <button class="btn view" (click)="viewPrescription(p)" title="View details">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <!-- ✅ Edit -->
+                <button class="btn edit" (click)="editPrescription(p)" title="Edit prescription">
+                  <i class="fas fa-pen"></i>
+                </button>
+                <!-- Quick status -->
+                <select class="status-select"
+                        [value]="p.status"
+                        (change)="updateStatus(p.id!, $any($event.target).value)">
+                  <option *ngFor="let s of statuses" [value]="s">{{ s }}</option>
+                </select>
+                <!-- Delete -->
+                <button class="btn delete" (click)="deletePrescription(p.id)" title="Delete">
+                  <i class="fas fa-trash-alt"></i>
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="prescriptions.length === 0">
+              <td colspan="8" class="empty-row">
+                <i class="fas fa-file-prescription"></i>
+                <p>No prescriptions yet.</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- MODAL DETAIL                              -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="modal-overlay" *ngIf="viewingPrescription" (click)="closeView()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fas fa-file-prescription"></i> Prescription Detail</h3>
+        <button class="modal-close" (click)="closeView()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-grid">
+          <div class="detail-item">
+            <label>Patient ID</label>
+            <span>{{ viewingPrescription.userId || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Prescribed By</label>
+            <span>{{ viewingPrescription.prescribedBy || '—' }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Date</label>
+            <span>{{ viewingPrescription.prescriptionDate | date:'mediumDate' }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Valid Until</label>
+            <span [class.text-danger]="isExpired(viewingPrescription.validUntil)">
+              {{ viewingPrescription.validUntil | date:'mediumDate' }}
+              <span *ngIf="isExpired(viewingPrescription.validUntil)"> ⚠️ Expired</span>
+            </span>
+          </div>
+          <div class="detail-item">
+            <label>Status</label>
+            <span class="status-badge" [ngClass]="statusClass(viewingPrescription.status)">
+              {{ viewingPrescription.status }}
+            </span>
+          </div>
+          <div class="detail-item">
+            <label>Consultation ID</label>
+            <span>{{ viewingPrescription.consultationId || '—' }}</span>
+          </div>
+          <div class="detail-item full" *ngIf="viewingPrescription.instructions">
+            <label>Instructions</label>
+            <span>{{ viewingPrescription.instructions }}</span>
+          </div>
+        </div>
+
+        <div class="modal-section-label"><i class="fas fa-pills"></i> Medications</div>
+
+        <div class="med-list" *ngIf="viewingPrescription.medications?.length; else noMeds">
+          <div class="med-item" *ngFor="let m of viewingPrescription.medications">
+            <div class="med-item__name">
+              <i class="fas fa-capsules"></i> {{ m.medicationName }}
+            </div>
+            <div class="med-item__details">
+              <span *ngIf="m.dosage"><i class="fas fa-flask"></i> {{ m.dosage }}</span>
+              <span *ngIf="m.route"><i class="fas fa-route"></i> {{ m.route }}</span>
+              <span *ngIf="m.frequency"><i class="fas fa-redo"></i> {{ m.frequency }}×/day</span>
+              <span *ngIf="m.duration"><i class="fas fa-clock"></i> {{ m.duration }} days</span>
+              <span><i class="fas fa-boxes"></i> Qty: {{ m.quantity }}</span>
+            </div>
+          </div>
+        </div>
+        <ng-template #noMeds>
+          <p class="no-meds-text">No medications attached.</p>
+        </ng-template>
+      </div>
+    </div>
+  </div>
+
+</div>
