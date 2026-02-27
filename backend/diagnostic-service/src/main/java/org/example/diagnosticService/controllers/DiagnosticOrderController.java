@@ -1,7 +1,7 @@
-package org.example.diagnosticapp.controllers;
+package org.example.diagnosticService.controllers;
 
-import org.example.diagnosticapp.entities.DiagnosticOrder;
-import org.example.diagnosticapp.services.DiagnosticOrderService;
+import org.example.diagnosticService.entities.DiagnosticOrder;
+import org.example.diagnosticService.services.DiagnosticOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;

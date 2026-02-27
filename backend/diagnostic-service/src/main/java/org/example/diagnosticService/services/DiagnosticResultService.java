@@ -1,7 +1,7 @@
-package org.example.diagnosticapp.services;
+package org.example.diagnosticService.services;
 
-import org.example.diagnosticapp.entities.DiagnosticResult;
-import org.example.diagnosticapp.repositories.DiagnosticResultRepository;
+import org.example.diagnosticService.entities.DiagnosticResult;
+import org.example.diagnosticService.repositories.DiagnosticResultRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
