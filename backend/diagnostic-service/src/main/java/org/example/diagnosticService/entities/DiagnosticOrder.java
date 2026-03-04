@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*; // Import important
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.antlr.v4.runtime.misc.NotNull;
 import org.example.diagnosticService.enums.*;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;

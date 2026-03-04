@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { KeycloakService } from 'keycloak-angular';
 import {
   ClinicalService,
   MedicalHistory,
@@ -8,11 +9,12 @@ import {
   TriageLevel,
   TriageQueueItem
 } from '../../services/clinical.service';
+import { KeycloakAdminService, KeycloakUser } from '../../services/keycloak-admin.service';
 
 @Component({
   selector: 'app-clinical',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule],
   templateUrl: './clinical.component.html',
   styleUrls: ['./clinical.component.css']
 })
@@ -27,12 +29,24 @@ export class ClinicalComponent implements OnInit, OnDestroy {
   triageError: string | null = null;
   readonly triageLevels: TriageLevel[] = ['RED', 'ORANGE', 'YELLOW', 'GREEN'];
   private queueRefreshTimer: ReturnType<typeof setInterval> | null = null;
+  patientUsers: KeycloakUser[] = [];
+  triagePatients: Array<{ id: number; label: string }> = [];
+  patientsLoading = false;
+  loggedInPatientId: number | null = null;
+  availableDoctorIds: number[] = [];
+  selectedDoctorByQueueId: Record<number, number | null> = {};
+  private latestConsultationByPatientId: Record<number, string> = {};
 
   editingId: number | null = null;
   error: string | null = null;
   success: string | null = null;
 
-  constructor(private fb: FormBuilder, private clinicalService: ClinicalService) {
+  constructor(
+    private fb: FormBuilder,
+    private clinicalService: ClinicalService,
+    private adminService: KeycloakAdminService,
+    private keycloakService: KeycloakService
+  ) {
     this.form = this.fb.group({
       userId: [null],
       diagnosis: [''],
@@ -56,8 +70,15 @@ export class ClinicalComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.resolveLoggedInPatientFromToken();
+    this.loadPatientsFromConsultations();
+    this.loadPatientsFromKeycloak();
+    this.loadAvailableDoctorIds();
     this.loadMedicalHistories();
     this.loadQueue();
+    this.triageForm.get('patientId')?.valueChanges.subscribe((patientId) => {
+      this.applyArrivalTimeFromSelectedPatient(patientId);
+    });
     this.queueRefreshTimer = setInterval(() => this.loadQueue(false), 20000);
   }
 
@@ -93,8 +114,14 @@ export class ClinicalComponent implements OnInit, OnDestroy {
     this.triageSuccess = null;
 
     const formValue = this.triageForm.value;
+    const effectivePatientId = this.loggedInPatientId ?? Number(formValue.patientId);
+    if (!Number.isInteger(effectivePatientId) || effectivePatientId <= 0) {
+      this.submittingTriage = false;
+      this.triageError = 'Unable to resolve logged-in patient ID.';
+      return;
+    }
     const payload: TriageAssessmentRequest = {
-      patientId: Number(formValue.patientId),
+      patientId: effectivePatientId,
       arrivalTime: this.normalizeLocalDateTime(formValue.arrivalTime),
       heartRate: this.normalizeNumber(formValue.heartRate),
       systolicBp: this.normalizeNumber(formValue.systolicBp),
@@ -108,7 +135,8 @@ export class ClinicalComponent implements OnInit, OnDestroy {
     this.clinicalService.createTriageAssessment(payload).subscribe({
       next: (res) => {
         this.submittingTriage = false;
-        this.triageSuccess = `Assessment created. Queue #${res.queueItemId} | Level ${res.triageLevel} | Score ${res.score}`;
+        const sepsisSuffix = res.sepsisAlert ? ' | SEPSIS ALERT' : '';
+        this.triageSuccess = `Assessment created. Queue #${res.queueItemId} | Level ${res.triageLevel} | Score ${res.score}${sepsisSuffix}`;
         this.triageForm.patchValue({
           arrivalTime: this.defaultArrivalTime(),
           heartRate: null,
@@ -128,6 +156,84 @@ export class ClinicalComponent implements OnInit, OnDestroy {
     });
   }
 
+  loadPatientsFromConsultations(): void {
+    this.clinicalService.getAllConsultations().subscribe({
+      next: (consultations) => {
+        const ids = new Set<number>();
+        const latestByPatient: Record<number, string> = {};
+        (consultations || []).forEach((consultation) => {
+          const id = Number(consultation.patientId);
+          if (Number.isInteger(id) && id > 0) {
+            ids.add(id);
+            const currentLatest = latestByPatient[id];
+            if (!currentLatest || new Date(consultation.consultationDate).getTime() > new Date(currentLatest).getTime()) {
+              latestByPatient[id] = consultation.consultationDate;
+            }
+          }
+        });
+
+        this.triagePatients = Array.from(ids)
+          .sort((a, b) => a - b)
+          .map((id) => ({ id, label: `Patient #${id}` }));
+        this.latestConsultationByPatientId = latestByPatient;
+
+        this.applyArrivalTimeFromSelectedPatient(this.triageForm.get('patientId')?.value);
+      }
+    });
+  }
+
+  loadPatientsFromKeycloak(): void {
+    this.patientsLoading = true;
+    this.adminService.getUsersByRole('patient').subscribe({
+      next: (users) => {
+        this.patientUsers = users ?? [];
+        const existing = new Map(this.triagePatients.map((item) => [item.id, item.label]));
+
+        this.patientUsers.forEach((user) => {
+          const id = this.resolveNumericPatientId(user);
+          if (id == null || existing.has(id)) {
+            return;
+          }
+          existing.set(id, `${KeycloakAdminService.displayName(user)} (ID: ${id})`);
+        });
+
+        this.triagePatients = Array.from(existing.entries())
+          .map(([id, label]) => ({ id, label }))
+          .sort((a, b) => a.id - b.id);
+
+        if (this.loggedInPatientId == null) {
+          this.tryResolveLoggedInPatientFromKeycloakUsers();
+        }
+
+        this.patientsLoading = false;
+      },
+      error: () => {
+        this.patientUsers = [];
+        this.patientsLoading = false;
+      }
+    });
+  }
+
+  loadAvailableDoctorIds(): void {
+    this.clinicalService.getAvailableDoctorIds().subscribe({
+      next: (ids) => {
+        this.availableDoctorIds = (ids || [])
+          .map((id) => Number(id))
+          .filter((id) => Number.isInteger(id) && id > 0)
+          .sort((a, b) => a - b);
+
+        const firstDoctorId = this.availableDoctorIds.length > 0 ? this.availableDoctorIds[0] : null;
+        if (firstDoctorId != null) {
+          this.queueItems.forEach((item) => {
+            if (!this.selectedDoctorByQueueId[item.queueItemId]) {
+              this.selectedDoctorByQueueId[item.queueItemId] = firstDoctorId;
+            }
+          });
+        }
+      }
+    });
+  }
+
   loadQueue(showLoader = true): void {
     if (showLoader) {
       this.loadingQueue = true;
@@ -136,6 +242,12 @@ export class ClinicalComponent implements OnInit, OnDestroy {
     this.clinicalService.getTriageQueue().subscribe({
       next: (items) => {
         this.queueItems = items;
+        this.queueItems.forEach((item) => {
+          if (!(item.queueItemId in this.selectedDoctorByQueueId)) {
+            this.selectedDoctorByQueueId[item.queueItemId] =
+              item.assignedDoctorId ?? (this.availableDoctorIds.length > 0 ? this.availableDoctorIds[0] : null);
+          }
+        });
         this.loadingQueue = false;
       },
       error: (err) => {
@@ -146,14 +258,9 @@ export class ClinicalComponent implements OnInit, OnDestroy {
   }
 
   startCare(item: TriageQueueItem): void {
-    const input = prompt(`Doctor ID for queue #${item.queueItemId}:`);
-    if (!input) {
-      return;
-    }
-
-    const doctorId = Number(input);
+    const doctorId = Number(this.selectedDoctorByQueueId[item.queueItemId]);
     if (!Number.isFinite(doctorId) || doctorId <= 0) {
-      this.triageError = 'Invalid doctor ID.';
+      this.triageError = 'Please select a valid doctor ID before starting care.';
       return;
     }
 
@@ -386,5 +493,100 @@ export class ClinicalComponent implements OnInit, OnDestroy {
       return value;
     }
     return value.length === 16 ? `${value}:00` : value;
+  }
+
+  private applyArrivalTimeFromSelectedPatient(patientId: unknown): void {
+    const numericId = Number(patientId);
+    if (!Number.isInteger(numericId) || numericId <= 0) {
+      return;
+    }
+
+    const fromConsultation = this.latestConsultationByPatientId[numericId];
+    const arrivalTime = this.toDateTimeLocal(fromConsultation);
+    if (!arrivalTime) {
+      this.triageError = `No consultation date found for patient #${numericId}.`;
+      this.triageForm.patchValue({ arrivalTime: '' }, { emitEvent: false });
+      return;
+    }
+
+    this.triageError = null;
+    this.triageForm.patchValue({ arrivalTime }, { emitEvent: false });
+  }
+
+  private toDateTimeLocal(value: string | null | undefined): string {
+    if (!value) {
+      return '';
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+  private resolveNumericPatientId(user: KeycloakUser): number | null {
+    const candidates: Array<string | undefined> = [user.id, user.username];
+    for (const candidate of candidates) {
+      if (!candidate) {
+        continue;
+      }
+      const parsed = Number(candidate);
+      if (Number.isInteger(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+    return null;
+  }
+
+  private resolveLoggedInPatientFromToken(): void {
+    const token: any = this.keycloakService.getKeycloakInstance()?.tokenParsed;
+    if (!token) {
+      return;
+    }
+
+    const candidates = [
+      token['patientId'],
+      token['patient_id'],
+      token['userId'],
+      token['user_id'],
+      token['id'],
+      token['preferred_username'],
+      token['sub']
+    ];
+
+    for (const value of candidates) {
+      const parsed = Number(value);
+      if (Number.isInteger(parsed) && parsed > 0) {
+        this.loggedInPatientId = parsed;
+        this.triageForm.patchValue({ patientId: parsed });
+        return;
+      }
+    }
+  }
+
+  private tryResolveLoggedInPatientFromKeycloakUsers(): void {
+    const token: any = this.keycloakService.getKeycloakInstance()?.tokenParsed;
+    if (!token || !this.patientUsers.length) {
+      return;
+    }
+
+    const sub = token['sub'];
+    const preferredUsername = token['preferred_username'];
+    const matched = this.patientUsers.find(
+      (user) => user.id === sub || (!!preferredUsername && user.username === preferredUsername)
+    );
+
+    if (!matched) {
+      return;
+    }
+
+    const numericId = this.resolveNumericPatientId(matched);
+    if (numericId != null) {
+      this.loggedInPatientId = numericId;
+      this.triageForm.patchValue({ patientId: numericId });
+    }
   }
 }

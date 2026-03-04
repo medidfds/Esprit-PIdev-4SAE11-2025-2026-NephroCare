@@ -17,8 +17,33 @@
       <form [formGroup]="triageForm" (ngSubmit)="submitTriageAssessment()" class="space-y-4">
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div>
-            <label class="mb-2 block text-sm font-medium text-black dark:text-white">Patient ID *</label>
-            <input type="number" min="1" formControlName="patientId" class="w-full rounded border border-gray-300 bg-transparent px-4 py-2.5 text-gray-800 outline-none focus:border-primary dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+            <label class="mb-2 block text-sm font-medium text-black dark:text-white">Patient *</label>
+            <input
+              *ngIf="loggedInPatientId != null"
+              type="text"
+              [value]="'Patient #' + loggedInPatientId + ' (logged in)'"
+              readonly
+              class="w-full rounded border border-gray-300 bg-gray-100 px-4 py-2.5 text-gray-800 outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+            >
+            <select
+              *ngIf="loggedInPatientId == null"
+              formControlName="patientId"
+              class="w-full rounded border border-gray-300 bg-transparent px-4 py-2.5 text-gray-800 outline-none focus:border-primary dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+            >
+              <option [ngValue]="null" disabled>Select patient</option>
+              <option *ngFor="let patient of triagePatients" [ngValue]="patient.id">
+                {{ patient.label }}
+              </option>
+            </select>
+            <p *ngIf="loggedInPatientId != null" class="mt-1 text-xs text-green-600 dark:text-green-400">
+              Patient is set automatically from your logged-in account.
+            </p>
+            <p *ngIf="patientsLoading" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Loading patients...
+            </p>
+            <p *ngIf="loggedInPatientId == null && !patientsLoading && triagePatients.length === 0" class="mt-1 text-xs text-red-500 dark:text-red-400">
+              No patients found in consultations.
+            </p>
           </div>
           <div>
             <label class="mb-2 block text-sm font-medium text-black dark:text-white">Arrival Time *</label>
@@ -105,9 +130,14 @@
               <td class="px-3 py-3 text-sm text-black dark:text-white">{{ item.patientId }}</td>
               <td class="px-3 py-3 text-sm text-black dark:text-white">{{ item.score }}</td>
               <td class="px-3 py-3 text-sm">
-                <span class="rounded-full px-2 py-1 text-xs font-semibold" [ngClass]="levelClass(item.triageLevel)">
-                  {{ item.triageLevel }}
-                </span>
+                <div class="flex items-center gap-2">
+                  <span class="rounded-full px-2 py-1 text-xs font-semibold" [ngClass]="levelClass(item.triageLevel)">
+                    {{ item.triageLevel }}
+                  </span>
+                  <span *ngIf="item.sepsisAlert" class="rounded-full bg-red-100 px-2 py-1 text-[11px] font-semibold text-red-700 dark:bg-red-500/15 dark:text-red-400">
+                    Sepsis Alert
+                  </span>
+                </div>
               </td>
               <td class="px-3 py-3 text-sm text-black dark:text-white">{{ item.status }}</td>
               <td class="px-3 py-3 text-xs text-gray-500 dark:text-gray-400">{{ formatTime(item.arrivalTime) }}</td>
@@ -119,7 +149,18 @@
                 {{ item.lastEscalationType || '-' }}
               </td>
               <td class="px-3 py-3">
-                <div class="flex gap-2">
+                <div class="flex items-center gap-2">
+                  <select
+                    [ngModel]="selectedDoctorByQueueId[item.queueItemId]"
+                    (ngModelChange)="selectedDoctorByQueueId[item.queueItemId] = $event"
+                    [ngModelOptions]="{ standalone: true }"
+                    class="rounded border border-gray-300 bg-transparent px-2 py-1 text-xs text-gray-800 outline-none focus:border-primary dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                  >
+                    <option [ngValue]="null" disabled>Select doctor</option>
+                    <option *ngFor="let doctorId of availableDoctorIds" [ngValue]="doctorId">
+                      Dr #{{ doctorId }}
+                    </option>
+                  </select>
                   <button
                     type="button"
                     (click)="startCare(item)"

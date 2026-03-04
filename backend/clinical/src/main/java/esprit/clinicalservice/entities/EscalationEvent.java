@@ -27,7 +27,7 @@ public class EscalationEvent {
     private TriageQueueItem queueItem;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "escalation_type", nullable = false)
+    @Column(name = "escalation_type", nullable = false, columnDefinition = "VARCHAR(32)")
     private EscalationType escalationType;
 
     @Column(name = "message", nullable = false, columnDefinition = "TEXT")

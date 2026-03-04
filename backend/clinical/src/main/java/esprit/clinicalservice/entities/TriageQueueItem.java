@@ -57,7 +57,7 @@ public class TriageQueueItem {
     private LocalDateTime completedAt;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "last_escalation_type")
+    @Column(name = "last_escalation_type", columnDefinition = "VARCHAR(32)")
     private EscalationType lastEscalationType;
 
     @Column(name = "last_escalation_at")
@@ -68,6 +68,9 @@ public class TriageQueueItem {
 
     @Column(name = "override_reason", columnDefinition = "TEXT")
     private String overrideReason;
+
+    @Column(name = "sepsis_alert", nullable = false)
+    private boolean sepsisAlert;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -200,6 +203,14 @@ public class TriageQueueItem {
 
     public void setOverrideReason(String overrideReason) {
         this.overrideReason = overrideReason;
+    }
+
+    public boolean isSepsisAlert() {
+        return sepsisAlert;
+    }
+
+    public void setSepsisAlert(boolean sepsisAlert) {
+        this.sepsisAlert = sepsisAlert;
     }
 
     public LocalDateTime getCreatedAt() {

@@ -1,4 +1,4 @@
-<div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+<div class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
   <!-- Success State -->
   <div *ngIf="success" class="mx-6 mt-6 p-4 bg-green-100 text-green-800 rounded-lg">
     {{ success }}
@@ -16,9 +16,35 @@
     </div>
   </div>
 
+  <div *ngIf="!loading && !error" class="border-b border-gray-200 px-6 py-6 dark:border-gray-800">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Consultations Calendar</h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Planification, suivi des statuts et gestion rapide des consultations.</p>
+      </div>
+      <span class="inline-flex rounded-full bg-primary px-3 py-1 text-sm font-medium text-white">
+        {{ consultations.length }} Total
+      </span>
+    </div>
+
+    <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div class="rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-800/50 dark:bg-blue-500/10">
+        <p class="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">Today</p>
+        <p class="mt-2 text-2xl font-bold text-blue-900 dark:text-blue-200">{{ todayCount }}</p>
+      </div>
+      <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800/50 dark:bg-emerald-500/10">
+        <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Upcoming</p>
+        <p class="mt-2 text-2xl font-bold text-emerald-900 dark:text-emerald-200">{{ upcomingCount }}</p>
+      </div>
+      <div class="rounded-xl border border-violet-200 bg-violet-50 p-4 dark:border-violet-800/50 dark:bg-violet-500/10">
+        <p class="text-xs font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-300">Completed</p>
+        <p class="mt-2 text-2xl font-bold text-violet-900 dark:text-violet-200">{{ completedCount }}</p>
+      </div>
+    </div>
+  </div>
+
   <!-- Calendar -->
   <div *ngIf="!loading && !error" class="custom-calendar p-6">
-    <h1 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">Consultations Calendar</h1>
     <full-calendar #calendar [options]="calendarOptions"></full-calendar>
   </div>
 
@@ -26,9 +52,27 @@
   <div *ngIf="!loading && !error" class="px-6 pb-6">
     <div class="mb-4 flex items-center justify-between">
       <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Consultations List</h2>
-      <span class="inline-flex rounded-full bg-primary px-3 py-1 text-sm font-medium text-white">
-        {{ consultations.length }} Total
-      </span>
+      <span class="text-sm text-gray-500 dark:text-gray-400">{{ filteredConsultations.length }} visible</span>
+    </div>
+
+    <div class="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+      <div class="md:col-span-2">
+        <input
+          type="text"
+          [(ngModel)]="searchQuery"
+          placeholder="Search by diagnosis, patient ID, doctor ID, status..."
+          class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-primary dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+        />
+      </div>
+      <div>
+        <select
+          [(ngModel)]="selectedStatusFilter"
+          class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-primary dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+        >
+          <option value="ALL">All statuses</option>
+          <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+        </select>
+      </div>
     </div>
 
     <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
@@ -46,13 +90,13 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngIf="consultations.length === 0" class="border-t border-gray-200 dark:border-gray-700">
+          <tr *ngIf="filteredConsultations.length === 0" class="border-t border-gray-200 dark:border-gray-700">
             <td colspan="8" class="px-4 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-              No consultations found
+              No consultations match your filters
             </td>
           </tr>
 
-          <tr *ngFor="let consultation of consultations" class="border-t border-gray-200 dark:border-gray-700">
+          <tr *ngFor="let consultation of filteredConsultations" class="border-t border-gray-200 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/40">
             <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{{ consultation.patientId }}</td>
             <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{{ consultation.doctorId }}</td>
             <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{{ consultation.consultationDate | date: 'yyyy-MM-dd HH:mm' }}</td>

@@ -50,6 +50,7 @@ export interface TriageAssessmentResponse {
   recommendedMaxWaitMinutes: number;
   deadlineAt: string;
   queueStatus: QueueStatus;
+  sepsisAlert: boolean;
 }
 
 export interface TriageQueueItem {
@@ -63,10 +64,11 @@ export interface TriageQueueItem {
   deadlineAt: string;
   status: QueueStatus;
   assignedDoctorId?: number | null;
-  lastEscalationType?: 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3' | null;
+  lastEscalationType?: 'LEVEL_1' | 'LEVEL_2' | 'LEVEL_3' | 'SEPSIS_ALERT' | null;
   lastEscalationAt?: string | null;
   manualOverride: boolean;
   overrideReason?: string | null;
+  sepsisAlert: boolean;
 }
 
 export interface TriageQueueAction {
@@ -77,6 +79,18 @@ export interface TriageOverride {
   triageLevel: TriageLevel;
   maxWaitMinutes?: number | null;
   overrideReason: string;
+}
+
+export interface DoctorEfficiencyMetric {
+  doctorId: number;
+  assignedCases: number;
+  completedCases: number;
+  highAcuityCases: number;
+  completionRate: number;
+  slaRespectRate: number;
+  avgStartDelayMinutes: number;
+  avgTreatmentMinutes: number;
+  efficiencyScore: number;
 }
 
 @Injectable({
@@ -112,6 +126,12 @@ export class ClinicalService {
   getConsultationsByDoctorId(doctorId: number): Observable<Consultation[]> {
     return this.http.get<Consultation[]>(`${this.consulationBaseUrl}/doctor/${doctorId}`).pipe(
       catchError((error) => this.handleError('getConsultationsByDoctorId', error))
+    );
+  }
+
+  getAvailableDoctorIds(): Observable<number[]> {
+    return this.http.get<number[]>(`${this.consulationBaseUrl}/doctor-ids`).pipe(
+      catchError((error) => this.handleError('getAvailableDoctorIds', error))
     );
   }
 
@@ -200,6 +220,21 @@ export class ClinicalService {
   overrideQueueItem(queueItemId: number, payload: TriageOverride): Observable<TriageQueueItem> {
     return this.http.post<TriageQueueItem>(`${this.triageBaseUrl}/queue/${queueItemId}/override`, payload).pipe(
       catchError((error) => this.handleError('overrideQueueItem', error))
+    );
+  }
+
+  getDoctorEfficiency(from?: string, to?: string): Observable<DoctorEfficiencyMetric[]> {
+    const query = new URLSearchParams();
+    if (from) {
+      query.set('from', from);
+    }
+    if (to) {
+      query.set('to', to);
+    }
+
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    return this.http.get<DoctorEfficiencyMetric[]>(`${this.triageBaseUrl}/doctor-efficiency${suffix}`).pipe(
+      catchError((error) => this.handleError('getDoctorEfficiency', error))
     );
   }
 
