@@ -44,10 +44,11 @@ The system follows a **microservices architecture**:
 Each service is independently deployable and communicates via REST APIs.
 
 ## Contributors
-- [Your Name 1]
-- [Your Name 2]
-- [Your Name 3]
-- [Your Name 4]
+- nour matoussi
+- walid ismail
+- aziz bensghaier
+- anas souissi
+- aziz belkhiria
 
 ## Academic Context
 Developed at **Esprit School of Engineering - Tunisia**  
@@ -56,8 +57,8 @@ Developed at **Esprit School of Engineering - Tunisia**
 ## Getting Started
 1. Clone the repository:
    ```bash
-   git clone <your-repo-url>
-   cd <repo-folder>
+   git https://github.com/medidfds/PIdev.git
+   cd PIdev
    ```
 2. Start infrastructure services:
    - Keycloak
