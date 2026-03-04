@@ -2,8 +2,9 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { HomeComponent } from './home/home.component';
 import { AuthGuard } from './guards/auth-guard';
-import {DiagnosticComponent} from './diagnostic/diagnostic.component';
-import {HospitalizationComponent} from './hospitalization/hospitalization.component';
+import { DiagnosticCalendarComponent } from './diagnostic-calendar/diagnostic-calendar.component'; // ← AJOUTÉ
+import { DiagnosticComponent } from './diagnostic/diagnostic.component';
+import { HospitalizationComponent } from './hospitalization/hospitalization.component';
 import { NotificationsComponent } from './Notifications/Notifications.component';
 import { ProfileComponent } from './Profile/Profile.component';
 import { ClinicalComponent } from './clinical/clinical.component';
@@ -19,7 +20,15 @@ const routes: Routes = [
   },
   {
     path: 'diagnostic',
-    component: DiagnosticComponent
+    component: DiagnosticComponent,
+    canActivate: [AuthGuard],
+    data: { roles: ['labTech'] }
+  },
+  {
+    path: 'diagnostic-calendar',          // ← AJOUTÉ
+    component: DiagnosticCalendarComponent,
+    canActivate: [AuthGuard],
+    data: { roles: ['labTech'] }
   },
   {
     path: 'clinical',
@@ -33,23 +42,22 @@ const routes: Routes = [
     path: 'pharmacy',
     component: PharmacyComponent
   },
-  { path: 'notifications', 
-    component: NotificationsComponent 
+  { path: 'notifications',
+    component: NotificationsComponent
   },
-  { path: 'profile', 
-    component: ProfileComponent 
+  { path: 'profile',
+    component: ProfileComponent
   },
   {
     path: 'badge-viewer',
     component: BadgeViewerComponent,
     // PAS de canActivate ici !
   },
-  
+
   {
     path: '**',
     redirectTo: ''
   }
-
 ];
 
 @NgModule({
