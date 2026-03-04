@@ -41,4 +41,9 @@ public class PrescriptionController {
     public void delete(@PathVariable String id) {
         service.delete(id);
     }
+
+    @GetMapping("/user/{userId}")
+    public List<Prescription> getByUser(@PathVariable String userId) {
+        return service.findByUserId(userId);
+    }
 }

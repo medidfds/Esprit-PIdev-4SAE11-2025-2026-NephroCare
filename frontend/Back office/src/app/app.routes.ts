@@ -20,6 +20,7 @@ import { ClinicalComponent } from './pages/clinical/clinical.component';
 import { TreatmentListComponent } from './pages/dialysis/treatment-list/treatment-list.component';
 import { SessionListComponent } from './pages/dialysis/session-list/session-list.component';
 import { ConsultationsCalendarComponent } from './pages/consultations-calendar/consultations-calendar.component';
+import { StatistiquePharmacyComponent } from './pages/stock/statistique-pharmacy/statistique-pharmacy.component';
 
 
 import { RoleGuard } from './guards/role.guard';
@@ -63,6 +64,7 @@ export const routes: Routes = [
       { path: 'statistique-hospitalization', component: StatistiqueHospitalizationComponent },
       { path: 'clinical', component: ClinicalComponent },
       { path: 'pharmacy', component: PharmacyComponent },
+      { path: 'statistique-pharmacy', component: StatistiquePharmacyComponent },
       { path: 'consultations-calendar', component: ConsultationsCalendarComponent },
       {path: 'diagnostic', component: DiagnosticComponent},
       // --- Dialysis Routes ---

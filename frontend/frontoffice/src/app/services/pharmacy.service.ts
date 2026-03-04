@@ -12,6 +12,7 @@ export interface Medication {
   quantity: number;
   startDate?: string;
   endDate?: string;
+  userId?:  string;
 }
 
 @Injectable({
@@ -29,5 +30,8 @@ export class PharmacyService {
 
   getById(id: string): Observable<Medication> {
     return this.http.get<Medication>(`${this.baseUrl}/${id}`);
+  }
+   getByUser(userId: string): Observable<Medication[]> {
+    return this.http.get<Medication[]>(`${this.baseUrl}/user/${userId}`);
   }
 }

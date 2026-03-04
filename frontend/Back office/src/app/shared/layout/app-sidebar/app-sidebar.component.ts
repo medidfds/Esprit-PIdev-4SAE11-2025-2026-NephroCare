@@ -32,16 +32,17 @@ export class AppSidebarComponent {
         { name: 'Hospitalization', path: '/hospitalization' },
         { name: 'Clinical', path: '/clinical' },
         { name: 'pharmacy', path: '/pharmacy' },
+        { name: 'Stock Stats', path: '/statistique-pharmacy' },
         { name: 'Consultations Calendar', path: '/consultations-calendar' },
         { name: 'Diagnostic', path: '/diagnostic' },
+        { name: 'Hospitalization Stats', path: '/statistique-hospitalization' },
 
-        // Dialysis
         // Dialysis
         { name: "Dialysis Management", path: "/dialysis/treatments" },
         { name: "Dialysis Settings", path: "/dialysis/admin/settings" },
         { name: "Dialysis Audit Logs", path: "/dialysis/admin/audit" },
         { name: "My Dialysis Schedule", path: "/dialysis/my-schedule" },
-         // nurse/admin
+        // nurse/admin
       ],
     },
     {
