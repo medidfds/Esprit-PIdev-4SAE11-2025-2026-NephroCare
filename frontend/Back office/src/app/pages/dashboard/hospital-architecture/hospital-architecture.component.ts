@@ -1,5 +1,5 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { forkJoin } from 'rxjs';
 import { RoomService, Room } from '../../../services/Room.service';
 import { HospitalizationService, Hospitalization } from '../../../services/hospitalization.service';
@@ -15,30 +15,30 @@ export interface TypeConfig {
 }
 
 export const TYPE_CFG: Record<string, TypeConfig> = {
-  standard:  { label:'Standard',  short:'STD', color:'#38bdf8', glow:'rgba(56,189,248,0.3)',  bg:'rgba(56,189,248,0.08)',  border:'rgba(56,189,248,0.25)'  },
-  intensive: { label:'ICU',       short:'ICU', color:'#f87171', glow:'rgba(248,113,113,0.35)',bg:'rgba(248,113,113,0.08)', border:'rgba(248,113,113,0.3)'  },
-  isolation: { label:'Isolation', short:'ISO', color:'#fbbf24', glow:'rgba(251,191,36,0.3)',  bg:'rgba(251,191,36,0.08)',  border:'rgba(251,191,36,0.28)'  },
-  pediatric: { label:'Pediatric', short:'PED', color:'#f472b6', glow:'rgba(244,114,182,0.3)', bg:'rgba(244,114,182,0.08)', border:'rgba(244,114,182,0.28)' },
-  maternity: { label:'Maternity', short:'MAT', color:'#a78bfa', glow:'rgba(167,139,250,0.3)', bg:'rgba(167,139,250,0.08)', border:'rgba(167,139,250,0.28)' },
+  standard:   { label: 'Standard',   short: 'STD', color: '#38bdf8', glow: 'rgba(56,189,248,0.3)',   bg: 'rgba(56,189,248,0.08)',   border: 'rgba(56,189,248,0.25)'   },
+  dialysis:   { label: 'Dialysis',   short: 'DLY', color: '#f87171', glow: 'rgba(248,113,113,0.35)', bg: 'rgba(248,113,113,0.08)',  border: 'rgba(248,113,113,0.3)'   },
+  isolation:  { label: 'Isolation',  short: 'ISO', color: '#fbbf24', glow: 'rgba(251,191,36,0.3)',   bg: 'rgba(251,191,36,0.08)',   border: 'rgba(251,191,36,0.28)'   },
+  pediatric:  { label: 'Pediatric',  short: 'PED', color: '#f472b6', glow: 'rgba(244,114,182,0.3)',  bg: 'rgba(244,114,182,0.08)',  border: 'rgba(244,114,182,0.28)'  },
+  nephrology: { label: 'Nephrology', short: 'NEP', color: '#a78bfa', glow: 'rgba(167,139,250,0.3)',  bg: 'rgba(167,139,250,0.08)',  border: 'rgba(167,139,250,0.28)'  },
 };
 
 // ── Enriched room model used in the template ──────────────────────────────
 export interface BedSlot {
-  bedIndex:    number;
-  occupied:    boolean;
-  pending:     boolean;
-  patientId?:  string;
+  bedIndex:       number;
+  occupied:       boolean;
+  pending:        boolean;
+  patientId?:     string;
   dischargeDate?: string;
-  daysLeft?:   number;
-  status?:     string;
+  daysLeft?:      number;
+  status?:        string;
 }
 
 export interface RoomCard extends Room {
-  wing:       string;         // derived from room number prefix (1xx → A, 2xx → B, 3xx → C)
-  beds:       BedSlot[];
-  freeBeds:   number;
+  wing:         string;
+  beds:         BedSlot[];
+  freeBeds:     number;
   occupancyPct: number;
-  cfg:        TypeConfig;
+  cfg:          TypeConfig;
 }
 
 export interface DaySlot {
@@ -49,24 +49,24 @@ export interface DaySlot {
 }
 
 @Component({
-  selector: 'app-hospital-architecture',
-  standalone: true,
-  imports: [CommonModule],
+  selector:    'app-hospital-architecture',
+  standalone:  true,
+  imports:     [CommonModule],
   templateUrl: './hospital-architecture.component.html',
-  styleUrls: ['./hospital-architecture.component.css'],
+  styleUrls:   ['./hospital-architecture.component.css'],
 })
 export class HospitalArchitectureComponent implements OnInit {
 
   loading = true;
 
-  rooms:            Room[]             = [];
-  hospitalizations: Hospitalization[]  = [];
-  roomCards:        RoomCard[]         = [];
+  rooms:            Room[]            = [];
+  hospitalizations: Hospitalization[] = [];
+  roomCards:        RoomCard[]        = [];
 
-  selectedRoom: RoomCard | null = null;
-  view: 'floor' | 'forecast'   = 'floor';
-  hoveredDay: number | null     = null;
-  activeWing: string            = 'ALL';
+  selectedRoom: RoomCard | null       = null;
+  view: 'floor' | 'forecast'         = 'floor';
+  hoveredDay:   number | null         = null;
+  activeWing:   string                = 'ALL';
 
   readonly wings = ['A', 'B', 'C'];
   readonly today = new Date();
@@ -74,10 +74,10 @@ export class HospitalArchitectureComponent implements OnInit {
   days: DaySlot[] = [];
 
   // Expose TYPE_CFG to the template
-  readonly typeCfg = TYPE_CFG;
+  readonly typeCfg  = TYPE_CFG;
   readonly typeKeys = Object.keys(TYPE_CFG);
 
-  // ── Computed hospital totals ──────────────────────────────────────────
+  // ── Computed clinic totals ────────────────────────────────────────────
   get totalBeds():    number { return this.rooms.reduce((s, r) => s + r.capacity, 0); }
   get occupiedBeds(): number { return this.rooms.reduce((s, r) => s + this.getOccupants(r.id).length, 0); }
   get freeBeds():     number { return this.totalBeds - this.occupiedBeds; }
@@ -127,8 +127,8 @@ export class HospitalArchitectureComponent implements OnInit {
       const iso = this.isoDate(d);
       return {
         offset: i,
-        label:  i === 0 ? 'Today' : d.toLocaleDateString('en-GB', { weekday:'short', day:'2-digit', month:'short' }),
-        short:  i === 0 ? 'Today' : d.toLocaleDateString('en-GB', { weekday:'short', day:'2-digit' }),
+        label:  i === 0 ? 'Today' : d.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' }),
+        short:  i === 0 ? 'Today' : d.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit' }),
         iso,
       };
     });
@@ -137,22 +137,22 @@ export class HospitalArchitectureComponent implements OnInit {
   // ── Build enriched room cards ─────────────────────────────────────────
   private buildRoomCards(): void {
     this.roomCards = this.rooms.map(room => {
-      const occupants  = this.getOccupants(room.id);
-      const cfg        = TYPE_CFG[room.type] ?? TYPE_CFG['standard'];
-      const wing       = this.wingFromRoomNumber(room.roomNumber);
+      const occupants = this.getOccupants(room.id);
+      const cfg       = TYPE_CFG[room.type] ?? TYPE_CFG['standard'];
+      const wing      = this.wingFromRoomNumber(room.roomNumber);
 
       const beds: BedSlot[] = Array.from({ length: room.capacity }, (_, i) => {
         const occ = occupants[i] ?? null;
         if (!occ) return { bedIndex: i, occupied: false, pending: false };
         const dl = occ.dischargeDate ? this.daysUntil(occ.dischargeDate) : undefined;
         return {
-          bedIndex:     i,
-          occupied:     true,
-          pending:      occ.status === 'pending',
-          patientId:    occ.userId,
+          bedIndex:      i,
+          occupied:      true,
+          pending:       occ.status === 'pending',
+          patientId:     occ.userId,
           dischargeDate: occ.dischargeDate,
-          daysLeft:     dl,
-          status:       occ.status,
+          daysLeft:      dl,
+          status:        occ.status,
         };
       });
 
@@ -197,13 +197,29 @@ export class HospitalArchitectureComponent implements OnInit {
     ).length;
   }
 
+  // ── Wing assignment ───────────────────────────────────────────────────
+  //  Wing A → Standard rooms        (101, 102, 103, 201, 202 — numeric prefixes)
+  //  Wing B → Dialysis + Isolation  (DLY-1/2/3, ISO-1/2)
+  //  Wing C → Pediatric + Nephrology (PED-1/2, NEP-1/2)
   private wingFromRoomNumber(num: string): string {
-    const first = num?.charAt(0);
-    return first === '1' ? 'A' : first === '2' ? 'B' : first === '3' ? 'C' : 'A';
+    if (!num) return 'A';
+    const prefix = num.split('-')[0].toUpperCase();
+    switch (prefix) {
+      case 'DLY':
+      case 'ISO':
+        return 'B';
+      case 'PED':
+      case 'NEP':
+        return 'C';
+      default:
+        return 'A'; // all numeric standard rooms
+    }
   }
 
   private addDays(d: Date, n: number): Date {
-    const x = new Date(d); x.setDate(x.getDate() + n); return x;
+    const x = new Date(d);
+    x.setDate(x.getDate() + n);
+    return x;
   }
 
   private isoDate(d: Date): string {
@@ -251,5 +267,5 @@ export class HospitalArchitectureComponent implements OnInit {
   }
 
   trackById(_: number, item: any): number { return item.id; }
-  trackByIndex(i: number): number { return i; }
+  trackByIndex(i: number): number         { return i; }
 }
