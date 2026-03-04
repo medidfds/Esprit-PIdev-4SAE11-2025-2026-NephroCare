@@ -11,9 +11,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
-
-    provideHttpClient(withInterceptorsFromDi()),
-
+    provideHttpClient(withInterceptorsFromDi()), // ✅ conflit résolu
     KeycloakService,
     {
       provide: APP_INITIALIZER,
@@ -21,7 +19,6 @@ export const appConfig: ApplicationConfig = {
       multi: true,
       deps: [KeycloakService],
     },
-
     {
       provide: HTTP_INTERCEPTORS,
       useClass: AuthInterceptor,

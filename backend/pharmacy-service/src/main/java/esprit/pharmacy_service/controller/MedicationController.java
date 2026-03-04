@@ -40,4 +40,8 @@ public class MedicationController {
     public void delete(@PathVariable String id) {
         service.delete(id);
     }
+    @GetMapping("/user/{userId}")
+    public List<Medication> getByUser(@PathVariable String userId) {
+        return service.findByUserId(userId);
+    }
 }

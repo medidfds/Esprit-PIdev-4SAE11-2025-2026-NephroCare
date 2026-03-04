@@ -3,9 +3,7 @@
   <!-- HEADER -->
   <div class="rx-page-header">
     <div class="header-inner">
-      <div class="header-icon">
-        <i class="fas fa-hospital-symbol"></i>
-      </div>
+      <div class="header-icon"><i class="fas fa-hospital-symbol"></i></div>
       <div>
         <div class="breadcrumb-label">Front Office / Pharmacy</div>
         <h1>Pharmacy</h1>
@@ -16,259 +14,30 @@
   <!-- TABS -->
   <div class="tabs">
     <button class="tab-btn"
-            [class.active]="activeTab === 'medications'"
-            (click)="activeTab = 'medications'">
-      <i class="fas fa-pills"></i> Medications
-      <span class="tab-count">{{ medications.length }}</span>
-    </button>
-    <button class="tab-btn"
-            [class.active]="activeTab === 'prescriptions'"
-            (click)="activeTab = 'prescriptions'">
+            [class.active]="activeTab==='prescriptions'"
+            (click)="activeTab='prescriptions'">
       <i class="fas fa-file-prescription"></i> My Prescriptions
       <span class="tab-count">{{ prescriptions.length }}</span>
     </button>
-    <!-- ✅ ONGLET CALCULATEUR -->
-    <button class="tab-btn tab-btn--calc"
-            [class.active]="activeTab === 'calculator'"
-            (click)="activeTab = 'calculator'">
-      <i class="fas fa-calculator"></i> Dose Calculator
+
+    <button class="tab-btn tab-btn--badge"
+            [class.active]="activeTab==='badge'"
+            (click)="activeTab='badge'">
+      <i class="fas fa-shield-alt"></i> Emergency Badge
+      <span class="tab-count tab-count--badge" *ngIf="badgeGenerated">✓</span>
     </button>
   </div>
 
-  <!-- ═══════════════════════════════════════════ -->
-  <!--  TAB : MEDICATIONS                         -->
-  <!-- ═══════════════════════════════════════════ -->
-  <div *ngIf="activeTab === 'medications'" class="pf-content">
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!--  TAB 1 : MY PRESCRIPTIONS                                      -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <div *ngIf="activeTab==='prescriptions'" class="pf-content">
 
-    <!-- Loading -->
-    <div class="pf-state" *ngIf="loadingMeds">
-      <i class="fas fa-spinner fa-spin pf-state-icon"></i>
-      <p>Loading medications...</p>
-    </div>
-
-    <!-- Error -->
-    <div class="pf-state pf-state--error" *ngIf="errorMeds && !loadingMeds">
-      <i class="fas fa-exclamation-circle pf-state-icon"></i>
-      <p>Failed to load medications.</p>
-      <small>Please check your connection or try again later.</small>
-      <button class="btn-retry" (click)="loadMedications()">
-        <i class="fas fa-redo"></i> Retry
-      </button>
-    </div>
-
-    <div *ngIf="!loadingMeds && !errorMeds">
-
-      <!-- ✅ STATS RAPIDES -->
-      <div class="quick-stats">
-        <div class="qs-item qs-total">
-          <div class="qs-icon"><i class="fas fa-pills"></i></div>
-          <div class="qs-body">
-            <span class="qs-value">{{ medStats.total }}</span>
-            <span class="qs-label">Total</span>
-          </div>
-        </div>
-        <div class="qs-item qs-ok">
-          <div class="qs-icon"><i class="fas fa-check-circle"></i></div>
-          <div class="qs-body">
-            <span class="qs-value">{{ medStats.available }}</span>
-            <span class="qs-label">Available</span>
-          </div>
-        </div>
-        <div class="qs-item qs-low">
-          <div class="qs-icon"><i class="fas fa-exclamation-triangle"></i></div>
-          <div class="qs-body">
-            <span class="qs-value">{{ medStats.low }}</span>
-            <span class="qs-label">Low Stock</span>
-          </div>
-        </div>
-        <div class="qs-item qs-out">
-          <div class="qs-icon"><i class="fas fa-times-circle"></i></div>
-          <div class="qs-body">
-            <span class="qs-value">{{ medStats.out }}</span>
-            <span class="qs-label">Out of Stock</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- ✅ SEARCH + FILTRES -->
-      <div class="search-section">
-
-        <div class="search-bar">
-          <i class="fas fa-search search-icon"></i>
-          <input
-            type="text"
-            [(ngModel)]="searchMed"
-            placeholder="Search by name, dosage, route..."
-            class="search-input" />
-          <button *ngIf="searchMed" class="search-clear" (click)="searchMed = ''">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-
-        <div class="filter-row">
-
-          <!-- Stock chips -->
-          <div class="filter-chips">
-            <button class="chip"
-                    [class.chip--active]="filterStock === ''"
-                    (click)="filterStock = ''">
-              All
-            </button>
-            <button class="chip chip--ok"
-                    [class.chip--active]="filterStock === 'available'"
-                    (click)="filterStock = filterStock === 'available' ? '' : 'available'">
-              <i class="fas fa-check-circle"></i> Available
-            </button>
-            <button class="chip chip--warn"
-                    [class.chip--active]="filterStock === 'low'"
-                    (click)="filterStock = filterStock === 'low' ? '' : 'low'">
-              <i class="fas fa-exclamation-triangle"></i> Low Stock
-            </button>
-            <button class="chip chip--danger"
-                    [class.chip--active]="filterStock === 'out'"
-                    (click)="filterStock = filterStock === 'out' ? '' : 'out'">
-              <i class="fas fa-times-circle"></i> Out of Stock
-            </button>
-            <button class="chip chip--expiry"
-                    [class.chip--active]="filterStock === 'expiring'"
-                    (click)="filterStock = filterStock === 'expiring' ? '' : 'expiring'">
-              <i class="fas fa-clock"></i> Expiring Soon
-            </button>
-          </div>
-
-          <div class="filter-right">
-            <!-- Route -->
-            <select class="filter-select"
-                    [(ngModel)]="filterRoute"
-                    *ngIf="availableRoutes.length > 0">
-              <option value="">All Routes</option>
-              <option *ngFor="let r of availableRoutes" [value]="r">{{ r }}</option>
-            </select>
-
-            <!-- Sort -->
-            <select class="filter-select" [(ngModel)]="sortMed">
-              <option value="name">Name A→Z</option>
-              <option value="name-desc">Name Z→A</option>
-              <option value="stock-desc">Stock ↓</option>
-              <option value="stock-asc">Stock ↑</option>
-              <option value="expiry">Expiry Date</option>
-            </select>
-
-            <!-- Reset -->
-            <button *ngIf="hasMedFilters" class="btn-reset" (click)="resetMedFilters()">
-              <i class="fas fa-xmark"></i> Reset
-            </button>
-          </div>
-        </div>
-
-        <!-- Résultats counter -->
-        <div class="results-bar" *ngIf="hasMedFilters">
-          <span class="results-count">
-            <i class="fas fa-filter"></i>
-            {{ filteredMedications.length }} result(s)
-            <span *ngIf="filteredMedications.length !== medications.length" class="results-total">
-              out of {{ medications.length }}
-            </span>
-          </span>
-          <button class="results-clear" (click)="resetMedFilters()">
-            Clear all filters
-          </button>
-        </div>
-
-      </div>
-
-      <!-- Empty après filtre -->
-      <div class="pf-state" *ngIf="filteredMedications.length === 0 && medications.length > 0">
-        <i class="fas fa-magnifying-glass pf-state-icon"></i>
-        <p>No medications match your search.</p>
-        <button class="btn-retry" (click)="resetMedFilters()">
-          <i class="fas fa-times"></i> Clear filters
-        </button>
-      </div>
-
-      <!-- Empty global -->
-      <div class="pf-state" *ngIf="medications.length === 0">
-        <i class="fas fa-prescription-bottle pf-state-icon"></i>
-        <p>No medications available.</p>
-      </div>
-
-      <!-- Cards Grid -->
-      <div class="medication-list" *ngIf="filteredMedications.length > 0">
-
-        <div class="medication-card"
-             *ngFor="let med of filteredMedications; trackBy: trackById"
-             [class.card--expiring]="isExpiringSoon(med.endDate)"
-             [class.card--out]="med.quantity === 0">
-
-          <div class="mc-header">
-            <div class="mc-icon"><i class="fas fa-capsules"></i></div>
-            <div class="mc-title">
-              <h3>{{ med.medicationName }}</h3>
-              <span class="mc-id">#{{ med.id }}</span>
-            </div>
-          </div>
-
-          <div class="mc-meta" *ngIf="med.dosage || med.route">
-            <span *ngIf="med.dosage"><i class="fas fa-flask"></i> {{ med.dosage }}</span>
-            <span *ngIf="med.route"><i class="fas fa-route"></i> {{ med.route }}</span>
-          </div>
-
-          <div class="mc-info">
-            <div class="mc-info-item"
-                 [class.stock-low]="med.quantity > 0 && med.quantity <= 10">
-              <i class="fas fa-boxes"></i>
-              <span>Stock: <strong>{{ med.quantity }}</strong></span>
-            </div>
-            <div class="mc-info-item" *ngIf="med.duration">
-              <i class="fas fa-clock"></i>
-              <span>Duration: <strong>{{ med.duration }} days</strong></span>
-            </div>
-          </div>
-
-          <div class="mc-expiry"
-               [class.expiry-warn]="isExpiringSoon(med.endDate)"
-               *ngIf="med.endDate">
-            <i class="fas fa-calendar-check" *ngIf="!isExpiringSoon(med.endDate)"></i>
-            <i class="fas fa-calendar-times" *ngIf="isExpiringSoon(med.endDate)"></i>
-            <span>Expires: {{ med.endDate | date:'mediumDate' }}</span>
-            <span class="expiry-badge" *ngIf="isExpiringSoon(med.endDate)">Expiring soon</span>
-          </div>
-
-          <div class="mc-stock-bar">
-            <div class="mc-stock-fill"
-                 [style.width.%]="med.quantity > 100 ? 100 : med.quantity"
-                 [class.fill-ok]="med.quantity > 10"
-                 [class.fill-low]="med.quantity > 0 && med.quantity <= 10"
-                 [class.fill-out]="med.quantity === 0">
-            </div>
-          </div>
-
-          <button class="mc-btn"
-                  [disabled]="med.quantity === 0"
-                  [class.mc-btn--available]="med.quantity > 0"
-                  [class.mc-btn--out]="med.quantity === 0">
-            <i class="fas fa-check-circle" *ngIf="med.quantity > 0"></i>
-            <i class="fas fa-times-circle" *ngIf="med.quantity === 0"></i>
-            {{ med.quantity > 0 ? 'Available' : 'Out of Stock' }}
-          </button>
-
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ═══════════════════════════════════════════ -->
-  <!--  TAB : MY PRESCRIPTIONS                    -->
-  <!-- ═══════════════════════════════════════════ -->
-  <div *ngIf="activeTab === 'prescriptions'" class="pf-content">
-
-    <!-- Loading -->
     <div class="pf-state" *ngIf="loadingRx">
       <i class="fas fa-spinner fa-spin pf-state-icon"></i>
       <p>Loading prescriptions...</p>
     </div>
 
-    <!-- Error -->
     <div class="pf-state pf-state--error" *ngIf="errorRx && !loadingRx">
       <i class="fas fa-exclamation-circle pf-state-icon"></i>
       <p>Failed to load prescriptions.</p>
@@ -279,8 +48,7 @@
 
     <div *ngIf="!loadingRx && !errorRx">
 
-      <!-- ✅ STATS PRESCRIPTIONS -->
-      <div class="quick-stats" *ngIf="prescriptions.length > 0">
+      <div class="quick-stats" *ngIf="prescriptions.length>0">
         <div class="qs-item qs-total">
           <div class="qs-icon"><i class="fas fa-file-prescription"></i></div>
           <div class="qs-body">
@@ -311,51 +79,46 @@
         </div>
       </div>
 
-      <!-- ✅ SEARCH + FILTRES PRESCRIPTIONS -->
-      <div class="search-section" *ngIf="prescriptions.length > 0">
-
+      <div class="search-section" *ngIf="prescriptions.length>0">
         <div class="search-bar">
           <i class="fas fa-search search-icon"></i>
-          <input
-            type="text"
-            [(ngModel)]="searchRx"
-            placeholder="Search by doctor, instructions, status..."
-            class="search-input" />
-          <button *ngIf="searchRx" class="search-clear" (click)="searchRx = ''">
+          <input type="text"
+                 [(ngModel)]="searchRx"
+                 placeholder="Search by doctor, instructions, status..."
+                 class="search-input"/>
+          <button *ngIf="searchRx" class="search-clear" (click)="searchRx=''">
             <i class="fas fa-times"></i>
           </button>
         </div>
 
         <div class="filter-row">
-
-          <!-- Status chips -->
           <div class="filter-chips">
             <button class="chip"
-                    [class.chip--active]="filterStatus === ''"
-                    (click)="filterStatus = ''">All</button>
+                    [class.chip--active]="filterStatus===''"
+                    (click)="filterStatus=''">All</button>
             <button class="chip chip--pending"
-                    [class.chip--active]="filterStatus === 'PENDING'"
-                    (click)="filterStatus = filterStatus === 'PENDING' ? '' : 'PENDING'">
+                    [class.chip--active]="filterStatus==='PENDING'"
+                    (click)="filterStatus=filterStatus==='PENDING'?'':'PENDING'">
               <i class="fas fa-clock"></i> Pending
             </button>
             <button class="chip chip--ok"
-                    [class.chip--active]="filterStatus === 'APPROVED'"
-                    (click)="filterStatus = filterStatus === 'APPROVED' ? '' : 'APPROVED'">
+                    [class.chip--active]="filterStatus==='APPROVED'"
+                    (click)="filterStatus=filterStatus==='APPROVED'?'':'APPROVED'">
               <i class="fas fa-check"></i> Approved
             </button>
             <button class="chip chip--info"
-                    [class.chip--active]="filterStatus === 'DISPENSED'"
-                    (click)="filterStatus = filterStatus === 'DISPENSED' ? '' : 'DISPENSED'">
+                    [class.chip--active]="filterStatus==='DISPENSED'"
+                    (click)="filterStatus=filterStatus==='DISPENSED'?'':'DISPENSED'">
               <i class="fas fa-pills"></i> Dispensed
             </button>
             <button class="chip chip--ok"
-                    [class.chip--active]="filterStatus === 'COMPLETED'"
-                    (click)="filterStatus = filterStatus === 'COMPLETED' ? '' : 'COMPLETED'">
+                    [class.chip--active]="filterStatus==='COMPLETED'"
+                    (click)="filterStatus=filterStatus==='COMPLETED'?'':'COMPLETED'">
               <i class="fas fa-flag-checkered"></i> Completed
             </button>
             <button class="chip chip--danger"
-                    [class.chip--active]="filterStatus === 'CANCELLED'"
-                    (click)="filterStatus = filterStatus === 'CANCELLED' ? '' : 'CANCELLED'">
+                    [class.chip--active]="filterStatus==='CANCELLED'"
+                    (click)="filterStatus=filterStatus==='CANCELLED'?'':'CANCELLED'">
               <i class="fas fa-ban"></i> Cancelled
             </button>
           </div>
@@ -366,14 +129,12 @@
               <option value="valid">Valid only</option>
               <option value="expired">Expired only</option>
             </select>
-
             <select class="filter-select" [(ngModel)]="sortRx">
               <option value="date-desc">Newest first</option>
               <option value="date-asc">Oldest first</option>
               <option value="doctor">By doctor</option>
               <option value="status">By status</option>
             </select>
-
             <button *ngIf="hasRxFilters" class="btn-reset" (click)="resetRxFilters()">
               <i class="fas fa-xmark"></i> Reset
             </button>
@@ -388,16 +149,12 @@
               out of {{ prescriptions.length }}
             </span>
           </span>
-          <button class="results-clear" (click)="resetRxFilters()">
-            Clear all filters
-          </button>
+          <button class="results-clear" (click)="resetRxFilters()">Clear all filters</button>
         </div>
-
       </div>
 
-      <!-- Empty après filtre -->
       <div class="pf-state"
-           *ngIf="filteredPrescriptions.length === 0 && prescriptions.length > 0">
+           *ngIf="filteredPrescriptions.length===0 && prescriptions.length>0">
         <i class="fas fa-magnifying-glass pf-state-icon"></i>
         <p>No prescriptions match your search.</p>
         <button class="btn-retry" (click)="resetRxFilters()">
@@ -405,15 +162,12 @@
         </button>
       </div>
 
-      <!-- Empty global -->
-      <div class="pf-state" *ngIf="prescriptions.length === 0">
+      <div class="pf-state" *ngIf="prescriptions.length===0">
         <i class="fas fa-file-prescription pf-state-icon"></i>
         <p>No prescriptions found for your account.</p>
       </div>
 
-      <!-- Prescription Cards -->
-      <div class="rx-list" *ngIf="filteredPrescriptions.length > 0">
-
+      <div class="rx-list" *ngIf="filteredPrescriptions.length>0">
         <div class="rx-card"
              *ngFor="let p of filteredPrescriptions; trackBy: trackById"
              [class.rx-card--expired]="isExpired(p.validUntil)">
@@ -443,15 +197,10 @@
             <span>{{ p.medications?.length || 0 }} medication(s)</span>
           </div>
 
-          <!-- ✅ BOUTONS AVEC CALCULATE -->
           <div class="rx-card-actions">
-            <button class="rx-btn" (click)="view(p)">
+            <button class="rx-btn rx-btn--full" (click)="view(p)">
               <i class="fas fa-eye"></i> View Details
             </button>
-            <button class="rx-btn-calc" (click)="loadFromPrescription(p)"
-                    [disabled]="!p.medications?.length">
-              <i class="fas fa-calculator"></i> Calculate
-            </button>
           </div>
 
         </div>
@@ -460,307 +209,443 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════ -->
-  <!--  TAB : DOSE CALCULATOR                     -->
-  <!-- ═══════════════════════════════════════════ -->
-  <div *ngIf="activeTab === 'calculator'" class="pf-content">
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!--  TAB 2 : EMERGENCY BADGE                                       -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <div *ngIf="activeTab==='badge'" class="pf-content">
+    <div class="badge-page">
 
-    <div class="calc-layout">
-
-      <!-- ── PANNEAU GAUCHE : Formulaire ── -->
-      <div class="calc-panel">
-        <div class="calc-panel-header">
-          <div class="calc-panel-icon">
-            <i class="fas fa-calculator"></i>
-          </div>
-          <div>
-            <h2 class="calc-panel-title">Dose Calculator</h2>
-            <p class="calc-panel-sub">Calculate your treatment schedule</p>
-          </div>
-        </div>
-
-        <!-- Erreur -->
-        <div class="calc-error" *ngIf="calcError">
-          <i class="fas fa-exclamation-circle"></i> {{ calcError }}
-        </div>
-
-        <!-- Formulaire -->
-        <div class="calc-form">
-
-          <div class="calc-field">
-            <label class="calc-label">
-              <i class="fas fa-capsules"></i> Medication Name *
-            </label>
-            <input type="text"
-                   class="calc-input"
-                   [(ngModel)]="calcForm.medicationName"
-                   placeholder="e.g. Amoxicillin" />
-          </div>
-
-          <div class="calc-field">
-            <label class="calc-label">
-              <i class="fas fa-flask"></i> Dosage
-            </label>
-            <input type="text"
-                   class="calc-input"
-                   [(ngModel)]="calcForm.dosage"
-                   placeholder="e.g. 500mg" />
-          </div>
-
-          <div class="calc-row-2">
-            <div class="calc-field">
-              <label class="calc-label">
-                <i class="fas fa-redo"></i> Frequency (per day) *
-              </label>
-              <div class="calc-stepper">
-                <button class="stepper-btn"
-                        (click)="calcForm.frequency = calcForm.frequency > 1 ? calcForm.frequency - 1 : 1">
-                  <i class="fas fa-minus"></i>
-                </button>
-                <span class="stepper-val">{{ calcForm.frequency }}×</span>
-                <button class="stepper-btn"
-                        (click)="calcForm.frequency = calcForm.frequency < 12 ? calcForm.frequency + 1 : 12">
-                  <i class="fas fa-plus"></i>
-                </button>
-              </div>
-              <span class="calc-hint">
-                Every {{ 24 / calcForm.frequency | number:'1.0-1' }}h
-              </span>
-            </div>
-
-            <div class="calc-field">
-              <label class="calc-label">
-                <i class="fas fa-clock"></i> Duration (days) *
-              </label>
-              <div class="calc-stepper">
-                <button class="stepper-btn"
-                        (click)="calcForm.duration = calcForm.duration > 1 ? calcForm.duration - 1 : 1">
-                  <i class="fas fa-minus"></i>
-                </button>
-                <span class="stepper-val">{{ calcForm.duration }}d</span>
-                <button class="stepper-btn"
-                        (click)="calcForm.duration = calcForm.duration < 365 ? calcForm.duration + 1 : 365">
-                  <i class="fas fa-plus"></i>
-                </button>
-              </div>
-              <span class="calc-hint">
-                Total: {{ calcForm.frequency * calcForm.duration }} units
-              </span>
-            </div>
-          </div>
-
-          <div class="calc-row-2">
-            <div class="calc-field">
-              <label class="calc-label">
-                <i class="fas fa-calendar-plus"></i> Start Date *
-              </label>
-              <input type="date"
-                     class="calc-input"
-                     [(ngModel)]="calcForm.startDate" />
-            </div>
-
-            <div class="calc-field">
-              <label class="calc-label">
-                <i class="fas fa-boxes"></i> Stock Available
-              </label>
-              <input type="number"
-                     class="calc-input"
-                     [(ngModel)]="calcForm.quantity"
-                     min="0"
-                     placeholder="0" />
-            </div>
-          </div>
-
-          <!-- Boutons -->
-          <div class="calc-actions">
-            <button class="calc-btn-primary" (click)="calculateTreatment()">
-              <i class="fas fa-calculator"></i> Calculate Plan
-            </button>
-            <button class="calc-btn-reset" (click)="resetCalculator()" *ngIf="treatmentPlan">
-              <i class="fas fa-redo"></i> Reset
-            </button>
-          </div>
-
+      <div class="badge-page-header">
+        <div class="bph-icon">🛡️</div>
+        <div>
+          <p class="bph-sub">Front Office / Patient</p>
+          <h2 class="bph-title">Passion Shield Badge</h2>
+          <p class="bph-desc">Create your medical emergency badge — readable by first responders without unlocking your phone.</p>
         </div>
       </div>
 
-      <!-- ── PANNEAU DROIT : Résultats ── -->
-      <div class="calc-results" *ngIf="treatmentPlan">
+      <div class="badge-layout">
 
-        <!-- Résumé du traitement -->
-        <div class="result-card">
-          <div class="result-card-header">
-            <i class="fas fa-clipboard-list"></i>
-            <h3>Treatment Plan</h3>
-            <span class="result-med-name">{{ treatmentPlan.medication }}</span>
-          </div>
+        <!-- ────────────────────────── -->
+        <!-- FORM — 4 STEPS            -->
+        <!-- ────────────────────────── -->
+        <div class="badge-form-panel">
 
-          <!-- KPI Cards -->
-          <div class="result-kpis">
-            <div class="kpi">
-              <span class="kpi-icon kpi-blue"><i class="fas fa-pills"></i></span>
-              <span class="kpi-value">{{ treatmentPlan.totalUnits }}</span>
-              <span class="kpi-label">Total Units</span>
-            </div>
-            <div class="kpi">
-              <span class="kpi-icon kpi-purple"><i class="fas fa-redo"></i></span>
-              <span class="kpi-value">{{ treatmentPlan.frequency }}×</span>
-              <span class="kpi-label">Per Day</span>
-            </div>
-            <div class="kpi">
-              <span class="kpi-icon kpi-green"><i class="fas fa-calendar-check"></i></span>
-              <span class="kpi-value">{{ treatmentPlan.duration }}d</span>
-              <span class="kpi-label">Duration</span>
-            </div>
-            <div class="kpi" [class.kpi--warn]="treatmentPlan.daysLeft <= 3">
-              <span class="kpi-icon kpi-orange"><i class="fas fa-hourglass-half"></i></span>
-              <span class="kpi-value">{{ treatmentPlan.daysLeft }}</span>
-              <span class="kpi-label">Days Left</span>
-            </div>
-          </div>
-
-          <!-- Dates -->
-          <div class="result-dates">
-            <div class="date-item">
-              <i class="fas fa-play-circle"></i>
-              <span>Start: <strong>{{ treatmentPlan.startDate }}</strong></span>
-            </div>
-            <div class="date-arrow"><i class="fas fa-arrow-right"></i></div>
-            <div class="date-item">
-              <i class="fas fa-flag-checkered"></i>
-              <span>End: <strong>{{ treatmentPlan.endDate }}</strong></span>
-            </div>
-          </div>
-
-          <!-- Barre de progression -->
-          <div class="result-progress-section">
-            <div class="progress-header">
-              <span class="progress-label">Treatment Progress</span>
-              <span class="progress-pct">{{ treatmentPlan.progressPercent }}%</span>
-            </div>
-            <div class="progress-track">
-              <div class="progress-fill"
-                   [style.width.%]="treatmentPlan.progressPercent"
-                   [class.progress-fill--done]="treatmentPlan.progressPercent === 100">
+          <div class="badge-progress-wrap">
+            <div class="badge-progress-steps">
+              <div class="bps-step"
+                   *ngFor="let s of [1,2,3,4]"
+                   [class.bps-active]="badgeStep===s"
+                   [class.bps-done]="badgeStep>s">
+                <div class="bps-dot">
+                  <i class="fas fa-check" *ngIf="badgeStep>s"></i>
+                  <span *ngIf="badgeStep<=s">{{ s }}</span>
+                </div>
+                <span class="bps-label">
+                  {{ s===1 ? 'Identity' : s===2 ? 'Condition' : s===3 ? 'Treatments' : 'Passion & Contact' }}
+                </span>
               </div>
             </div>
-            <div class="progress-sub">
-              {{ treatmentPlan.duration - treatmentPlan.daysLeft }} days completed
-              of {{ treatmentPlan.duration }}
+            <div class="badge-progress-track">
+              <div class="badge-progress-fill" [style.width.%]="(badgeStep-1)/3*100"></div>
             </div>
           </div>
 
-          <!-- Alerte stock -->
-          <div class="stock-alert stock-alert--ok" *ngIf="calcForm.quantity > 0 && stockSufficient">
+          <!-- STEP 1 : Identity -->
+          <div class="badge-step-panel" *ngIf="badgeStep===1">
+            <div class="badge-step-header">
+              <div class="badge-step-icon" style="background:linear-gradient(135deg,#3b82f6,#6366f1)">👤</div>
+              <div>
+                <h3>Your Identity</h3>
+                <p>This information will appear on your badge.</p>
+              </div>
+            </div>
+            <div class="badge-form-grid">
+              <div class="badge-fg full">
+                <label>First &amp; Last Name <span class="req">*</span></label>
+                <input type="text" [(ngModel)]="badgeForm.patientName" placeholder="E.g. John Smith"/>
+              </div>
+              <div class="badge-fg">
+                <label>Age</label>
+                <input type="text" [(ngModel)]="badgeForm.patientAge" placeholder="E.g. 42 years old"/>
+              </div>
+              <div class="badge-fg">
+                <label>Blood Type <span class="req">*</span></label>
+                <select [(ngModel)]="badgeForm.bloodGroup">
+                  <option *ngFor="let bg of BLOOD_GROUPS" [value]="bg">{{ bg }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 2 : Medical Condition -->
+          <div class="badge-step-panel" *ngIf="badgeStep===2">
+            <div class="badge-step-header">
+              <div class="badge-step-icon" style="background:linear-gradient(135deg,#ef4444,#dc2626)">🚨</div>
+              <div>
+                <h3>Medical Condition</h3>
+                <p>RED zone — critical information for first responders.</p>
+              </div>
+            </div>
+            <div class="badge-fg full">
+              <label>Primary condition <span class="req">*</span></label>
+              <select [(ngModel)]="badgeForm.condition">
+                <option value="" disabled>Select...</option>
+                <option *ngFor="let c of CONDITIONS" [value]="c">{{ c }}</option>
+              </select>
+            </div>
+            <div class="badge-fg full" *ngIf="badgeForm.condition==='Custom...'">
+              <label>Specify your condition</label>
+              <input type="text" [(ngModel)]="badgeForm.customCond" placeholder="E.g. Cystic Fibrosis"/>
+            </div>
+            <div class="badge-fg full">
+              <label>Medications NOT to administer</label>
+              <input type="text" [(ngModel)]="badgeForm.allergies"
+                     placeholder="E.g. NSAIDs, Ibuprofen (comma-separated)"/>
+            </div>
+            <div class="badge-fg full">
+              <label>Reason / Risk</label>
+              <input type="text" [(ngModel)]="badgeForm.allergyReason"
+                     placeholder="E.g. Risk of immediate nephrotoxicity"/>
+            </div>
+            <div class="badge-form-grid">
+              <div class="badge-fg">
+                <label>Latest lab result</label>
+                <input type="text" [(ngModel)]="badgeForm.creatinine" placeholder="E.g. 110 µmol/L"/>
+              </div>
+              <div class="badge-fg">
+                <label>Status</label>
+                <input type="text" [(ngModel)]="badgeForm.lastExam" placeholder="E.g. Stable"/>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 3 : Treatments -->
+          <div class="badge-step-panel" *ngIf="badgeStep===3">
+            <div class="badge-step-header">
+              <div class="badge-step-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706)">💊</div>
+              <div>
+                <h3>Vital Treatments</h3>
+                <p>Essential medications that first responders must be aware of.</p>
+              </div>
+            </div>
+            <div *ngFor="let t of badgeForm.treatments; let i=index; trackBy: trackByIndex"
+                 class="badge-treat-row">
+              <div class="badge-treat-num">{{ i + 1 }}</div>
+              <input type="text"
+                     [(ngModel)]="badgeForm.treatments[i]"
+                     placeholder="E.g. ADVAGRAF 5mg (Immunosuppressant)"/>
+              <button type="button"
+                      class="badge-btn-rm"
+                      (click)="removeBadgeTreatment(i)"
+                      *ngIf="badgeForm.treatments.length > 1">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            <button type="button" class="badge-btn-add-treat" (click)="addBadgeTreatment()">
+              <i class="fas fa-plus"></i> Add a treatment
+            </button>
+            <div class="badge-tip-box">
+              <i class="fas fa-info-circle"></i>
+              Include the brand name, dosage, and therapeutic class in parentheses.
+            </div>
+          </div>
+
+          <!-- STEP 4 : Passion & Contact -->
+          <div class="badge-step-panel" *ngIf="badgeStep===4">
+            <div class="badge-step-header">
+              <div class="badge-step-icon" style="background:linear-gradient(135deg,#14b8a6,#0891b2)">🏃</div>
+              <div>
+                <h3>Passion &amp; Contact</h3>
+                <p>Blue zone — 24/7 clinical contact information.</p>
+              </div>
+            </div>
+
+            <div class="badge-fg full">
+              <label>Your passion / activity <span class="req">*</span></label>
+              <div class="passion-grid">
+                <button type="button"
+                        *ngFor="let p of PASSIONS"
+                        class="passion-btn"
+                        [class.selected]="isPassionSelected(p.value)"
+                        (click)="selectPassion(p)">
+                  <span>{{ p.icon }}</span>
+                  <small>{{ p.label }}</small>
+                </button>
+              </div>
+            </div>
+
+            <div class="badge-fg full" *ngIf="badgeForm.passion==='custom'">
+              <label>Specify your passion</label>
+              <input type="text" [(ngModel)]="badgeForm.customPassion" placeholder="E.g. Skydiving"/>
+            </div>
+
+            <div class="badge-form-grid">
+              <div class="badge-fg">
+                <label>Pharmacy emergency number <span class="req">*</span></label>
+                <input type="tel" [(ngModel)]="badgeForm.emergencyPhone" placeholder="01 44 22 33 44"/>
+              </div>
+              <div class="badge-fg">
+                <label>Clinic name <span class="req">*</span></label>
+                <input type="text" [(ngModel)]="badgeForm.clinicName" placeholder="E.g. Renal Clinic"/>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step navigation -->
+          <div class="badge-step-nav">
+            <button class="badge-btn-prev" (click)="badgePrevStep()" [disabled]="badgeStep===1">
+              <i class="fas fa-arrow-left"></i> Previous
+            </button>
+            <span class="badge-step-ind">{{ badgeStep }} / {{ badgeTotalSteps }}</span>
+            <button class="badge-btn-next" (click)="badgeNextStep()" [disabled]="!isBadgeStepValid()">
+              {{ badgeStep === badgeTotalSteps ? '🛡️ Generate + QR' : 'Next' }}
+              <i class="fas fa-arrow-right" *ngIf="badgeStep < badgeTotalSteps"></i>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- ────────────────────────── -->
+        <!-- PHONE BADGE PREVIEW        -->
+        <!-- ────────────────────────── -->
+        <div class="badge-preview-panel">
+
+          <div class="badge-preview-actions" *ngIf="badgeGenerated">
+            <button class="bpa-btn bpa-edit"  (click)="badgeGenerated=false; badgeStep=4">
+              <i class="fas fa-pen"></i> Edit
+            </button>
+            <button class="bpa-btn bpa-qr"    (click)="openQrModal()">
+              <i class="fas fa-qrcode"></i> View QR
+            </button>
+            <button class="bpa-btn bpa-dl"    (click)="downloadQR()">
+              <i class="fas fa-download"></i> Download QR
+            </button>
+            <button class="bpa-btn bpa-print" (click)="printBadge()">
+              <i class="fas fa-print"></i> Print
+            </button>
+            <button class="bpa-btn bpa-reset" (click)="resetBadge()">
+              <i class="fas fa-redo"></i> New
+            </button>
+          </div>
+
+          <div class="phone-wrap" *ngIf="badgeGenerated">
+            <div class="phone-frame">
+              <div class="phone-notch"></div>
+              <div class="phone-screen" id="badge-screen">
+
+                <!-- RED ZONE -->
+                <div class="bz bz--red">
+                  <div class="bz-alert-bar">
+                    <span>⚠️</span>
+                    <span class="bz-alert-txt">MEDICAL EMERGENCY</span>
+                    <span>⚠️</span>
+                  </div>
+                  <div class="bz-condition">{{ badge.condition }}</div>
+                  <div class="bz-allergies" *ngIf="badge.allergies.length > 0">
+                    <div class="bz-no-txt">🚫 DO NOT ADMINISTER</div>
+                    <div class="bz-pills">
+                      <span class="bz-pill" *ngFor="let a of badge.allergies">{{ a }}</span>
+                    </div>
+                    <div class="bz-reason" *ngIf="badge.allergyReason">
+                      ⚡ {{ badge.allergyReason }}
+                    </div>
+                  </div>
+                  <div class="bz-blood">
+                    <span>🩸</span>
+                    <span class="bz-bl-label">Blood Type</span>
+                    <span class="bz-bl-val">{{ badge.bloodGroup }}</span>
+                  </div>
+                </div>
+
+                <!-- WHITE ZONE -->
+                <div class="bz bz--white">
+                  <div class="bz-patient">
+                    <div class="bz-name">{{ badge.patientName }}</div>
+                    <div class="bz-age" *ngIf="badge.patientAge">{{ badge.patientAge }}</div>
+                  </div>
+                  <div class="bz-passion">
+                    <span>{{ badge.passionIcon }}</span>
+                    <span class="bz-passion-lbl">PASSION: {{ badge.passion | uppercase }}</span>
+                  </div>
+                  <div class="bz-treats">
+                    <div class="bz-treat-title">💊 Vital Treatment(s)</div>
+                    <div class="bz-treat-item" *ngFor="let t of badge.treatments">
+                      <i class="fas fa-capsules"></i> {{ t }}
+                    </div>
+                  </div>
+                  <div class="bz-creat" *ngIf="badge.creatinine">
+                    🧪 <span>{{ badge.creatinine }}</span>
+                    <span class="bz-stable" *ngIf="badge.lastExam">({{ badge.lastExam }})</span>
+                  </div>
+                </div>
+
+                <!-- BLUE ZONE + QR Code -->
+                <div class="bz bz--blue">
+                  <div class="bz-contact-hdr">
+                    <span>📞</span>
+                    <span>PHARMACY EMERGENCY</span>
+                  </div>
+                  <div class="bz-phone">{{ badge.emergencyPhone }}</div>
+                  <div class="bz-phone-sub">Direct line 24/7</div>
+                  <div class="bz-clinic">
+                    <i class="fas fa-hospital"></i> {{ badge.clinicName }}
+                  </div>
+                  <div class="bz-qr-wrap" *ngIf="qrMatrix.length > 0">
+                    <div class="bz-qr-svg-box">
+                      <svg [attr.viewBox]="'0 0 ' + qrSize + ' ' + qrSize"
+                           width="60" height="60"
+                           shape-rendering="crispEdges">
+                        <rect width="100%" height="100%" fill="white"/>
+                        <path [attr.d]="qrSvgPath" fill="black"/>
+                      </svg>
+                    </div>
+                    <div class="bz-qr-text">
+                      <span>Scan to view</span>
+                      <strong>care protocol</strong>
+                    </div>
+                  </div>
+                  <div class="bz-footer">🛡️ Passion Shield Badge</div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <div class="qr-success-bar" *ngIf="badgeGenerated && qrMatrix.length > 0">
             <i class="fas fa-check-circle"></i>
-            <div>
-              <strong>Stock sufficient</strong>
-              <span>{{ calcForm.quantity }} units available for {{ treatmentPlan.totalUnits }} needed</span>
+            <span>QR Code generated — medical data encoded</span>
+            <button (click)="openQrModal()">View full size →</button>
+          </div>
+
+          <div class="badge-placeholder" *ngIf="!badgeGenerated">
+            <div class="bp-icon">🛡️</div>
+            <h3>Your badge will appear here</h3>
+            <p>Complete the 4-step form to generate your personalized emergency badge.</p>
+            <div class="bp-features">
+              <div class="bp-feat"><span>🔴</span> Red zone: Immediate medical alert</div>
+              <div class="bp-feat"><span>⚪</span> White zone: Treatments and passion</div>
+              <div class="bp-feat"><span>🔵</span> Blue zone: Contact + Medical QR Code</div>
+              <div class="bp-feat"><span>📱</span> Readable without unlocking your phone</div>
             </div>
           </div>
-          <div class="stock-alert stock-alert--warn" *ngIf="calcForm.quantity > 0 && !stockSufficient">
-            <i class="fas fa-exclamation-triangle"></i>
-            <div>
-              <strong>Insufficient stock!</strong>
-              <span>Need {{ stockNeeded }} more units to complete treatment</span>
-            </div>
-          </div>
-          <div class="stock-alert stock-alert--info" *ngIf="calcForm.quantity === 0">
-            <i class="fas fa-info-circle"></i>
-            <div>
-              <strong>{{ treatmentPlan.totalUnits }} units required</strong>
-              <span>Enter your stock quantity to check availability</span>
-            </div>
-          </div>
+
         </div>
-
-        <!-- Planning journalier -->
-        <div class="result-card">
-          <div class="result-card-header">
-            <i class="fas fa-bell"></i>
-            <h3>Today's Reminder Schedule</h3>
-            <span class="taken-badge">
-              {{ takenCount }}/{{ todayReminders.length }} taken
-            </span>
-          </div>
-
-          <!-- Progress bar rappels -->
-          <div class="reminder-progress">
-            <div class="reminder-fill"
-                 [style.width.%]="todayReminders.length > 0 ? (takenCount / todayReminders.length) * 100 : 0">
-            </div>
-          </div>
-
-          <!-- Liste des rappels -->
-          <div class="reminder-list">
-            <div class="reminder-item"
-                 *ngFor="let r of todayReminders; let i = index"
-                 [class.reminder-item--taken]="r.taken"
-                 (click)="toggleReminder(i)">
-
-              <div class="reminder-check" [class.reminder-check--done]="r.taken">
-                <i class="fas" [class.fa-check]="r.taken" [class.fa-circle]="!r.taken"></i>
-              </div>
-
-              <div class="reminder-body">
-                <span class="reminder-time">{{ r.time }}</span>
-                <span class="reminder-label">{{ r.label }}</span>
-                <span class="reminder-dose" *ngIf="treatmentPlan.dosage">
-                  {{ treatmentPlan.dosage }}
-                </span>
-              </div>
-
-              <div class="reminder-status">
-                <span class="rs-taken" *ngIf="r.taken">
-                  <i class="fas fa-check-circle"></i> Taken
-                </span>
-                <span class="rs-pending" *ngIf="!r.taken">
-                  <i class="fas fa-clock"></i> Pending
-                </span>
-              </div>
-
-            </div>
-          </div>
-
-          <p class="reminder-tip">
-            <i class="fas fa-lightbulb"></i>
-            Click on a reminder to mark it as taken
-          </p>
-        </div>
-
       </div>
 
-      <!-- ── État vide résultats ── -->
-      <div class="calc-empty" *ngIf="!treatmentPlan">
-        <div class="calc-empty-inner">
-          <div class="calc-empty-icon">
-            <i class="fas fa-calculator"></i>
-          </div>
-          <h3>Ready to Calculate</h3>
-          <p>Fill in the medication details and click <strong>Calculate Plan</strong> to generate your treatment schedule and daily reminders.</p>
-          <div class="calc-tips">
-            <div class="calc-tip">
-              <i class="fas fa-lightbulb"></i>
-              <span>You can also click <strong>Calculate</strong> directly from a prescription card</span>
-            </div>
-            <div class="calc-tip">
-              <i class="fas fa-check-circle"></i>
-              <span>Track your daily doses with the reminder checklist</span>
-            </div>
-            <div class="calc-tip">
-              <i class="fas fa-boxes"></i>
-              <span>Verify if your current stock covers the full treatment</span>
-            </div>
-          </div>
-        </div>
+      <div class="badge-print-tip" *ngIf="badgeGenerated">
+        <i class="fas fa-lightbulb"></i>
+        <strong>Tip:</strong> Save this badge as your lock screen wallpaper.
+        First responders can scan the QR Code to access your full care protocol.
       </div>
 
     </div>
   </div>
 
-  <!-- ═══════════════════════════════════════════ -->
-  <!--  MODAL DETAIL PRESCRIPTION                 -->
-  <!-- ═══════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!--  MODAL : QR CODE                                               -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <div class="qr-modal-overlay" *ngIf="showQrModal" (click)="closeQrModal()">
+    <div class="qr-modal" (click)="$event.stopPropagation()">
+
+      <button class="qr-modal-close" (click)="closeQrModal()">
+        <i class="fas fa-times"></i>
+      </button>
+
+      <div class="qr-modal-header">
+        <div class="qr-modal-icon"><i class="fas fa-qrcode"></i></div>
+        <div>
+          <h2>Medical QR Code</h2>
+          <p>{{ badge.patientName }} — {{ badge.condition }}</p>
+        </div>
+      </div>
+
+      <div class="qr-modal-body">
+
+        <div class="qr-big-frame" *ngIf="qrMatrix.length > 0">
+          <svg [attr.viewBox]="'0 0 ' + qrSize + ' ' + qrSize"
+               width="280" height="280"
+               shape-rendering="crispEdges"
+               class="qr-big-svg">
+            <rect width="100%" height="100%" fill="white"/>
+            <path [attr.d]="qrSvgPath" fill="#0f172a"/>
+          </svg>
+        </div>
+
+        <div class="qr-info-card">
+          <div class="qr-info-row">
+            <span class="qr-info-icon">👤</span>
+            <div>
+              <span class="qr-info-label">Patient</span>
+              <span class="qr-info-val">{{ badge.patientName }}</span>
+            </div>
+          </div>
+          <div class="qr-info-row">
+            <span class="qr-info-icon">🩸</span>
+            <div>
+              <span class="qr-info-label">Blood Type</span>
+              <span class="qr-info-val">{{ badge.bloodGroup }}</span>
+            </div>
+          </div>
+          <div class="qr-info-row">
+            <span class="qr-info-icon">⚕️</span>
+            <div>
+              <span class="qr-info-label">Condition</span>
+              <span class="qr-info-val qr-info-val--red">{{ badge.condition }}</span>
+            </div>
+          </div>
+          <div class="qr-info-row" *ngIf="badge.allergies.length > 0">
+            <span class="qr-info-icon">🚫</span>
+            <div>
+              <span class="qr-info-label">Do not administer</span>
+              <span class="qr-info-val">{{ badge.allergies.join(', ') }}</span>
+            </div>
+          </div>
+          <div class="qr-info-row">
+            <span class="qr-info-icon">📞</span>
+            <div>
+              <span class="qr-info-label">Emergency</span>
+              <span class="qr-info-val qr-info-val--blue">{{ badge.emergencyPhone }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="qr-url-preview" *ngIf="qrUrl">
+          <div class="qrup-header">
+            <i class="fas fa-link"></i>
+            <span>URL encoded in the QR</span>
+          </div>
+          <div class="qrup-url-box">
+            <span class="qrup-url-text">{{ qrUrl }}</span>
+          </div>
+          <a [href]="qrUrl" target="_blank" class="qrup-test-btn">
+            <i class="fas fa-external-link-alt"></i>
+            Test — View as first responders would
+          </a>
+        </div>
+
+        <div class="qr-modal-actions">
+          <button class="btn-dl-big" (click)="downloadQR()">
+            <i class="fas fa-download"></i> Download PNG
+          </button>
+          <button class="btn-print-big" (click)="printBadge()">
+            <i class="fas fa-print"></i> Print badge
+          </button>
+        </div>
+
+        <div class="qr-modal-note">
+          <i class="fas fa-info-circle"></i>
+          This QR encodes: Name, blood type, condition, contraindicated medications, emergency number.
+          Readable by any standard scanner.
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!--  MODAL : PRESCRIPTION DETAILS                                  -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
   <div class="modal-overlay" *ngIf="viewingPrescription" (click)="closeView()">
     <div class="modal-box" (click)="$event.stopPropagation()">
 
@@ -785,7 +670,7 @@
             <label>Valid Until</label>
             <span [class.text-danger]="isExpired(viewingPrescription.validUntil)">
               {{ viewingPrescription.validUntil | date:'mediumDate' }}
-              <span *ngIf="isExpired(viewingPrescription.validUntil)">⚠️ Expired</span>
+              <span *ngIf="isExpired(viewingPrescription.validUntil)"> ⚠️ Expired</span>
             </span>
           </div>
           <div class="detail-item">
@@ -832,6 +717,7 @@
         <ng-template #noMeds>
           <p class="no-meds-text">No medications in this prescription.</p>
         </ng-template>
+
       </div>
     </div>
   </div>

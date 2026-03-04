@@ -50,4 +50,8 @@ public class MedicationServiceImpl implements IMedicationService  {
     public void delete(String id) {
         repository.deleteById(id);
     }
+    @Override
+    public List<Medication> findByUserId(String userId) {
+        return repository.findByUserId(userId);
+    }
 }

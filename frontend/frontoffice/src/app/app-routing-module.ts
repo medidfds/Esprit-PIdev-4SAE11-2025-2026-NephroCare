@@ -8,6 +8,7 @@ import { NotificationsComponent } from './Notifications/Notifications.component'
 import { ProfileComponent } from './Profile/Profile.component';
 import { ClinicalComponent } from './clinical/clinical.component';
 import { PharmacyComponent } from './pharmacy/pharmacy.component';
+import { BadgeViewerComponent } from './pages/badge-viewer/badge-viewer.component';
 
 
 const routes: Routes = [
@@ -37,6 +38,11 @@ const routes: Routes = [
   },
   { path: 'profile', 
     component: ProfileComponent 
+  },
+  {
+    path: 'badge-viewer',
+    component: BadgeViewerComponent,
+    // PAS de canActivate ici !
   },
   
   {

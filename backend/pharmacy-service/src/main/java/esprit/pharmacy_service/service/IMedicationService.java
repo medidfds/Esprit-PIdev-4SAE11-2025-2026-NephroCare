@@ -10,4 +10,5 @@ public interface IMedicationService {
     Medication findById(String id);
     Medication update(String id, Medication medication);
     void delete(String id);
+    List<Medication> findByUserId(String userId);
 }
