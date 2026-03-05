@@ -1,138 +1,184 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
-import { interval, Subscription } from 'rxjs';
-import { switchMap, startWith } from 'rxjs/operators';
+import { Subscription, interval, startWith, switchMap, forkJoin, of, finalize } from 'rxjs';
+
 import { DropdownComponent } from '../../ui/dropdown/dropdown.component';
 import { DropdownItemComponent } from '../../ui/dropdown/dropdown-item/dropdown-item.component';
-import { NotificationService, Toast } from '../../../../services/notification.service';
 
-export interface DiagnosticNotification {
-  id: string;
-  type: string;
-  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  title: string;
-  message: string;
-  targetUserId: string;
-  relatedOrderId?: string;
-  isRead: boolean;
-  isAcknowledged: boolean;
-  createdAt: string;
-}
+import { NotificationApiService, NotificationDto } from '../../../services/notification-api.service';
+import { DialysisService } from '../../../services/dialysis.service';
 
 @Component({
   selector: 'app-notification-dropdown',
   templateUrl: './notification-dropdown.component.html',
-  imports: [CommonModule, RouterModule, DropdownComponent, DropdownItemComponent]
+  standalone: true,
+  imports: [CommonModule, RouterModule, DropdownComponent, DropdownItemComponent],
 })
 export class NotificationDropdownComponent implements OnInit, OnDestroy {
+  isOpen = false;
 
-  private baseUrl = 'http://localhost:8070/diagnostic/notifications';
+  notifying = false;      // ping dot
+  unread = 0;             // unread count
+  notifications: NotificationDto[] = [];
 
-  // ⚠️ Remplacez par votre AuthService si vous en avez un
-  currentUserId = 'lab_user';
+  // prevents double-click spam
+  busyIds = new Set<string>();
 
-  isOpen    = false;
-  notifying = false;   // contrôle le point orange sur la cloche
+  private pollSub?: Subscription;
 
-  notifications: DiagnosticNotification[] = [];
-  private pollSub!: Subscription;
-
-  constructor(private http: HttpClient) {}
+  constructor(
+      private notifApi: NotificationApiService,
+      private dialysisApi: DialysisService
+  ) {}
 
   ngOnInit(): void {
-    // Polling toutes les 30 secondes
-    this.pollSub = interval(30_000).pipe(
-      startWith(0),
-      switchMap(() =>
-        this.http.get<DiagnosticNotification[]>(
-          `${this.baseUrl}/user/${this.currentUserId}`
-        )
-      )
-    ).subscribe({
-      next: data => {
-        this.notifications = data;
-        // Allumer le point orange s'il y a des non lues
-        this.notifying = data.some(n => !n.isRead);
-      },
-      error: err => console.error('Notification error', err)
-    });
+    this.startPolling();
   }
 
   ngOnDestroy(): void {
     this.pollSub?.unsubscribe();
   }
 
-  toggleDropdown(): void {
-    this.isOpen = !this.isOpen;
-    if (this.isOpen && this.unreadCount > 0) {
-      this.markAllRead();
-    }
-  }
+  private startPolling() {
+    this.pollSub?.unsubscribe();
+    this.pollSub = interval(3000).pipe(
+        startWith(0),
+        switchMap(() => forkJoin({
+          list: this.notifApi.my(),
+          unread: this.notifApi.unreadCount(),
+        }))
+    ).subscribe({
+      next: (res) => {
+        const prevUnread = this.unread;
 
-  closeDropdown(): void {
-    this.isOpen = false;
-  }
+        this.notifications = res.list ?? [];
+        this.unread = res.unread ?? 0;
 
-  // ── Marquer toutes lues ──────────────────────────────────
-  markAllRead(): void {
-    this.http.put<void>(`${this.baseUrl}/user/${this.currentUserId}/read-all`, null)
-      .subscribe(() => {
-        this.notifications.forEach(n => n.isRead = true);
-        this.notifying = false;
-      });
-  }
-
-  // ── Acquitter une notif critique ─────────────────────────
-  acknowledge(notif: DiagnosticNotification, event: MouseEvent): void {
-    event.stopPropagation();
-    this.http.put<DiagnosticNotification>(
-      `${this.baseUrl}/${notif.id}/acknowledge`,
-      null,
-      { params: { by: this.currentUserId } }
-    ).subscribe(() => {
-      notif.isAcknowledged = true;
-      notif.isRead = true;
+        // ping when new unread arrives
+        this.notifying = this.unread > 0 && this.unread !== prevUnread;
+      },
     });
   }
 
-  // ── Getters utiles pour le template ─────────────────────
-  get unreadCount(): number {
-    return this.notifications.filter(n => !n.isRead).length;
+  toggleDropdown() {
+    this.isOpen = !this.isOpen;
+    if (this.isOpen) {
+      this.notifying = false;
+      this.refreshOnce();
+    }
   }
 
-  get hasCritical(): boolean {
-    return this.notifications.some(
-      n => n.severity === 'CRITICAL' && !n.isAcknowledged
+  closeDropdown() {
+    this.isOpen = false;
+  }
+
+  refreshOnce() {
+    forkJoin({
+      list: this.notifApi.my(),
+      unread: this.notifApi.unreadCount(),
+    }).subscribe((res) => {
+      this.notifications = res.list ?? [];
+      this.unread = res.unread ?? 0;
+    });
+  }
+
+  // ====== parsing helpers
+  private payload(n: NotificationDto): any {
+    try { return n.payloadJson ? JSON.parse(n.payloadJson) : null; }
+    catch { return null; }
+  }
+
+  private scheduledSessionId(n: NotificationDto): string | null {
+    // prefer entityId (you set it to ScheduledSession.id)
+    if (n.entityId) return n.entityId;
+
+    // fallback to payloadJson.scheduledSessionId
+    const p = this.payload(n);
+    return p?.scheduledSessionId ?? null;
+  }
+
+  // ====== display filters
+  // If you want nurse dropdown to show ONLY pending assignment requests:
+  visibleNotifications(): NotificationDto[] {
+    // only show unread schedule requests that are actionable
+    return (this.notifications ?? []).filter(n =>
+        n.type === 'SCHEDULE_REQUEST' &&
+        !n.readAt &&
+        !!this.scheduledSessionId(n)
     );
   }
 
-  // ── Helpers affichage ────────────────────────────────────
-  severityIcon(severity: string): string {
-    switch (severity) {
-      case 'CRITICAL': return '🚨';
-      case 'HIGH':     return '⚡';
-      case 'MEDIUM':   return '⚠️';
-      default:         return '📋';
-    }
+  // If instead you want to show everything: use notifications directly in HTML.
+  // visibleNotifications(): NotificationDto[] { return this.notifications ?? []; }
+
+  isScheduleRequest(n: NotificationDto): boolean {
+    return n.type === 'SCHEDULE_REQUEST' && !!this.scheduledSessionId(n);
   }
 
-  severityDotClass(severity: string): string {
-    switch (severity) {
-      case 'CRITICAL': return 'bg-red-500';
-      case 'HIGH':     return 'bg-orange-500';
-      case 'MEDIUM':   return 'bg-yellow-400';
-      default:         return 'bg-gray-400';
+  // ====== mark read (and remove from UI)
+  markReadAndRemove(n: NotificationDto) {
+    if (!n || n.readAt) {
+      // already read => just remove if you want
+      this.notifications = this.notifications.filter(x => x.id !== n.id);
+      return;
     }
+
+    // optimistic UI: remove immediately
+    this.notifications = this.notifications.filter(x => x.id !== n.id);
+    if (this.unread > 0) this.unread--;
+
+    this.notifApi.markRead(n.id).subscribe({
+      next: () => {},
+      error: () => {
+        // revert if needed (optional)
+        this.refreshOnce();
+      }
+    });
   }
 
-  timeAgo(dateStr: string): string {
-    if (!dateStr) return '';
-    const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-    if (diff < 60)    return 'À l\'instant';
-    if (diff < 3600)  return `${Math.floor(diff / 60)} min ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)} h ago`;
-    return `${Math.floor(diff / 86400)} j ago`;
+  // ===== Nurse actions
+  accept(n: NotificationDto) {
+    const scheduledId = this.scheduledSessionId(n);
+    if (!scheduledId) return;
+
+    if (this.busyIds.has(n.id)) return;
+    this.busyIds.add(n.id);
+
+    this.dialysisApi.acceptAssignment(scheduledId).pipe(
+        switchMap(() => this.notifApi.markRead(n.id)),
+        finalize(() => this.busyIds.delete(n.id))
+    ).subscribe({
+      next: () => {
+        // remove from UI immediately
+        this.notifications = this.notifications.filter(x => x.id !== n.id);
+        if (this.unread > 0) this.unread--;
+      },
+      error: () => {
+        // if accept fails, do not lose notif
+        this.refreshOnce();
+      }
+    });
+  }
+
+  reject(n: NotificationDto) {
+    const scheduledId = this.scheduledSessionId(n);
+    if (!scheduledId) return;
+
+    if (this.busyIds.has(n.id)) return;
+    this.busyIds.add(n.id);
+
+    this.dialysisApi.rejectAssignment(scheduledId, 'Not available').pipe(
+        switchMap(() => this.notifApi.markRead(n.id)),
+        finalize(() => this.busyIds.delete(n.id))
+    ).subscribe({
+      next: () => {
+        this.notifications = this.notifications.filter(x => x.id !== n.id);
+        if (this.unread > 0) this.unread--;
+      },
+      error: () => {
+        this.refreshOnce();
+      }
+    });
   }
 }

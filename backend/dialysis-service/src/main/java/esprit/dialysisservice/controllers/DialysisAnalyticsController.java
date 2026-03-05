@@ -7,6 +7,8 @@ import esprit.dialysisservice.services.IDialysisAnalyticsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -36,4 +38,15 @@ public class DialysisAnalyticsController {
     ) {
         return ResponseEntity.ok(analyticsService.getPatientWeeklyAdequacy(patientId, weeks));
     }
+    @GetMapping("/my/weekly")
+    @PreAuthorize("hasAnyRole('patient','PATIENT')")
+    public ResponseEntity<List<PatientWeeklyAdequacyDTO>> myWeekly(
+            Authentication authentication,
+            @RequestParam(defaultValue = "8") int weeks
+    ) {
+        JwtAuthenticationToken jwtAuth = (JwtAuthenticationToken) authentication;
+        UUID patientId = UUID.fromString(jwtAuth.getToken().getSubject());
+        return ResponseEntity.ok(analyticsService.getPatientWeeklyAdequacy(patientId, weeks));
+    }
+
 }

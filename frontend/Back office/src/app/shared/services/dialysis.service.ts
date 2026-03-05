@@ -331,4 +331,36 @@ export class DialysisService {
     getSessionReport(sessionId: string) {
         return this.http.get<SessionReportDto>(`${this.baseUrl}/reports/session/${sessionId}`);
     }
+    downloadReportPdf(sessionId: string) {
+        return this.http.get(`${this.baseUrl}/reports/session/${sessionId}/pdf`, {
+            responseType: 'blob'
+        });
+    }
+    // ===============================
+// NOTIFICATIONS
+// ===============================
+    getMyNotifications() {
+        return this.http.get<any[]>(`${this.baseUrl}/notifications/my`);
+    }
+
+    getMyUnreadNotificationCount() {
+        return this.http.get<{ count: number }>(`${this.baseUrl}/notifications/my/unread-count`);
+    }
+
+    markNotificationRead(id: string) {
+        return this.http.post<void>(`${this.baseUrl}/notifications/${id}/read`, {});
+    }
+
+// ===== Nurse assignment actions (backoffice nurse)
+    getMyPendingAssignments() {
+        return this.http.get<ScheduledSessionDto[]>(`${this.baseUrl}/schedule/my/pending`);
+    }
+
+    acceptAssignment(scheduledSessionId: string) {
+        return this.http.post(`${this.baseUrl}/schedule/${scheduledSessionId}/accept`, {});
+    }
+
+    rejectAssignment(scheduledSessionId: string, reason: string) {
+        return this.http.post(`${this.baseUrl}/schedule/${scheduledSessionId}/reject`, { reason });
+    }
 }

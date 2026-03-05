@@ -103,15 +103,32 @@
                     <div>BP: <span class="font-medium">{{ json('hemodynamics.bloodPressure') || '-' }}</span></div>
                     <div>Complications: <span class="font-medium">{{ json('hemodynamics.complications') || '-' }}</span></div>
                 </div>
-            </div>
+                <div class="text-sm text-gray-500 dark:text-gray-300">
+                    Risk score: <span class="font-semibold text-black dark:text-white">{{ riskScore() ?? '-' }}</span>/100
+                    • Stability: <span class="font-semibold text-black dark:text-white">{{ stabilityIndex() ?? '-' }}</span>/100
+                </div>            </div>
         </div>
 
         <!-- Recommendations -->
         <div class="mt-4 rounded border border-stroke p-4 dark:border-strokedark">
             <div class="mb-2 text-sm font-semibold text-black dark:text-white">Recommendations</div>
-            <ul class="list-disc pl-5 text-sm text-gray-700 dark:text-gray-200">
-                <li *ngFor="let r of recommendationsList()">{{ r }}</li>
-            </ul>
+            <div class="space-y-3">
+                <div *ngFor="let r of recommendationsList()" class="rounded border border-stroke p-3 dark:border-strokedark">
+                    <div class="flex items-center justify-between">
+                        <div class="font-semibold">{{ r.title }}</div>
+                        <span class="text-xs px-2 py-1 rounded"
+                              [ngClass]="r.severity === 'HIGH' ? 'bg-red-100 text-red-700'
+                    : r.severity === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800'
+                    : 'bg-blue-100 text-blue-800'">
+        {{ r.severity }}
+      </span>
+                    </div>
+                    <div class="mt-1 text-xs text-gray-500">Evidence: {{ r.evidence }}</div>
+                    <ul class="mt-2 list-disc pl-5 text-sm">
+                        <li *ngFor="let a of r.actions">{{ a }}</li>
+                    </ul>
+                </div>
+            </div>
         </div>
 
         <!-- Raw text (optional) -->
@@ -123,6 +140,9 @@
         <div class="mt-4 flex gap-2">
             <app-button size="sm" variant="outline" (btnClick)="copy()">Copy</app-button>
             <app-button size="sm" variant="outline" (btnClick)="closed.emit()">Close</app-button>
+            <app-button size="sm" variant="primary" (btnClick)="downloadPdf()">
+                Download PDF
+            </app-button>
         </div>
     </ng-container>
 </app-modal>
