@@ -22,6 +22,7 @@ import { SessionListComponent } from './pages/dialysis/session-list/session-list
 import { ConsultationsCalendarComponent } from './pages/consultations-calendar/consultations-calendar.component';
 import { HospitalArchitectureComponent } from './pages/dashboard/hospital-architecture/hospital-architecture.component';
 import { StatistiquePharmacyComponent } from './pages/stock/statistique-pharmacy/statistique-pharmacy.component';
+import { DiagnosticResultComponent } from './pages/dashboard/diagnostic-result/diagnostic-result.component';
 
 
 import { RoleGuard } from './guards/role.guard';
@@ -70,6 +71,8 @@ export const routes: Routes = [
        { path: 'statistique-pharmacy', component: StatistiquePharmacyComponent },
       { path: 'consultations-calendar', component: ConsultationsCalendarComponent },
       {path: 'diagnostic', component: DiagnosticComponent},
+      { path: 'diagnostic-result', component: DiagnosticResultComponent },
+
       // --- Dialysis Routes ---
       {
         path: 'dialysis/treatments',

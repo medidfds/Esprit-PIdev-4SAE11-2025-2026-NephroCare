@@ -46,22 +46,21 @@
       <!-- Links -->
       <div class="collapse navbar-collapse" id="navbarCollapse">
         <div class="navbar-nav mx-auto py-0">
-<<<<<<< HEAD
 
           <a routerLink="/"
              routerLinkActive="active"
              [routerLinkActiveOptions]="{exact:true}"
              class="nav-item nav-link">Home</a>
 
-          <a routerLink="/Clinical"
+          <a routerLink="/clinical"
              routerLinkActive="active"
              class="nav-item nav-link">Clinical</a>
 
-          <a routerLink="/Pharmacy"
+          <a routerLink="/pharmacy"
              routerLinkActive="active"
              class="nav-item nav-link">Pharmacy</a>
 
-          <a routerLink="/Dialysis"
+          <a routerLink="/dialysis"
              routerLinkActive="active"
              class="nav-item nav-link">Dialysis</a>
 
@@ -97,6 +96,17 @@
                   </div>
                 </a>
               </li>
+              <li>
+                <a routerLink="/diagnostic-results"
+                   routerLinkActive="active"
+                   class="dropdown-item d-flex align-items-center gap-2 py-2">
+                  <i class="bi bi-clipboard2-pulse text-primary"></i>
+                  <div>
+                    <div class="fw-semibold" style="font-size:.85rem">Results</div>
+                    <div style="font-size:.7rem;color:#94a3b8">Lab and imaging results</div>
+                  </div>
+                </a>
+              </li>
             </ul>
           </div>
           <!-- ── /Diagnostic dropdown ── -->
@@ -105,14 +115,6 @@
              routerLinkActive="active"
              class="nav-item nav-link">Hospitalization</a>
 
-=======
-          <a routerLink="/"               routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}" class="nav-item nav-link">Home</a>
-          <a routerLink="/clinical"        routerLinkActive="active" class="nav-item nav-link">clinical</a>
-          <a routerLink="/pharmacy"        routerLinkActive="active" class="nav-item nav-link">Pharmacy</a>
-          <a routerLink="/Dialysis"        routerLinkActive="active" class="nav-item nav-link">Dialysis</a>
-          <a routerLink="/diagnostic"      routerLinkActive="active" class="nav-item nav-link">Diagnostic</a>
-          <a routerLink="/hospitalization" routerLinkActive="active" class="nav-item nav-link">Hospitalization</a>
->>>>>>> f196738805fbbfd9801e4df05a28d4909d4ae2dd
         </div>
 
         <!-- ── User Dropdown ── -->

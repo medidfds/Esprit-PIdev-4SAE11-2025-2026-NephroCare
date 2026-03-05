@@ -5,3 +5,4 @@ const keycloakConfig = {
 };
 
 export default keycloakConfig;
+

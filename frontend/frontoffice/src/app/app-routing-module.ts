@@ -10,6 +10,7 @@ import { ProfileComponent } from './Profile/Profile.component';
 import { ClinicalComponent } from './clinical/clinical.component';
 import { PharmacyComponent } from './pharmacy/pharmacy.component';
 import { BadgeViewerComponent } from './pages/badge-viewer/badge-viewer.component';
+import { DiagnosticResultComponent } from './diagnostic-result/diagnostic-result.component';
 
 
 const routes: Routes = [
@@ -23,6 +24,14 @@ const routes: Routes = [
     component: DiagnosticComponent,
     canActivate: [AuthGuard],
     data: { roles: ['labTech'] }
+  },
+  {
+    path: 'diagnostic-result',
+    component: DiagnosticResultComponent
+  },
+  {
+    path: 'diagnostic-results',
+    component: DiagnosticResultComponent
   },
   {
     path: 'diagnostic-calendar',          // ← AJOUTÉ

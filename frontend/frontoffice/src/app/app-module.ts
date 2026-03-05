@@ -21,6 +21,7 @@ import { NotificationsComponent } from './Notifications/Notifications.component'
 import { ProfileComponent } from './Profile/Profile.component';
 import { PharmacyComponent } from './pharmacy/pharmacy.component';
 import {DiagnosticCalendarComponent} from './diagnostic-calendar/diagnostic-calendar.component'
+import { DiagnosticResultComponent } from './diagnostic-result/diagnostic-result.component';
 
 function initializeKeycloak(keycloak: KeycloakService) {
   return () =>
@@ -45,7 +46,8 @@ function initializeKeycloak(keycloak: KeycloakService) {
     ProfileComponent,
     ClinicalComponent,
     PharmacyComponent,
-    DiagnosticCalendarComponent
+    DiagnosticCalendarComponent,
+    DiagnosticResultComponent
   ],
   imports: [
     CommonModule,

@@ -31,10 +31,11 @@ export class AppSidebarComponent {
       subItems: [
         { name: 'Hospitalization', path: '/hospitalization' },
         { name: 'Clinical', path: '/clinical' },
-        { name: 'pharmacy', path: '/pharmacy' },
+        { name: 'Pharmacy', path: '/pharmacy' },
         { name: 'Stock Stats', path: '/statistique-pharmacy' },
         { name: 'Consultations Calendar', path: '/consultations-calendar' },
         { name: 'Diagnostic', path: '/diagnostic' },
+        { name: 'Diagnostic Results', path: '/diagnostic-result' },
         { name: 'Hospitalization Stats', path: '/statistique-hospitalization' },
 
         // Dialysis
