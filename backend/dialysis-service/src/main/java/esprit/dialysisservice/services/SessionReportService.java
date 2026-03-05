@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -23,6 +24,8 @@ public class SessionReportService {
     private final SessionReportRepository reportRepo;
     private final ObjectMapper objectMapper;
     private final SessionReportGenerator generator;
+    private final SessionReportPdfGenerator pdfGenerator;
+    private final SystemConfigService systemConfigService;
 
     private final DialysisSessionRepository sessionRepo;
     private final DialysisTreatmentRepository treatmentRepo;
@@ -45,8 +48,10 @@ public class SessionReportService {
         String patientName = userLabelService.label(treatment.getPatientId());
         String doctorName = userLabelService.label(treatment.getDoctorId()); // optional
 
-        var gen = generator.generate(session, treatment, cfg, nurseName, patientName, doctorName);
-        SessionReport report = reportRepo.findBySessionId(sessionId).orElseGet(() -> SessionReport.builder()
+        List<DialysisSession> history = sessionRepo
+                .findTop10ByTreatment_IdAndWeightAfterIsNotNullOrderBySessionDateDesc(treatment.getId());
+
+        var gen = generator.generate(session, treatment, cfg, nurseName, patientName, doctorName, history);        SessionReport report = reportRepo.findBySessionId(sessionId).orElseGet(() -> SessionReport.builder()
                 .id(UUID.randomUUID())
                 .sessionId(sessionId)
                 .treatmentId(treatment.getId())
@@ -92,6 +97,29 @@ public class SessionReportService {
         }
         return toDto(report);
     }
+    @Transactional(readOnly = true)
+    public byte[] getPdfBySessionIdDoctorAdmin(UUID sessionId, UUID requesterUserId, boolean isAdmin) {
+        // authorize using your existing JSON method
+        SessionReportResponseDTO dto = getBySessionIdDoctorAdmin(sessionId, requesterUserId, isAdmin);
+
+        // build PDF lines from reportText (best for now)
+        String title = "Dialysis Session Report - " + sessionId;
+        java.util.List<String> lines = java.util.Arrays.asList((dto.getReportText() != null ? dto.getReportText() : "")
+                .split("\\r?\\n"));
+
+        return pdfGenerator.generatePdfBytes(title, lines);
+    }
+
+    @Transactional
+    public byte[] getPdfBySessionIdPatient(UUID sessionId, UUID patientIdFromJwt) {
+        SessionReportResponseDTO dto = getBySessionIdPatient(sessionId, patientIdFromJwt);
+
+        String title = "Dialysis Session Report - " + sessionId;
+        java.util.List<String> lines = java.util.Arrays.asList((dto.getReportText() != null ? dto.getReportText() : "")
+                .split("\\r?\\n"));
+
+        return pdfGenerator.generatePdfBytes(title, lines);
+    }
 
     private SessionReportResponseDTO toDto(SessionReport r) {
         Object jsonObj;
@@ -113,5 +141,46 @@ public class SessionReportService {
                 .reportJson(jsonObj)
                 .reportText(r.getReportText())
                 .build();
+    }
+    @Transactional
+    public int backfillMissingReports(SystemConfig cfg, UUID generatedBy) {
+
+        List<DialysisSession> sessions = sessionRepo.findAllCompleted();
+        int created = 0;
+
+        for (DialysisSession s : sessions) {
+            if (reportRepo.existsBySessionId(s.getId())) continue;
+
+            DialysisTreatment t = s.getTreatment();
+            if (t == null || t.getPatientId() == null) continue;
+
+            // history needed by generator (for anomaly detection / trends)
+            List<DialysisSession> history = sessionRepo.findByTreatment_IdOrderBySessionDateAsc(t.getId());
+
+            String nurseName = userLabelService.label(s.getNurseId());
+            String patientName = userLabelService.label(t.getPatientId());
+            String doctorName = userLabelService.label(t.getDoctorId());
+
+            var gen = generator.generate(s, t, cfg, nurseName, patientName, doctorName, history);
+
+            SessionReport report = SessionReport.builder()
+                    .id(UUID.randomUUID())
+                    .sessionId(s.getId())
+                    .treatmentId(t.getId())
+                    .patientId(t.getPatientId())
+                    .build();
+
+            report.setGeneratedAt(LocalDateTime.now());
+            report.setGeneratedBy(generatedBy);
+            report.setKtvThreshold(gen.ktvThreshold());
+            report.setUrrThreshold(gen.urrThreshold());
+            report.setReportJson(gen.jsonStr());
+            report.setReportText(gen.text());
+
+            reportRepo.save(report);
+            created++;
+        }
+
+        return created;
     }
 }

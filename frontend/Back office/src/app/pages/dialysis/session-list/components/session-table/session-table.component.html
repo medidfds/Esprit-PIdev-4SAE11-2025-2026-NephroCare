@@ -95,6 +95,11 @@
                                     View Report
                                 </app-button>
                             </div>
+                            <div *ngIf="canViewReport && s.weightAfter != null" class="mt-2">
+                                <app-button size="sm" variant="outline" (btnClick)="downloadReport(s.id)">
+                                    PDF
+                                </app-button>
+                            </div>
                         </td>
                     </tr>
                     </tbody>

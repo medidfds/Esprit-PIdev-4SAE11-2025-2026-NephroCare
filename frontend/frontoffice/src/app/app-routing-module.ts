@@ -8,42 +8,21 @@ import { NotificationsComponent } from './Notifications/Notifications.component'
 import { ProfileComponent } from './Profile/Profile.component';
 import { ClinicalComponent } from './clinical/clinical.component';
 import { PharmacyComponent } from './pharmacy/pharmacy.component';
+import {DialysisPortalComponent} from './dialysis/pages/dialysis-portal/dialysis-portal.component';
 
 
 const routes: Routes = [
-  {
-    path: '',
-    component: HomeComponent,
-    canActivate: [AuthGuard]
-  },
-  {
-    path: 'diagnostic',
-    component: DiagnosticComponent
-  },
-  {
-    path: 'clinical',
-    component: ClinicalComponent
-  },
-  {
-    path: 'hospitalization',
-    component: HospitalizationComponent
-  },
-  {
-    path: 'pharmacy',
-    component: PharmacyComponent
-  },
-  { path: 'notifications', 
-    component: NotificationsComponent 
-  },
-  { path: 'profile', 
-    component: ProfileComponent 
-  },
-  
-  {
-    path: '**',
-    redirectTo: ''
-  }
+  { path: '', component: HomeComponent, canActivate: [AuthGuard] },
 
+  { path: 'diagnostic', component: DiagnosticComponent, canActivate: [AuthGuard] },
+  { path: 'clinical', component: ClinicalComponent, canActivate: [AuthGuard] },
+  { path: 'hospitalization', component: HospitalizationComponent, canActivate: [AuthGuard] },
+  { path: 'dialysis', component: DialysisPortalComponent, canActivate: [AuthGuard] },
+  { path: 'pharmacy', component: PharmacyComponent, canActivate: [AuthGuard] },
+  { path: 'notifications', component: NotificationsComponent, canActivate: [AuthGuard] },
+  { path: 'profile', component: ProfileComponent, canActivate: [AuthGuard] },
+
+  { path: '**', redirectTo: '' }
 ];
 
 @NgModule({
