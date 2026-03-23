@@ -1,24 +1,28 @@
 <div class="min-h-screen bg-gray-50 px-4 py-10 font-outfit dark:bg-gray-900">
-  <div class="mx-auto max-w-5xl space-y-10">
+  <div class="mx-auto max-w-6xl space-y-8">
 
     <!-- ── PAGE HEADER ── -->
     <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
         <p class="mb-1 text-xs font-bold uppercase tracking-widest text-brand-500">Analytics</p>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white/90">Hospitalization Statistics</h1>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white/90">Room & Patient Overview</h1>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          A clear overview of patient hospitalization status and recorded vital sign anomalies.
+          Live clinical risk scores per room — green trending down means the patient is improving.
         </p>
       </div>
-      <!-- Total badge -->
-      <div class="flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2.5
-                  dark:border-brand-500/20 dark:bg-brand-500/10">
-        <svg class="h-4 w-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round"
-                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2M5 21H3M9 7h1m-1 4h1m4-4h1m-1 4h1M9 21v-3a3 3 0 016 0v3"/>
-        </svg>
-        <span class="text-sm font-bold text-brand-600 dark:text-brand-400">
-          {{ total }} total record{{ total !== 1 ? 's' : '' }}
+      <!-- legend pills -->
+      <div class="flex flex-wrap items-center gap-2 text-xs font-semibold">
+        <span class="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300">
+          <span class="h-2 w-2 rounded-full bg-emerald-500"></span>Low 0–14
+        </span>
+        <span class="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-300">
+          <span class="h-2 w-2 rounded-full bg-amber-400"></span>Moderate 15–39
+        </span>
+        <span class="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-300">
+          <span class="h-2 w-2 rounded-full bg-red-500"></span>High 40–74
+        </span>
+        <span class="flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-violet-700 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-300">
+          <span class="h-2 w-2 rounded-full bg-violet-500"></span>Critical 75–100
         </span>
       </div>
     </div>
@@ -30,341 +34,183 @@
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
         </svg>
-        <span class="text-sm">Loading…</span>
+        <span class="text-sm">Loading room data…</span>
       </div>
     </div>
 
-    <div *ngIf="!loading" class="space-y-10">
+    <!-- ── EMPTY ── -->
+    <div *ngIf="!loading && roomCards.length === 0"
+         class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 py-24 text-gray-400 dark:border-gray-700">
+      <svg class="mb-3 h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5"/>
+      </svg>
+      <p class="text-base font-semibold">No hospitalization records found</p>
+    </div>
 
-      <!-- ════════════════════════════════════════════
-           SECTION 1 — HOSPITALIZATION STATUS
-           ════════════════════════════════════════════ -->
-      <div class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
+    <!-- ══════════════════ ROOM CARDS ══════════════════ -->
+    <div *ngIf="!loading" class="space-y-6">
 
-        <!-- Section header -->
-        <div class="flex items-center gap-3 border-b border-gray-100 px-6 py-5 dark:border-gray-800">
-          <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 dark:bg-brand-500/[0.12]">
-            <svg class="h-5 w-5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-            </svg>
-          </span>
-          <div>
-            <h2 class="text-base font-semibold text-gray-800 dark:text-white/90">Section 1 — Patient Status Overview</h2>
-            <p class="text-xs text-gray-500 dark:text-gray-400">
-              How many patients are currently active, pending, or discharged
-            </p>
-          </div>
-        </div>
+      <div *ngFor="let rc of roomCards"
+           class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
 
-        <div class="p-6">
+        <!-- ── ROOM HEADER ── -->
+        <div class="flex flex-wrap items-center justify-between gap-4 bg-gradient-to-r px-6 py-4"
+             [ngClass]="roomHeaderBg(rc.worstLevel)">
 
-          <!-- No data state -->
-          <div *ngIf="total === 0" class="flex flex-col items-center justify-center py-12 text-gray-400">
-            <svg class="mb-3 h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-            </svg>
-            <p class="text-sm font-medium">No hospitalization records found</p>
-          </div>
-
-          <div *ngIf="total > 0" class="flex flex-col items-center gap-10 sm:flex-row sm:gap-12">
-
-            <!-- Donut chart -->
-            <div class="relative flex-shrink-0">
-              <svg [attr.width]="SIZE" [attr.height]="SIZE"
-                   [attr.viewBox]="'0 0 ' + SIZE + ' ' + SIZE"
-                   style="transform: rotate(-90deg);">
-                <!-- Track -->
-                <circle [attr.cx]="SIZE/2" [attr.cy]="SIZE/2" [attr.r]="radius"
-                        fill="none" stroke="#f1f5f9" [attr.stroke-width]="STROKE"/>
-                <!-- Active slice -->
-                <circle *ngIf="active > 0"
-                        [attr.cx]="SIZE/2" [attr.cy]="SIZE/2" [attr.r]="radius"
-                        fill="none" stroke="#12b76a" [attr.stroke-width]="STROKE"
-                        [attr.stroke-dasharray]="activeDash + ' ' + (circumference - activeDash)"
-                        [attr.stroke-dashoffset]="0 - activeOffset"
-                        stroke-linecap="round"/>
-                <!-- Pending slice -->
-                <circle *ngIf="pending > 0"
-                        [attr.cx]="SIZE/2" [attr.cy]="SIZE/2" [attr.r]="radius"
-                        fill="none" stroke="#f79009" [attr.stroke-width]="STROKE"
-                        [attr.stroke-dasharray]="pendingDash + ' ' + (circumference - pendingDash)"
-                        [attr.stroke-dashoffset]="0 - pendingOffset"
-                        stroke-linecap="round"/>
-                <!-- Discharged slice -->
-                <circle *ngIf="discharged > 0"
-                        [attr.cx]="SIZE/2" [attr.cy]="SIZE/2" [attr.r]="radius"
-                        fill="none" stroke="#94a3b8" [attr.stroke-width]="STROKE"
-                        [attr.stroke-dasharray]="dischargedDash + ' ' + (circumference - dischargedDash)"
-                        [attr.stroke-dashoffset]="0 - dischargedOffset"
-                        stroke-linecap="round"/>
-              </svg>
-              <!-- Centre label -->
-              <div class="absolute inset-0 flex flex-col items-center justify-center">
-                <span class="text-3xl font-bold text-gray-900 dark:text-white/90">{{ total }}</span>
-                <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Patients</span>
-              </div>
+          <div class="flex items-center gap-4">
+            <!-- Room number circle -->
+            <div class="flex h-14 w-14 flex-shrink-0 flex-col items-center justify-center rounded-2xl border-2 border-white bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+              <span class="text-xl font-black leading-none text-gray-900 dark:text-white/90">{{ rc.room.roomNumber }}</span>
+              <span class="mt-0.5 text-[9px] font-bold uppercase tracking-wide text-gray-400">Room</span>
             </div>
 
-            <!-- Legend + progress bars -->
-            <div class="w-full space-y-5">
-
-              <!-- Active -->
-              <div>
-                <div class="mb-2 flex items-center justify-between">
-                  <div class="flex items-center gap-2.5">
-                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-success-50 dark:bg-success-500/10">
-                      <svg class="h-4 w-4 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                      </svg>
-                    </span>
-                    <div>
-                      <p class="text-sm font-semibold text-gray-800 dark:text-white/90">Active</p>
-                      <p class="text-xs text-gray-400">Currently admitted patients</p>
-                    </div>
-                  </div>
-                  <div class="text-right">
-                    <p class="text-lg font-bold text-gray-900 dark:text-white/90">{{ active }}</p>
-                    <p class="text-xs font-semibold text-success-600">{{ percent(active) }}</p>
-                  </div>
-                </div>
-                <div class="h-2.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-                  <div class="h-full rounded-full bg-success-500 transition-all duration-700"
-                       [style.width]="percent(active)"></div>
-                </div>
-              </div>
-
-              <!-- Pending -->
-              <div>
-                <div class="mb-2 flex items-center justify-between">
-                  <div class="flex items-center gap-2.5">
-                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-warning-50 dark:bg-warning-500/10">
-                      <svg class="h-4 w-4 text-warning-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                      </svg>
-                    </span>
-                    <div>
-                      <p class="text-sm font-semibold text-gray-800 dark:text-white/90">Pending</p>
-                      <p class="text-xs text-gray-400">Awaiting confirmation or assignment</p>
-                    </div>
-                  </div>
-                  <div class="text-right">
-                    <p class="text-lg font-bold text-gray-900 dark:text-white/90">{{ pending }}</p>
-                    <p class="text-xs font-semibold text-warning-600">{{ percent(pending) }}</p>
-                  </div>
-                </div>
-                <div class="h-2.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-                  <div class="h-full rounded-full bg-warning-500 transition-all duration-700"
-                       [style.width]="percent(pending)"></div>
-                </div>
-              </div>
-
-              <!-- Discharged -->
-              <div>
-                <div class="mb-2 flex items-center justify-between">
-                  <div class="flex items-center gap-2.5">
-                    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 dark:bg-white/[0.06]">
-                      <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                      </svg>
-                    </span>
-                    <div>
-                      <p class="text-sm font-semibold text-gray-800 dark:text-white/90">Discharged</p>
-                      <p class="text-xs text-gray-400">Patients who have left the hospital</p>
-                    </div>
-                  </div>
-                  <div class="text-right">
-                    <p class="text-lg font-bold text-gray-900 dark:text-white/90">{{ discharged }}</p>
-                    <p class="text-xs font-semibold text-gray-500">{{ percent(discharged) }}</p>
-                  </div>
-                </div>
-                <div class="h-2.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-                  <div class="h-full rounded-full bg-gray-400 transition-all duration-700"
-                       [style.width]="percent(discharged)"></div>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ════════════════════════════════════════════
-           SECTION 2 — VITAL SIGNS ANOMALIES
-           ════════════════════════════════════════════ -->
-      <div class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
-
-        <!-- Section header -->
-        <div class="flex items-center justify-between border-b border-gray-100 px-6 py-5 dark:border-gray-800">
-          <div class="flex items-center gap-3">
-            <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-rose-50 dark:bg-rose-500/[0.12]">
-              <svg class="h-5 w-5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                      d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-              </svg>
-            </span>
             <div>
-              <h2 class="text-base font-semibold text-gray-800 dark:text-white/90">Section 2 — Vital Signs Anomalies</h2>
-              <p class="text-xs text-gray-500 dark:text-gray-400">
-                Readings outside the normal clinical range across all {{ totalVitalsRecorded }} recorded measurements
-              </p>
+              <!-- Type badge + name -->
+              <div class="flex items-center gap-2 mb-1">
+                <span class="rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                      [class]="roomTypeColors[rc.room.type]">
+                  {{ roomTypeLabels[rc.room.type] }}
+                </span>
+                <span *ngIf="rc.room.description" class="text-xs text-gray-500 dark:text-gray-400">{{ rc.room.description }}</span>
+              </div>
+              <!-- Occupancy bar -->
+              <div class="flex items-center gap-3">
+                <div class="h-2 w-28 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                  <div class="h-full rounded-full transition-all duration-700"
+                       [class.bg-emerald-500]="occupancyPercent(rc.room) < 70"
+                       [class.bg-amber-400]="occupancyPercent(rc.room) >= 70 && occupancyPercent(rc.room) < 90"
+                       [class.bg-red-500]="occupancyPercent(rc.room) >= 90"
+                       [style.width]="occupancyPercent(rc.room) + '%'"></div>
+                </div>
+                <span class="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                  {{ rc.room.currentOccupancy }}/{{ rc.room.capacity }} beds
+                </span>
+              </div>
             </div>
           </div>
-          <!-- Summary badge -->
-          <div *ngIf="totalVitalsRecorded > 0"
-               class="hidden sm:flex flex-col items-end">
-            <span class="text-2xl font-bold text-rose-600 dark:text-rose-400">{{ totalAnomalies }}</span>
-            <span class="text-xs text-gray-400">total anomalies</span>
+
+          <!-- Right: status counters + avg risk -->
+          <div class="flex items-center gap-3 flex-wrap">
+            <div *ngIf="rc.activeCount > 0"
+                 class="flex items-center gap-1.5 rounded-lg bg-white/80 px-3 py-1.5 text-xs font-bold text-emerald-700 shadow-sm dark:bg-white/[0.06] dark:text-emerald-400">
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>{{ rc.activeCount }} Active
+            </div>
+            <div *ngIf="rc.pendingCount > 0"
+                 class="flex items-center gap-1.5 rounded-lg bg-white/80 px-3 py-1.5 text-xs font-bold text-amber-700 shadow-sm dark:bg-white/[0.06] dark:text-amber-400">
+              <span class="h-1.5 w-1.5 rounded-full bg-amber-400"></span>{{ rc.pendingCount }} Pending
+            </div>
+            <div *ngIf="rc.dischargedCount > 0"
+                 class="flex items-center gap-1.5 rounded-lg bg-white/80 px-3 py-1.5 text-xs font-bold text-gray-500 shadow-sm dark:bg-white/[0.06] dark:text-gray-400">
+              <span class="h-1.5 w-1.5 rounded-full bg-gray-400"></span>{{ rc.dischargedCount }} Discharged
+            </div>
+            <!-- Avg risk score -->
+            <div class="flex items-center gap-2 rounded-xl border px-4 py-2 bg-white/90 shadow-sm dark:bg-white/[0.07]"
+                 [class]="riskBg(rc.worstLevel)">
+              <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">Avg risk</span>
+              <span class="text-lg font-black" [style.color]="riskColor(rc.worstLevel)">{{ rc.avgRisk }}</span>
+              <span class="text-xs text-gray-400">/100</span>
+            </div>
           </div>
         </div>
 
-        <div class="p-6">
+        <!-- ── PATIENT LIST ── -->
+        <div class="divide-y divide-gray-100 dark:divide-gray-800">
 
-          <!-- No vitals state -->
-          <div *ngIf="totalVitalsRecorded === 0"
-               class="flex flex-col items-center justify-center py-12 text-gray-400">
-            <svg class="mb-3 h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-            </svg>
-            <p class="text-sm font-medium">No vital signs recorded yet</p>
+          <!-- No vitals notice -->
+          <div *ngIf="rc.patients.length === 0"
+               class="px-6 py-8 text-center text-sm text-gray-400">
+            No patients assigned to this room.
           </div>
 
-          <div *ngIf="totalVitalsRecorded > 0" class="space-y-4">
+          <!-- Patient row -->
+          <div *ngFor="let p of rc.patients; let i = index"
+               class="flex flex-wrap items-center gap-4 px-6 py-4 transition hover:bg-gray-50/60 dark:hover:bg-white/[0.02]">
 
-            <!-- Fever -->
-            <div class="flex items-center gap-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3.5
-                        dark:border-red-900/30 dark:bg-red-500/[0.07]">
-              <span class="text-2xl flex-shrink-0">🌡️</span>
-              <div class="flex-1 min-w-0">
-                <div class="mb-1.5 flex items-center justify-between">
-                  <div>
-                    <p class="text-sm font-semibold text-red-700 dark:text-red-400">Fever</p>
-                    <p class="text-xs text-red-400">Temperature above 38 °C</p>
-                  </div>
-                  <span class="text-lg font-bold text-red-700 dark:text-red-400">{{ vitalsBreakdown.fever }}</span>
-                </div>
-                <div class="h-2 w-full overflow-hidden rounded-full bg-red-100 dark:bg-red-900/30">
-                  <div class="h-full rounded-full bg-red-500 transition-all duration-700"
-                       [style.width]="anomalyBar(vitalsBreakdown.fever)"></div>
-                </div>
+            <!-- Index + status -->
+            <div class="flex flex-shrink-0 flex-col items-center gap-1.5 w-10">
+              <div class="flex h-8 w-8 items-center justify-center rounded-full text-xs font-black text-white"
+                   [style.background]="riskColor(p.riskLevel)">{{ i + 1 }}</div>
+              <span class="rounded px-1 py-0.5 text-[9px] font-bold capitalize" [class]="statusBadge(p.status)">
+                {{ p.status }}
+              </span>
+            </div>
+
+            <!-- Patient ID -->
+            <div class="w-28 flex-shrink-0">
+              <p class="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Patient ID</p>
+              <p class="font-mono text-xs font-bold text-gray-700 dark:text-gray-300 truncate">{{ p.userId | slice:0:12 }}…</p>
+              <p class="text-[10px] text-gray-400">{{ p.vitalsCount }} vital record{{ p.vitalsCount !== 1 ? 's' : '' }}</p>
+            </div>
+
+            <!-- Radar chart -->
+            <div class="flex-shrink-0" title="Radar: Temp · HR · SpO₂ · RR">
+              <svg width="72" height="72" viewBox="0 0 80 80">
+                <polygon [attr.points]="p.bgPath"
+                         fill="rgba(148,163,184,0.10)" stroke="rgba(148,163,184,0.25)" stroke-width="1"/>
+                <polygon [attr.points]="p.radarPath"
+                         [attr.fill]="riskColor(p.riskLevel)" fill-opacity="0.25"
+                         [attr.stroke]="riskColor(p.riskLevel)" stroke-width="1.5"/>
+                <line x1="40" y1="40" x2="40" y2="8"  stroke="rgba(148,163,184,0.25)" stroke-width="0.8"/>
+                <line x1="40" y1="40" x2="72" y2="40" stroke="rgba(148,163,184,0.25)" stroke-width="0.8"/>
+                <line x1="40" y1="40" x2="40" y2="72" stroke="rgba(148,163,184,0.25)" stroke-width="0.8"/>
+                <line x1="40" y1="40" x2="8"  y2="40" stroke="rgba(148,163,184,0.25)" stroke-width="0.8"/>
+                <circle cx="40" cy="8"  r="2.5" [attr.fill]="axisColor(p.axes[0].status)"/>
+                <circle cx="72" cy="40" r="2.5" [attr.fill]="axisColor(p.axes[1].status)"/>
+                <circle cx="40" cy="72" r="2.5" [attr.fill]="axisColor(p.axes[2].status)"/>
+                <circle cx="8"  cy="40" r="2.5" [attr.fill]="axisColor(p.axes[3].status)"/>
+                <text x="40" y="4"  font-size="7" font-weight="700" text-anchor="middle" [attr.fill]="axisColor(p.axes[0].status)">T</text>
+                <text x="76" y="43" font-size="7" font-weight="700" text-anchor="middle" [attr.fill]="axisColor(p.axes[1].status)">HR</text>
+                <text x="40" y="80" font-size="7" font-weight="700" text-anchor="middle" [attr.fill]="axisColor(p.axes[2].status)">O₂</text>
+                <text x="4"  y="43" font-size="7" font-weight="700" text-anchor="middle" [attr.fill]="axisColor(p.axes[3].status)">RR</text>
+                <circle cx="40" cy="40" r="2" fill="#64748b"/>
+              </svg>
+            </div>
+
+            <!-- Score ring -->
+            <div class="relative flex-shrink-0">
+              <svg width="64" height="64" viewBox="0 0 64 64">
+                <circle cx="32" cy="32" r="24" fill="none" stroke="#e5e7eb" stroke-width="6" class="dark:stroke-gray-700"/>
+                <path [attr.d]="arcPath(p.riskScore, 24, 32, 32)"
+                      fill="none" [attr.stroke]="riskColor(p.riskLevel)"
+                      stroke-width="6" stroke-linecap="round"/>
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <span class="text-sm font-black leading-none text-gray-800 dark:text-white/90">{{ p.riskScore }}</span>
+                <span class="text-[8px] font-semibold text-gray-400">/100</span>
               </div>
             </div>
 
-            <!-- Low Temperature -->
-            <div class="flex items-center gap-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3.5
-                        dark:border-blue-900/30 dark:bg-blue-500/[0.07]">
-              <span class="text-2xl flex-shrink-0">🥶</span>
-              <div class="flex-1 min-w-0">
-                <div class="mb-1.5 flex items-center justify-between">
-                  <div>
-                    <p class="text-sm font-semibold text-blue-700 dark:text-blue-400">Low Temperature</p>
-                    <p class="text-xs text-blue-400">Temperature below 36 °C</p>
-                  </div>
-                  <span class="text-lg font-bold text-blue-700 dark:text-blue-400">{{ vitalsBreakdown.lowTemp }}</span>
-                </div>
-                <div class="h-2 w-full overflow-hidden rounded-full bg-blue-100 dark:bg-blue-900/30">
-                  <div class="h-full rounded-full bg-blue-500 transition-all duration-700"
-                       [style.width]="anomalyBar(vitalsBreakdown.lowTemp)"></div>
-                </div>
+            <!-- Vital axes pills -->
+            <div class="flex flex-1 flex-wrap gap-2 min-w-0">
+              <div *ngFor="let ax of p.axes"
+                   class="flex items-center gap-1.5 rounded-lg border border-gray-100 bg-gray-50/80 px-2.5 py-1.5 text-xs dark:border-gray-700 dark:bg-white/[0.03]">
+                <span class="h-1.5 w-1.5 rounded-full flex-shrink-0" [style.background]="axisColor(ax.status)"></span>
+                <span class="font-semibold text-gray-600 dark:text-gray-300">{{ ax.label }}</span>
+                <span class="text-gray-400">{{ ax.value }}</span>
               </div>
             </div>
 
-            <!-- Tachycardia -->
-            <div class="flex items-center gap-4 rounded-xl border border-orange-100 bg-orange-50 px-4 py-3.5
-                        dark:border-orange-900/30 dark:bg-orange-500/[0.07]">
-              <span class="text-2xl flex-shrink-0">❤️</span>
-              <div class="flex-1 min-w-0">
-                <div class="mb-1.5 flex items-center justify-between">
-                  <div>
-                    <p class="text-sm font-semibold text-orange-700 dark:text-orange-400">Tachycardia</p>
-                    <p class="text-xs text-orange-400">Heart rate above 100 bpm</p>
-                  </div>
-                  <span class="text-lg font-bold text-orange-700 dark:text-orange-400">{{ vitalsBreakdown.tachycardia }}</span>
-                </div>
-                <div class="h-2 w-full overflow-hidden rounded-full bg-orange-100 dark:bg-orange-900/30">
-                  <div class="h-full rounded-full bg-orange-500 transition-all duration-700"
-                       [style.width]="anomalyBar(vitalsBreakdown.tachycardia)"></div>
-                </div>
-              </div>
-            </div>
+            <!-- Right: risk badge + trend + date -->
+            <div class="flex flex-shrink-0 flex-col items-end gap-2">
+              <span class="rounded-lg px-2.5 py-1 text-xs font-black uppercase tracking-wide" [class]="riskBadge(p.riskLevel)">
+                {{ p.riskLevel }}
+              </span>
 
-            <!-- Bradycardia -->
-            <div class="flex items-center gap-4 rounded-xl border border-violet-100 bg-violet-50 px-4 py-3.5
-                        dark:border-violet-900/30 dark:bg-violet-500/[0.07]">
-              <span class="text-2xl flex-shrink-0">💙</span>
-              <div class="flex-1 min-w-0">
-                <div class="mb-1.5 flex items-center justify-between">
-                  <div>
-                    <p class="text-sm font-semibold text-violet-700 dark:text-violet-400">Bradycardia</p>
-                    <p class="text-xs text-violet-400">Heart rate below 60 bpm</p>
-                  </div>
-                  <span class="text-lg font-bold text-violet-700 dark:text-violet-400">{{ vitalsBreakdown.bradycardia }}</span>
-                </div>
-                <div class="h-2 w-full overflow-hidden rounded-full bg-violet-100 dark:bg-violet-900/30">
-                  <div class="h-full rounded-full bg-violet-500 transition-all duration-700"
-                       [style.width]="anomalyBar(vitalsBreakdown.bradycardia)"></div>
-                </div>
-              </div>
-            </div>
+              <!-- Trend badge — the key "is patient getting better?" indicator -->
+              <span class="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-bold" [class]="trendClass(p.trend)">
+                <span class="text-base leading-none">{{ trendIcon(p.trend) }}</span>
+                {{ trendLabel(p.trend) }}
+              </span>
 
-            <!-- Low SpO₂ -->
-            <div class="flex items-center gap-4 rounded-xl border border-cyan-100 bg-cyan-50 px-4 py-3.5
-                        dark:border-cyan-900/30 dark:bg-cyan-500/[0.07]">
-              <span class="text-2xl flex-shrink-0">💨</span>
-              <div class="flex-1 min-w-0">
-                <div class="mb-1.5 flex items-center justify-between">
-                  <div>
-                    <p class="text-sm font-semibold text-cyan-700 dark:text-cyan-400">Low Oxygen Saturation (SpO₂)</p>
-                    <p class="text-xs text-cyan-400">Below 95% — risk of hypoxia</p>
-                  </div>
-                  <span class="text-lg font-bold text-cyan-700 dark:text-cyan-400">{{ vitalsBreakdown.lowSpo2 }}</span>
-                </div>
-                <div class="h-2 w-full overflow-hidden rounded-full bg-cyan-100 dark:bg-cyan-900/30">
-                  <div class="h-full rounded-full bg-cyan-500 transition-all duration-700"
-                       [style.width]="anomalyBar(vitalsBreakdown.lowSpo2)"></div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Abnormal Respiratory Rate -->
-            <div class="flex items-center gap-4 rounded-xl border border-teal-100 bg-teal-50 px-4 py-3.5
-                        dark:border-teal-900/30 dark:bg-teal-500/[0.07]">
-              <span class="text-2xl flex-shrink-0">🫁</span>
-              <div class="flex-1 min-w-0">
-                <div class="mb-1.5 flex items-center justify-between">
-                  <div>
-                    <p class="text-sm font-semibold text-teal-700 dark:text-teal-400">Abnormal Respiratory Rate</p>
-                    <p class="text-xs text-teal-400">Outside normal range of 12–20 breaths/min</p>
-                  </div>
-                  <span class="text-lg font-bold text-teal-700 dark:text-teal-400">{{ vitalsBreakdown.abnormalResp }}</span>
-                </div>
-                <div class="h-2 w-full overflow-hidden rounded-full bg-teal-100 dark:bg-teal-900/30">
-                  <div class="h-full rounded-full bg-teal-500 transition-all duration-700"
-                       [style.width]="anomalyBar(vitalsBreakdown.abnormalResp)"></div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Summary footer -->
-            <div class="mt-2 flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50
-                        px-5 py-3.5 dark:border-gray-800 dark:bg-white/[0.02]">
-              <div>
-                <p class="text-sm font-semibold text-gray-700 dark:text-gray-300">Total measurements analysed</p>
-                <p class="text-xs text-gray-400">Across all hospitalization records</p>
-              </div>
-              <div class="text-right">
-                <p class="text-2xl font-bold text-gray-900 dark:text-white/90">{{ totalVitalsRecorded }}</p>
-                <p class="text-xs text-rose-500 font-semibold">{{ totalAnomalies }} anomalies detected</p>
-              </div>
+              <span class="text-[10px] text-gray-400">Last: {{ p.lastRecorded }}</span>
             </div>
 
           </div>
         </div>
+
       </div>
-
     </div>
+    <!-- /room cards -->
+
   </div>
 </div>

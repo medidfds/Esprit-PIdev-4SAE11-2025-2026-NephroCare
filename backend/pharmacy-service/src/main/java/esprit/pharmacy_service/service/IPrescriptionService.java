@@ -11,5 +11,6 @@ public interface IPrescriptionService {
     Prescription findById(String id);
     Prescription updateStatus(String id, PrescriptionStatus status);
     void delete(String id);
+    List<Prescription> findByUserId(String userId);
 
 }

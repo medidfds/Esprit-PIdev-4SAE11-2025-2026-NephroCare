@@ -68,12 +68,22 @@ public class ConsultationServiceImpl implements ConsultationService {
 
     @Override
     public List<Long> getAvailablePatientIds() {
-        return userDirectoryClient.getPatientIds();
+        List<Long> ids = userDirectoryClient.getPatientIds();
+        if (ids == null || ids.isEmpty()) {
+            logger.warn("User directory returned no patient IDs, falling back to consultation data");
+            return consultationRepository.findDistinctPatientIds();
+        }
+        return ids;
     }
 
     @Override
     public List<Long> getAvailableDoctorIds() {
-        return userDirectoryClient.getDoctorIds();
+        List<Long> ids = userDirectoryClient.getDoctorIds();
+        if (ids == null || ids.isEmpty()) {
+            logger.warn("User directory returned no doctor IDs, falling back to consultation data");
+            return consultationRepository.findDistinctDoctorIds();
+        }
+        return ids;
     }
 }
 

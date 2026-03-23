@@ -15,6 +15,7 @@ public class TriageAssessmentResponseDTO {
     private Integer recommendedMaxWaitMinutes;
     private LocalDateTime deadlineAt;
     private QueueStatus queueStatus;
+    private boolean sepsisAlert;
 
     public TriageAssessmentResponseDTO() {
     }
@@ -81,5 +82,13 @@ public class TriageAssessmentResponseDTO {
 
     public void setQueueStatus(QueueStatus queueStatus) {
         this.queueStatus = queueStatus;
+    }
+
+    public boolean isSepsisAlert() {
+        return sepsisAlert;
+    }
+
+    public void setSepsisAlert(boolean sepsisAlert) {
+        this.sepsisAlert = sepsisAlert;
     }
 }

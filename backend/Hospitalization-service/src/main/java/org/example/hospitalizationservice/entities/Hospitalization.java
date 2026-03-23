@@ -8,17 +8,17 @@ import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
 
 @Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonInclude(JsonInclude.Include.ALWAYS) // Always include fields in JSON
-public class    Hospitalization {
+@JsonInclude(JsonInclude.Include.ALWAYS)
+public class Hospitalization {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,30 +32,32 @@ public class    Hospitalization {
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime dischargeDate;
 
-    @NotBlank(message = "Room number is required")
-    @Size(max = 20, message = "Room number cannot exceed 20 characters")
-    private String roomNumber;
+    // ── Replaces the old plain String roomNumber field ────────────────────
+    // EAGER fetch so the room is always included in JSON serialization
+    // without needing an open Hibernate session.
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "room_id", nullable = false)
+    @NotNull(message = "Room is required")
+    private Room room;
 
     @NotBlank(message = "Admission reason is required")
     @Size(max = 255, message = "Admission reason cannot exceed 255 characters")
     private String admissionReason;
 
     @NotBlank(message = "Status is required")
-    @Pattern(regexp = "^(pending|active|discharged)$", message = "Status must be 'pending', 'active' or 'discharged'")
+    @Pattern(
+            regexp = "^(pending|active|discharged)$",
+            message = "Status must be 'pending', 'active' or 'discharged'"
+    )
     private String status;
 
-    // ✅ After
     @NotBlank(message = "User ID is required")
     private String userId;
 
     @NotBlank(message = "Attending doctor ID is required")
     private String attendingDoctorId;
 
-    // One Hospitalization has many VitalSigns
     @OneToMany(mappedBy = "hospitalization", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference // Helps avoid infinite recursion in JSON
+    @JsonManagedReference
     private List<VitalSigns> vitalSignsRecords = new ArrayList<>();
-
-
-
 }

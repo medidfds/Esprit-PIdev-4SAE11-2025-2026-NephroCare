@@ -1,5 +1,6 @@
 package esprit.clinicalservice.services.impl;
 
+import esprit.clinicalservice.dtos.DoctorEfficiencyDTO;
 import esprit.clinicalservice.entities.EscalationEvent;
 import esprit.clinicalservice.entities.TriageAssessment;
 import esprit.clinicalservice.entities.TriageQueueItem;
@@ -18,7 +19,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class TriageServiceImpl implements TriageService {
@@ -60,14 +65,21 @@ public class TriageServiceImpl implements TriageService {
         queueItem.setDeadlineAt(savedAssessment.getArrivalTime().plusMinutes(scoreResult.maxWaitMinutes()));
         queueItem.setStatus(QueueStatus.WAITING);
         queueItem.setManualOverride(false);
+        queueItem.setSepsisAlert(scoreResult.sepsisAlert());
+
+        TriageQueueItem savedQueueItem = queueItemRepository.save(queueItem);
+        if (scoreResult.sepsisAlert()) {
+            emitEscalation(savedQueueItem, EscalationType.SEPSIS_ALERT, LocalDateTime.now());
+        }
 
         logger.info(
-                "Created triage queue item for patient {} with level {} and score {}",
+                "Created triage queue item for patient {} with level {} and score {} (sepsisAlert={})",
                 savedAssessment.getPatientId(),
                 scoreResult.level(),
-                scoreResult.score()
+                scoreResult.score(),
+                scoreResult.sepsisAlert()
         );
-        return queueItemRepository.save(queueItem);
+        return savedQueueItem;
     }
 
     @Override
@@ -137,6 +149,84 @@ public class TriageServiceImpl implements TriageService {
     }
 
     @Override
+    public List<DoctorEfficiencyDTO> getDoctorEfficiency(LocalDateTime from, LocalDateTime to) {
+        List<TriageQueueItem> items = queueItemRepository.findByAssignedDoctorIdIsNotNullAndStartedAtBetween(from, to);
+        Map<Long, DoctorEfficiencyAccumulator> byDoctor = new HashMap<>();
+
+        for (TriageQueueItem item : items) {
+            Long doctorId = item.getAssignedDoctorId();
+            if (doctorId == null || item.getStartedAt() == null) {
+                continue;
+            }
+
+            DoctorEfficiencyAccumulator acc = byDoctor.computeIfAbsent(doctorId, ignored -> new DoctorEfficiencyAccumulator());
+            acc.assignedCases++;
+
+            if (item.getCompletedAt() != null) {
+                acc.completedCases++;
+            }
+
+            if (item.getDeadlineAt() != null && !item.getStartedAt().isAfter(item.getDeadlineAt())) {
+                acc.slaRespectedCases++;
+            }
+
+            long startDelay = Math.max(0, Duration.between(item.getAssessment().getArrivalTime(), item.getStartedAt()).toMinutes());
+            acc.startDelayTotal += startDelay;
+
+            if (item.getCompletedAt() != null) {
+                long treatmentDuration = Math.max(0, Duration.between(item.getStartedAt(), item.getCompletedAt()).toMinutes());
+                acc.treatmentMinutesTotal += treatmentDuration;
+                acc.treatmentSamples++;
+            }
+
+            TriageLevel level = item.getTriageLevel();
+            if (level == TriageLevel.RED || level == TriageLevel.ORANGE) {
+                acc.highAcuityCases++;
+            }
+        }
+
+        List<DoctorEfficiencyDTO> result = new ArrayList<>();
+        for (Map.Entry<Long, DoctorEfficiencyAccumulator> entry : byDoctor.entrySet()) {
+            Long doctorId = entry.getKey();
+            DoctorEfficiencyAccumulator acc = entry.getValue();
+            if (acc.assignedCases == 0) {
+                continue;
+            }
+
+            double completionRate = ratio(acc.completedCases, acc.assignedCases);
+            double slaRespectRate = ratio(acc.slaRespectedCases, acc.assignedCases);
+            double avgStartDelay = (double) acc.startDelayTotal / acc.assignedCases;
+            double avgTreatment = acc.treatmentSamples > 0
+                    ? (double) acc.treatmentMinutesTotal / acc.treatmentSamples
+                    : 0.0;
+
+            double startDelayScore = clamp(100.0 - (avgStartDelay * 2.0));
+            double treatmentSpeedScore = clamp(100.0 - (avgTreatment * 0.5));
+            double speedScore = (startDelayScore + treatmentSpeedScore) / 2.0;
+            double highAcuityScore = clamp(acc.highAcuityCases * 10.0);
+            double efficiencyScore = (0.4 * slaRespectRate)
+                    + (0.3 * completionRate)
+                    + (0.2 * speedScore)
+                    + (0.1 * highAcuityScore);
+
+            DoctorEfficiencyDTO dto = new DoctorEfficiencyDTO();
+            dto.setDoctorId(doctorId);
+            dto.setAssignedCases(acc.assignedCases);
+            dto.setCompletedCases(acc.completedCases);
+            dto.setHighAcuityCases(acc.highAcuityCases);
+            dto.setCompletionRate(round2(completionRate));
+            dto.setSlaRespectRate(round2(slaRespectRate));
+            dto.setAvgStartDelayMinutes(round2(avgStartDelay));
+            dto.setAvgTreatmentMinutes(round2(avgTreatment));
+            dto.setEfficiencyScore(round2(efficiencyScore));
+            result.add(dto);
+        }
+
+        result.sort(Comparator.comparingDouble(DoctorEfficiencyDTO::getEfficiencyScore).reversed());
+        return result;
+    }
+
+    @Override
     @Transactional
     public void processOverdueEscalations() {
         LocalDateTime now = LocalDateTime.now();
@@ -177,6 +267,7 @@ public class TriageServiceImpl implements TriageService {
             case LEVEL_1 -> EscalationType.LEVEL_2;
             case LEVEL_2 -> EscalationType.LEVEL_3;
             case LEVEL_3 -> null;
+            case SEPSIS_ALERT -> EscalationType.LEVEL_1;
         };
     }
 
@@ -202,6 +293,11 @@ public class TriageServiceImpl implements TriageService {
     }
 
     private String buildEscalationMessage(TriageQueueItem queueItem, EscalationType escalationType) {
+        if (escalationType == EscalationType.SEPSIS_ALERT) {
+            return "Possible sepsis detected for patient " + queueItem.getAssessment().getPatientId()
+                    + ". Immediate medical review required.";
+        }
+
         return "Queue item " + queueItem.getId()
                 + " for patient " + queueItem.getAssessment().getPatientId()
                 + " has exceeded SLA. Escalation " + escalationType + " triggered.";
@@ -260,6 +356,12 @@ public class TriageServiceImpl implements TriageService {
             score += 1;
         }
 
+        SepsisSignal sepsisSignal = evaluateSepsisSignal(assessment);
+        if (sepsisSignal.suspected()) {
+            int minimumScore = sepsisSignal.critical() ? 7 : 5;
+            score = Math.max(score, minimumScore);
+        }
+
         TriageLevel level;
         int maxWait;
         if (score >= 7) {
@@ -276,7 +378,37 @@ public class TriageServiceImpl implements TriageService {
             maxWait = 120;
         }
 
-        return new ScoreResult(score, level, maxWait);
+        return new ScoreResult(score, level, maxWait, sepsisSignal.suspected());
+    }
+
+    private SepsisSignal evaluateSepsisSignal(TriageAssessment assessment) {
+        int criteria = 0;
+
+        if (Boolean.TRUE.equals(assessment.getRespiratoryDistress())) {
+            criteria++;
+        }
+
+        Integer systolicBp = assessment.getSystolicBp();
+        if (systolicBp != null && systolicBp <= 100) {
+            criteria++;
+        }
+
+        Integer heartRate = assessment.getHeartRate();
+        if (heartRate != null && heartRate >= 110) {
+            criteria++;
+        }
+
+        Integer spo2 = assessment.getSpo2();
+        if (spo2 != null && spo2 <= 92) {
+            criteria++;
+        }
+
+        boolean critical = (systolicBp != null && systolicBp < 90)
+                || (Boolean.TRUE.equals(assessment.getRespiratoryDistress()) && spo2 != null && spo2 <= 90)
+                || criteria >= 3;
+
+        boolean suspected = critical || criteria >= 2;
+        return new SepsisSignal(suspected, critical);
     }
 
     private int defaultMaxWait(TriageLevel triageLevel) {
@@ -288,6 +420,34 @@ public class TriageServiceImpl implements TriageService {
         };
     }
 
-    private record ScoreResult(int score, TriageLevel level, int maxWaitMinutes) {
+    private double ratio(long numerator, long denominator) {
+        if (denominator == 0) {
+            return 0.0;
+        }
+        return ((double) numerator / denominator) * 100.0;
+    }
+
+    private double clamp(double value) {
+        return Math.max(0.0, Math.min(100.0, value));
+    }
+
+    private double round2(double value) {
+        return Math.round(value * 100.0) / 100.0;
+    }
+
+    private record ScoreResult(int score, TriageLevel level, int maxWaitMinutes, boolean sepsisAlert) {
+    }
+
+    private record SepsisSignal(boolean suspected, boolean critical) {
+    }
+
+    private static class DoctorEfficiencyAccumulator {
+        long assignedCases;
+        long completedCases;
+        long slaRespectedCases;
+        long startDelayTotal;
+        long treatmentMinutesTotal;
+        long treatmentSamples;
+        long highAcuityCases;
     }
 }

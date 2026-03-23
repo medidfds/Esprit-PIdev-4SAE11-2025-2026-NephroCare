@@ -1,8 +1,15 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { KeycloakService } from 'keycloak-angular';
+import { FullCalendarModule } from '@fullcalendar/angular';
+import { CalendarOptions, EventClickArg, EventInput } from '@fullcalendar/core';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
 import {
   ClinicalService,
+  Consultation,
   MedicalHistory,
   TriageAssessmentRequest,
   TriageLevel,
@@ -12,11 +19,18 @@ import {
 @Component({
   selector: 'app-clinical',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, FullCalendarModule],
   templateUrl: './clinical.component.html',
   styleUrls: ['./clinical.component.css']
 })
 export class ClinicalComponent implements OnInit, OnDestroy {
+  consultations: Consultation[] = [];
+  selectedCalendarDate = this.toIsoDate(new Date());
+  selectedDayConsultations: Consultation[] = [];
+  selectedConsultation: Consultation | null = null;
+  calendarMonthTitle = '';
+  consultationCountByStatus: Record<string, number> = {};
+  calendarOptions: CalendarOptions = this.buildCalendarOptions([]);
   medicalHistories: MedicalHistory[] = [];
   form: FormGroup; // medical history form
   triageForm: FormGroup;
@@ -27,12 +41,21 @@ export class ClinicalComponent implements OnInit, OnDestroy {
   triageError: string | null = null;
   readonly triageLevels: TriageLevel[] = ['RED', 'ORANGE', 'YELLOW', 'GREEN'];
   private queueRefreshTimer: ReturnType<typeof setInterval> | null = null;
+  triagePatients: Array<{ id: number; label: string }> = [];
+  loggedInPatientId: number | null = null;
+  availableDoctorIds: number[] = [];
+  selectedDoctorByQueueId: Record<number, number | null> = {};
+  private latestConsultationByPatientId: Record<number, string> = {};
 
   editingId: number | null = null;
   error: string | null = null;
   success: string | null = null;
 
-  constructor(private fb: FormBuilder, private clinicalService: ClinicalService) {
+  constructor(
+    private fb: FormBuilder,
+    private clinicalService: ClinicalService,
+    private keycloakService: KeycloakService
+  ) {
     this.form = this.fb.group({
       userId: [null],
       diagnosis: [''],
@@ -56,8 +79,14 @@ export class ClinicalComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.resolveLoggedInPatientFromToken();
+    this.loadPatientsFromConsultations();
+    this.loadAvailableDoctorIds();
     this.loadMedicalHistories();
     this.loadQueue();
+    this.triageForm.get('patientId')?.valueChanges.subscribe((patientId) => {
+      this.applyArrivalTimeFromSelectedPatient(patientId);
+    });
     this.queueRefreshTimer = setInterval(() => this.loadQueue(false), 20000);
   }
 
@@ -93,8 +122,14 @@ export class ClinicalComponent implements OnInit, OnDestroy {
     this.triageSuccess = null;
 
     const formValue = this.triageForm.value;
+    const effectivePatientId = this.loggedInPatientId ?? Number(formValue.patientId);
+    if (!Number.isInteger(effectivePatientId) || effectivePatientId <= 0) {
+      this.submittingTriage = false;
+      this.triageError = 'Unable to resolve logged-in patient ID.';
+      return;
+    }
     const payload: TriageAssessmentRequest = {
-      patientId: Number(formValue.patientId),
+      patientId: effectivePatientId,
       arrivalTime: this.normalizeLocalDateTime(formValue.arrivalTime),
       heartRate: this.normalizeNumber(formValue.heartRate),
       systolicBp: this.normalizeNumber(formValue.systolicBp),
@@ -108,7 +143,8 @@ export class ClinicalComponent implements OnInit, OnDestroy {
     this.clinicalService.createTriageAssessment(payload).subscribe({
       next: (res) => {
         this.submittingTriage = false;
-        this.triageSuccess = `Assessment created. Queue #${res.queueItemId} | Level ${res.triageLevel} | Score ${res.score}`;
+        const sepsisSuffix = res.sepsisAlert ? ' | SEPSIS ALERT' : '';
+        this.triageSuccess = `Assessment created. Queue #${res.queueItemId} | Level ${res.triageLevel} | Score ${res.score}${sepsisSuffix}`;
         this.triageForm.patchValue({
           arrivalTime: this.defaultArrivalTime(),
           heartRate: null,
@@ -128,6 +164,77 @@ export class ClinicalComponent implements OnInit, OnDestroy {
     });
   }
 
+  loadPatientsFromConsultations(): void {
+    this.clinicalService.getAllConsultations().subscribe({
+      next: (consultations) => {
+        this.consultations = [...(consultations || [])].sort(
+          (a, b) => new Date(a.consultationDate).getTime() - new Date(b.consultationDate).getTime()
+        );
+        this.refreshCalendarData();
+
+        const ids = new Set<number>();
+        const latestByPatient: Record<number, string> = {};
+        (consultations || []).forEach((consultation) => {
+          const id = Number(consultation.patientId);
+          if (Number.isInteger(id) && id > 0) {
+            ids.add(id);
+            const currentLatest = latestByPatient[id];
+            if (!currentLatest || new Date(consultation.consultationDate).getTime() > new Date(currentLatest).getTime()) {
+              latestByPatient[id] = consultation.consultationDate;
+            }
+          }
+        });
+
+        this.triagePatients = Array.from(ids)
+          .sort((a, b) => a - b)
+          .map((id) => ({ id, label: `Patient #${id}` }));
+        this.latestConsultationByPatientId = latestByPatient;
+
+        this.applyArrivalTimeFromSelectedPatient(this.triageForm.get('patientId')?.value);
+      }
+    });
+  }
+
+  onDateClick(arg: any): void {
+    this.selectedCalendarDate = arg.dateStr;
+    this.updateSelectedDayConsultations();
+    this.selectedConsultation = null;
+  }
+
+  onCalendarEventClick(arg: EventClickArg): void {
+    const consultationId = Number(arg.event.id);
+    const found = this.consultations.find((item) => item.id === consultationId) ?? null;
+    this.selectedConsultation = found;
+    if (found) {
+      this.selectedCalendarDate = this.toIsoDate(new Date(found.consultationDate));
+      this.updateSelectedDayConsultations();
+    }
+  }
+
+  onCalendarDatesSet(arg: any): void {
+    this.calendarMonthTitle = arg?.view?.title || '';
+  }
+
+  loadAvailableDoctorIds(): void {
+    this.clinicalService.getAvailableDoctorIds().subscribe({
+      next: (ids) => {
+        this.availableDoctorIds = (ids || [])
+          .map((id) => Number(id))
+          .filter((id) => Number.isInteger(id) && id > 0)
+          .sort((a, b) => a - b);
+
+        const firstDoctorId = this.availableDoctorIds.length > 0 ? this.availableDoctorIds[0] : null;
+        if (firstDoctorId != null) {
+          this.queueItems.forEach((item) => {
+            if (!this.selectedDoctorByQueueId[item.queueItemId]) {
+              this.selectedDoctorByQueueId[item.queueItemId] = firstDoctorId;
+            }
+          });
+        }
+      }
+    });
+  }
+
   loadQueue(showLoader = true): void {
     if (showLoader) {
       this.loadingQueue = true;
@@ -136,6 +243,12 @@ export class ClinicalComponent implements OnInit, OnDestroy {
     this.clinicalService.getTriageQueue().subscribe({
       next: (items) => {
         this.queueItems = items;
+        this.queueItems.forEach((item) => {
+          if (!(item.queueItemId in this.selectedDoctorByQueueId)) {
+            this.selectedDoctorByQueueId[item.queueItemId] =
+              item.assignedDoctorId ?? (this.availableDoctorIds.length > 0 ? this.availableDoctorIds[0] : null);
+          }
+        });
         this.loadingQueue = false;
       },
       error: (err) => {
@@ -146,14 +259,9 @@ export class ClinicalComponent implements OnInit, OnDestroy {
   }
 
   startCare(item: TriageQueueItem): void {
-    const input = prompt(`Doctor ID for queue #${item.queueItemId}:`);
-    if (!input) {
-      return;
-    }
-
-    const doctorId = Number(input);
+    const doctorId = Number(this.selectedDoctorByQueueId[item.queueItemId]);
     if (!Number.isFinite(doctorId) || doctorId <= 0) {
-      this.triageError = 'Invalid doctor ID.';
+      this.triageError = 'Please select a valid doctor ID before starting care.';
       return;
     }
 
@@ -281,6 +389,23 @@ export class ClinicalComponent implements OnInit, OnDestroy {
     return new Date(value).toLocaleString();
   }
 
+  getStatusBadgeClass(status: string | null | undefined): string {
+    switch ((status || '').toUpperCase()) {
+      case 'SCHEDULED':
+        return 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300';
+      case 'IN_PROGRESS':
+        return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300';
+      case 'COMPLETED':
+        return 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300';
+      case 'CANCELLED':
+        return 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300';
+      case 'NO_SHOW':
+        return 'bg-slate-200 text-slate-700 dark:bg-slate-500/15 dark:text-slate-300';
+      default:
+        return 'bg-gray-100 text-gray-700 dark:bg-gray-500/15 dark:text-gray-300';
+    }
+  }
+
   saveMedicalHistory(): void {
     if (this.editingId == null) {
       this.error = 'Creation is available in Front Office. Use Edit here to update existing records.';
@@ -386,5 +511,139 @@ export class ClinicalComponent implements OnInit, OnDestroy {
       return value;
     }
     return value.length === 16 ? `${value}:00` : value;
+  }
+
+  private applyArrivalTimeFromSelectedPatient(patientId: unknown): void {
+    const numericId = Number(patientId);
+    if (!Number.isInteger(numericId) || numericId <= 0) {
+      return;
+    }
+
+    const fromConsultation = this.latestConsultationByPatientId[numericId];
+    const arrivalTime = this.toDateTimeLocal(fromConsultation);
+    if (!arrivalTime) {
+      this.triageError = `No consultation date found for patient #${numericId}.`;
+      this.triageForm.patchValue({ arrivalTime: '' }, { emitEvent: false });
+      return;
+    }
+
+    this.triageError = null;
+    this.triageForm.patchValue({ arrivalTime }, { emitEvent: false });
+  }
+
+  private toDateTimeLocal(value: string | null | undefined): string {
+    if (!value) {
+      return '';
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+  private resolveLoggedInPatientFromToken(): void {
+    const token: any = this.keycloakService.getKeycloakInstance()?.tokenParsed;
+    if (!token) {
+      return;
+    }
+
+    const candidates = [
+      token['patientId'],
+      token['patient_id'],
+      token['userId'],
+      token['user_id'],
+      token['id'],
+      token['preferred_username'],
+      token['sub']
+    ];
+
+    for (const value of candidates) {
+      const parsed = Number(value);
+      if (Number.isInteger(parsed) && parsed > 0) {
+        this.loggedInPatientId = parsed;
+        this.triageForm.patchValue({ patientId: parsed });
+        return;
+      }
+    }
+  }
+
+  private refreshCalendarData(): void {
+    const events: EventInput[] = this.consultations.map((consultation) => ({
+      id: consultation.id?.toString(),
+      title: `P#${consultation.patientId ?? '-'} • D#${consultation.doctorId ?? '-'}`,
+      start: consultation.consultationDate,
+      end: consultation.followUpDate || undefined,
+      backgroundColor: this.getStatusColor(consultation.status),
+      borderColor: this.getStatusColor(consultation.status),
+      extendedProps: { status: consultation.status }
+    }));
+
+    this.consultationCountByStatus = this.consultations.reduce<Record<string, number>>((acc, c) => {
+      const key = (c.status || 'UNKNOWN').toUpperCase();
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+
+    this.calendarOptions = this.buildCalendarOptions(events);
+    this.updateSelectedDayConsultations();
+  }
+
+  private updateSelectedDayConsultations(): void {
+    const day = this.selectedCalendarDate;
+    this.selectedDayConsultations = this.consultations
+      .filter((c) => this.toIsoDate(new Date(c.consultationDate)) === day)
+      .sort((a, b) => new Date(a.consultationDate).getTime() - new Date(b.consultationDate).getTime());
+  }
+
+  private buildCalendarOptions(events: EventInput[]): CalendarOptions {
+    return {
+      plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+      initialView: 'dayGridMonth',
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek'
+      },
+      buttonText: {
+        today: 'Today',
+        month: 'Month',
+        week: 'Week'
+      },
+      weekends: true,
+      height: 'auto',
+      dayMaxEvents: 3,
+      events,
+      dateClick: (arg) => this.onDateClick(arg),
+      eventClick: (arg) => this.onCalendarEventClick(arg),
+      datesSet: (arg) => this.onCalendarDatesSet(arg)
+    };
+  }
+
+  private getStatusColor(status: string): string {
+    switch ((status || '').toUpperCase()) {
+      case 'SCHEDULED':
+        return '#2563EB';
+      case 'IN_PROGRESS':
+        return '#F59E0B';
+      case 'COMPLETED':
+        return '#16A34A';
+      case 'CANCELLED':
+        return '#DC2626';
+      case 'NO_SHOW':
+        return '#64748B';
+      default:
+        return '#475569';
+    }
+  }
+
+  private toIsoDate(value: Date): string {
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const day = String(value.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }

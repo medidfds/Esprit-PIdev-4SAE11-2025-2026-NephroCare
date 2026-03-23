@@ -1,6 +1,8 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { HospitalizationService } from '../services/hospitalization.service';
+import { RoomService, Room } from '../services/Room.service';
 import { KeycloakService } from 'keycloak-angular';
 
 @Component({
@@ -16,23 +18,26 @@ export class HospitalizationComponent implements OnInit {
   form: FormGroup;
   editingId: number | null         = null;
   searchTerm: string               = '';
-  activeFilter: string             = 'all';   // 'all' | 'active' | 'pending' | 'discharged'
+  activeFilter: string             = 'all';
   sortField: string                = 'date-desc';
   criticalCount: number            = 0;
 
   private currentUserId: string | null = null;
-  isDoctor = false;   // ← tracks whether the logged-in user is a doctor
+  isDoctor = false;
+
+  // ── Room lookup map ────────────────────────────────────────────────────
+  private roomMap = new Map<number, Room>();
 
   constructor(
-    private service: HospitalizationService,
-    private fb: FormBuilder,
-    private cdr: ChangeDetectorRef,
+    private service:     HospitalizationService,
+    private roomService: RoomService,
+    private fb:          FormBuilder,
+    private cdr:         ChangeDetectorRef,
     private keycloakService: KeycloakService
   ) {
     this.form = this.fb.group({
       admissionDate:     [''],
       dischargeDate:     [''],
-      roomNumber:        [''],
       admissionReason:   [''],
       status:            [''],
       userId:            [''],
@@ -49,47 +54,77 @@ export class HospitalizationComponent implements OnInit {
       this.currentUserId = null;
     }
 
-    // Check role AFTER profile is loaded
     this.isDoctor = this.keycloakService.isUserInRole('doctor');
-
     this.loadAll();
   }
 
-  // ── Load ──────────────────────────────────────
+  // ── Load both hospitalizations and rooms in parallel ──────────────────
   loadAll(): void {
-    this.service.getAll().subscribe({
-      next: (data: any[]) => {
+    forkJoin({
+      hospitalizations: this.service.getAll(),
+      rooms:            this.roomService.getAll()
+    }).subscribe({
+      next: ({ hospitalizations, rooms }) => {
+        // Build id → Room lookup
+        this.roomMap = new Map(rooms.map(r => [r.id, r]));
+
+        const data = hospitalizations as any[];
+
         if (this.isDoctor) {
-          // Doctors see ALL hospitalizations with all vital signs
-          this.hospitalizations = data || [];
+          this.hospitalizations = data;
         } else {
-          // Patients see only their own records
-          this.hospitalizations = (data || []).filter(h =>
+          this.hospitalizations = data.filter(h =>
             String(h.userId) === String(this.currentUserId)
           );
         }
+
         this.applyFilters();
         this.updateCriticalCount();
         this.cdr.detectChanges();
       },
-      error: err => console.error('Error loading hospitalizations', err)
+      error: err => console.error('Error loading data', err)
     });
   }
 
-  // ── Filter + Sort (single entry point) ───────
+  // ── Room helpers ───────────────────────────────────────────────────────
+
+  /** Returns the Room object for a hospitalization (supports both roomId and legacy room.id) */
+  getRoom(h: any): Room | null {
+    const id = h.roomId ?? h.room?.id ?? null;
+    if (id == null) return null;
+    return this.roomMap.get(id) ?? null;
+  }
+
+  /** Returns the room number string for display */
+  getRoomNumber(h: any): string {
+    return this.getRoom(h)?.roomNumber ?? '—';
+  }
+
+  /** Returns the room type string for display */
+  getRoomType(h: any): string {
+    return this.getRoom(h)?.type ?? '';
+  }
+
+  readonly roomTypeLabels: Record<string, string> = {
+    standard:  'Standard',
+    intensive: 'ICU',
+    isolation: 'Isolation',
+    pediatric: 'Pediatric',
+    maternity: 'Maternity',
+  };
+
+  // ── Filter + Sort ──────────────────────────────────────────────────────
   applyFilters(): void {
     let list = [...this.hospitalizations];
 
-    // 1. Status filter
     if (this.activeFilter !== 'all') {
       list = list.filter(h => h.status === this.activeFilter);
     }
 
-    // 2. Search
     const term = this.searchTerm?.toLowerCase().trim() || '';
     if (term) {
       list = list.filter(h =>
-        (h.roomNumber      || '').toLowerCase().includes(term) ||
+        this.getRoomNumber(h).toLowerCase().includes(term) ||
         (h.admissionReason || '').toLowerCase().includes(term) ||
         (h.status          || '').toLowerCase().includes(term) ||
         String(h.userId            || '').includes(term) ||
@@ -97,53 +132,40 @@ export class HospitalizationComponent implements OnInit {
       );
     }
 
-    // 3. Sort
-    list = this.sortList(list);
-
-    this.filteredHospitalizations = list;
+    this.filteredHospitalizations = this.sortList(list);
   }
 
   private sortList(list: any[]): any[] {
     return list.sort((a, b) => {
-      if (this.sortField === 'date-desc') {
+      if (this.sortField === 'date-desc')
         return new Date(b.admissionDate || 0).getTime() - new Date(a.admissionDate || 0).getTime();
-      }
-      if (this.sortField === 'date-asc') {
+      if (this.sortField === 'date-asc')
         return new Date(a.admissionDate || 0).getTime() - new Date(b.admissionDate || 0).getTime();
-      }
-      if (this.sortField === 'room') {
-        return (a.roomNumber || '').localeCompare(b.roomNumber || '');
-      }
+      if (this.sortField === 'room')
+        return this.getRoomNumber(a).localeCompare(this.getRoomNumber(b));
       return 0;
     });
   }
 
-  setFilter(status: string): void {
-    this.activeFilter = status;
-    this.applyFilters();
-  }
+  setFilter(status: string): void { this.activeFilter = status; this.applyFilters(); }
 
   clearFilters(): void {
-    this.searchTerm   = '';
-    this.activeFilter = 'all';
-    this.sortField    = 'date-desc';
+    this.searchTerm = ''; this.activeFilter = 'all'; this.sortField = 'date-desc';
     this.applyFilters();
   }
 
-  // ── Stats helpers ─────────────────────────────
+  // ── Stats ──────────────────────────────────────────────────────────────
   countByStatus(status: string): number {
     return this.hospitalizations.filter(h => h.status === status).length;
   }
 
   private updateCriticalCount(): void {
-    this.criticalCount = this.hospitalizations
-      .filter(h => this.hasCriticalVitals(h)).length;
+    this.criticalCount = this.hospitalizations.filter(h => this.hasCriticalVitals(h)).length;
   }
 
-  // ── Vital signs helpers ───────────────────────
+  // ── Vital sign helpers ─────────────────────────────────────────────────
   hasCriticalVitals(h: any): boolean {
-    if (!h.vitalSignsRecords?.length) return false;
-    return h.vitalSignsRecords.some((vs: any) => this.isVsCritical(vs));
+    return !!(h.vitalSignsRecords?.some((vs: any) => this.isVsCritical(vs)));
   }
 
   isVsCritical(vs: any): boolean {
@@ -156,8 +178,7 @@ export class HospitalizationComponent implements OnInit {
   }
 
   getAbnormalCount(h: any): number {
-    if (!h.vitalSignsRecords?.length) return 0;
-    return h.vitalSignsRecords.filter((vs: any) => this.isVsAbnormal(vs)).length;
+    return h.vitalSignsRecords?.filter((vs: any) => this.isVsAbnormal(vs)).length ?? 0;
   }
 
   private isVsAbnormal(vs: any): boolean {
@@ -169,7 +190,7 @@ export class HospitalizationComponent implements OnInit {
     );
   }
 
-  // ── Timeline helpers ──────────────────────────
+  // ── Timeline helpers ───────────────────────────────────────────────────
   getStayDuration(h: any): string {
     if (!h.admissionDate) return '—';
     const start = new Date(h.admissionDate).getTime();
@@ -182,12 +203,11 @@ export class HospitalizationComponent implements OnInit {
   getProgressPercent(h: any): number {
     if (!h.admissionDate) return 0;
     if (!h.dischargeDate) return 100;
-    const start   = new Date(h.admissionDate).getTime();
-    const end     = new Date(h.dischargeDate).getTime();
-    const elapsed = Date.now() - start;
-    const total   = end - start;
+    const start = new Date(h.admissionDate).getTime();
+    const end   = new Date(h.dischargeDate).getTime();
+    const total = end - start;
     if (total <= 0) return 100;
-    return Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)));
+    return Math.min(100, Math.max(0, Math.round(((Date.now() - start) / total) * 100)));
   }
 
   getVsPosition(h: any, vs: any): number {
@@ -200,26 +220,25 @@ export class HospitalizationComponent implements OnInit {
     return Math.min(95, Math.max(5, Math.round(((vsTime - start) / total) * 100)));
   }
 
-  // ── Scroll to first critical card ────────────
   scrollToFirstCritical(): void {
     const first = this.filteredHospitalizations.find(h => this.hasCriticalVitals(h));
     if (!first) return;
-    const el = document.getElementById('critical-' + first.id);
-    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('critical-' + first.id)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  // ── CRUD (kept for compatibility) ────────────
+  // ── CRUD ───────────────────────────────────────────────────────────────
   filterHospitalizations(): void { this.applyFilters(); }
 
   save(): void {
-    const hospitalization = {
-      ...this.form.value,
-      admissionDate: this.form.value.admissionDate ? this.form.value.admissionDate + ':00' : null,
-      dischargeDate: this.form.value.dischargeDate ? this.form.value.dischargeDate + ':00' : null
+    const v = this.form.value;
+    const payload = {
+      ...v,
+      admissionDate: v.admissionDate ? v.admissionDate + ':00' : null,
+      dischargeDate: v.dischargeDate ? v.dischargeDate + ':00' : null
     };
     const obs = this.editingId
-      ? this.service.update(this.editingId, hospitalization)
-      : this.service.create(hospitalization);
+      ? this.service.update(this.editingId, payload)
+      : this.service.create(payload);
     obs.subscribe({ next: () => { this.loadAll(); this.cancel(); }, error: e => console.error(e) });
   }
 
@@ -237,10 +256,7 @@ export class HospitalizationComponent implements OnInit {
     this.service.delete(id).subscribe({ next: () => this.loadAll(), error: e => console.error(e) });
   }
 
-  cancel(): void {
-    this.editingId = null;
-    this.form.reset();
-  }
+  cancel(): void { this.editingId = null; this.form.reset(); }
 
   private formatDateForInput(date: string | null): string | null {
     return date ? date.substring(0, 16) : null;

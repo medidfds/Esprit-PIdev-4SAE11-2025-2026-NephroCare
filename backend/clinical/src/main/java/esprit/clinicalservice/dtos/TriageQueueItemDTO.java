@@ -22,6 +22,7 @@ public class TriageQueueItemDTO {
     private LocalDateTime lastEscalationAt;
     private boolean manualOverride;
     private String overrideReason;
+    private boolean sepsisAlert;
 
     public TriageQueueItemDTO() {
     }
@@ -136,5 +137,13 @@ public class TriageQueueItemDTO {
 
     public void setOverrideReason(String overrideReason) {
         this.overrideReason = overrideReason;
+    }
+
+    public boolean isSepsisAlert() {
+        return sepsisAlert;
+    }
+
+    public void setSepsisAlert(boolean sepsisAlert) {
+        this.sepsisAlert = sepsisAlert;
     }
 }

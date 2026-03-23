@@ -7,11 +7,12 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { ClinicalService, Consultation } from '../../services/clinical.service';
 import { ModalComponent } from '../../shared/components/ui/modal/modal.component';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-consultations-calendar',
   standalone: true,
-  imports: [CommonModule, FullCalendarModule, ModalComponent],
+  imports: [CommonModule, FullCalendarModule, ModalComponent, FormsModule],
   templateUrl: './consultations-calendar.component.html',
   styleUrls: ['./consultations-calendar.component.css']
 })
@@ -27,6 +28,8 @@ export class ConsultationsCalendarComponent implements OnInit {
   updatingStatusId: number | null = null;
   editableFollowUpDates: Record<number, string> = {};
   calendarOptions!: CalendarOptions;
+  selectedStatusFilter = 'ALL';
+  searchQuery = '';
 
   readonly statuses = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW'];
 
@@ -85,6 +88,10 @@ export class ConsultationsCalendarComponent implements OnInit {
         right: 'dayGridMonth,timeGridWeek,timeGridDay'
       },
       height: 'auto',
+      dayMaxEvents: 3,
+      eventDisplay: 'block',
+      navLinks: true,
+      nowIndicator: true,
       plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
       events,
       eventClick: (info) => this.handleEventClick(info)
@@ -225,6 +232,54 @@ export class ConsultationsCalendarComponent implements OnInit {
       default:
         return 'bg-blue-100 text-blue-800';
     }
+  }
+
+  get filteredConsultations(): Consultation[] {
+    const normalizedQuery = this.searchQuery.trim().toLowerCase();
+    return this.consultations.filter((consultation) => {
+      const statusMatch =
+        this.selectedStatusFilter === 'ALL' || consultation.status === this.selectedStatusFilter;
+      if (!statusMatch) {
+        return false;
+      }
+
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      const searchable = [
+        consultation.patientId?.toString() ?? '',
+        consultation.doctorId?.toString() ?? '',
+        consultation.diagnosis ?? '',
+        consultation.treatmentPlan ?? '',
+        consultation.status ?? ''
+      ]
+        .join(' ')
+        .toLowerCase();
+
+      return searchable.includes(normalizedQuery);
+    });
+  }
+
+  get todayCount(): number {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = today.getMonth();
+    const d = today.getDate();
+
+    return this.consultations.filter((consultation) => {
+      const date = new Date(consultation.consultationDate);
+      return date.getFullYear() === y && date.getMonth() === m && date.getDate() === d;
+    }).length;
+  }
+
+  get upcomingCount(): number {
+    const now = Date.now();
+    return this.consultations.filter((consultation) => new Date(consultation.consultationDate).getTime() > now).length;
+  }
+
+  get completedCount(): number {
+    return this.consultations.filter((consultation) => consultation.status === 'COMPLETED').length;
   }
 
   private toDateTimeLocal(value: string | null | undefined): string {

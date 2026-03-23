@@ -1,5 +1,6 @@
 package esprit.pharmacy_service.entity;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import esprit.pharmacy_service.entity.Enumerations.PrescriptionStatus;
@@ -14,7 +15,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonInclude(JsonInclude.Include.ALWAYS)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Prescription {
 
     @Id
@@ -47,6 +48,6 @@ public class Prescription {
     private String prescribedBy;
 
     @OneToMany(mappedBy = "prescription", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonProperty
+    @JsonIgnoreProperties("prescription")
     private List<Medication> medications;
 }

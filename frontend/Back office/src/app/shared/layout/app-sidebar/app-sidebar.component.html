@@ -1,5 +1,5 @@
 <aside
-  class="fixed top-0 left-0 z-50 flex h-screen flex-col border-r border-gray-200 bg-white px-5 text-gray-900 transition-all duration-300 ease-in-out dark:border-gray-800 dark:bg-gray-900"
+  class="fixed top-0 left-0 z-50 flex h-screen flex-col border-r border-gray-200 bg-gradient-to-b from-white to-gray-50 px-4 text-gray-900 shadow-sm transition-all duration-300 ease-in-out dark:border-gray-800 dark:from-gray-900 dark:to-gray-900"
   [ngClass]="{
     'w-[290px]': (isExpanded$ | async) || (isMobileOpen$ | async) || (isHovered$ | async),
     'w-[90px]': !((isExpanded$ | async) || (isMobileOpen$ | async) || (isHovered$ | async)),
@@ -10,25 +10,35 @@
   (mouseenter)="onSidebarMouseEnter()"
   (mouseleave)="sidebarService.setHovered(false)">
   <div
-    class="flex py-8"
+    class="flex py-6"
     [ngClass]="{
       'xl:justify-center': !((isExpanded$ | async) || (isHovered$ | async)),
       'justify-start': (isExpanded$ | async) || (isHovered$ | async)
     }">
-    <a routerLink="/" class="text-brand-600 dark:text-brand-400">
+    <a routerLink="/" class="group flex items-center gap-2.5 text-brand-700 dark:text-brand-300">
+      <span class="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-sm font-bold text-white shadow-sm">
+        NC
+      </span>
       @if ((isExpanded$ | async) || (isHovered$ | async) || (isMobileOpen$ | async)) {
-        <span class="text-lg font-semibold tracking-tight">NephroCare Admin</span>
-      } @else {
-        <span class="text-lg font-bold">NC</span>
+        <span class="leading-tight">
+          <span class="block text-sm font-semibold tracking-tight">NephroCare</span>
+          <span class="block text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Back Office</span>
+        </span>
       }
     </a>
   </div>
 
-  <div class="no-scrollbar flex flex-col overflow-y-auto duration-300 ease-linear">
+  <div class="mb-4 rounded-xl border border-gray-200 bg-white/70 px-3 py-2 text-xs text-gray-600 dark:border-gray-800 dark:bg-gray-900/60 dark:text-gray-300"
+       [style.display]="((isExpanded$ | async) || (isHovered$ | async) || (isMobileOpen$ | async)) ? 'block' : 'none'">
+    <span class="font-semibold text-gray-800 dark:text-gray-100">Operations</span>
+    <span class="ml-1">workspace</span>
+  </div>
+
+  <div class="no-scrollbar flex flex-col overflow-y-auto pb-4 duration-300 ease-linear">
     <nav class="mb-6">
       <div class="mb-4">
         <h2
-          class="mb-3 flex text-xs uppercase leading-[20px] tracking-wide text-gray-400"
+          class="mb-2 flex px-1 text-[11px] uppercase leading-[20px] tracking-[0.14em] text-gray-400"
           [ngClass]="{
             'xl:justify-center': !((isExpanded$ | async) || (isHovered$ | async)),
             'justify-start': (isExpanded$ | async) || (isHovered$ | async)
@@ -40,7 +50,7 @@
           }
         </h2>
 
-        <ul class="flex flex-col gap-1">
+        <ul class="flex flex-col gap-1.5">
           @for (nav of navItems; track $index; let i = $index) {
             <li>
               @if (nav.subItems) {
@@ -72,7 +82,7 @@
                   [ngStyle]="{
                     height: openSubmenu === 'main-' + i ? (subMenuHeights['main-' + i] || 0) + 'px' : '0px'
                   }">
-                  <ul class="ml-9 mt-2 space-y-1">
+                  <ul class="ml-8 mt-2 space-y-1.5 border-l border-gray-200 pl-3 dark:border-gray-800">
                     @for (subItem of nav.subItems; track $index) {
                       <li>
                         <a

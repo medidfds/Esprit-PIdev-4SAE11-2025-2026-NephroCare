@@ -1,27 +1,29 @@
 import { Injectable, OnDestroy } from '@angular/core';
-import { BehaviorSubject, interval, Subscription } from 'rxjs';
+import { BehaviorSubject, interval, Subscription, forkJoin } from 'rxjs';
 import { KeycloakService } from 'keycloak-angular';
 import { HospitalizationService } from './hospitalization.service';
+import { RoomService, Room } from './Room.service';
 
 export interface CriticalNotification {
-  id: string;
+  id:                string;
   hospitalizationId: number;
-  patientId: number;
-  roomNumber: string;
-  type: 'temperature' | 'heartRate' | 'oxygenSaturation' | 'respiratoryRate' | 'multiple';
-  message: string;
-  details: string[];
-  severity: 'critical' | 'warning';
-  timestamp: Date;
-  read: boolean;
-  acknowledged: boolean;
+  patientId:         string;
+  roomId:            number | null;
+  roomNumber:        string;          // resolved from RoomService
+  type:              'temperature' | 'heartRate' | 'oxygenSaturation' | 'respiratoryRate' | 'multiple';
+  message:           string;
+  details:           string[];
+  severity:          'critical' | 'warning';
+  timestamp:         Date;
+  read:              boolean;
+  acknowledged:      boolean;
 }
 
 export interface ToastAlert {
-  id: string;
-  message: string;
-  details: string[];
-  severity: 'critical' | 'warning';
+  id:        string;
+  message:   string;
+  details:   string[];
+  severity:  'critical' | 'warning';
   roomNumber: string;
   timestamp: Date;
 }
@@ -33,16 +35,15 @@ export class NotificationService implements OnDestroy {
 
   private notifications$ = new BehaviorSubject<CriticalNotification[]>([]);
   private toasts$        = new BehaviorSubject<ToastAlert[]>([]);
-  private pollSub?: Subscription;
+  private pollSub?:      Subscription;
 
-  // Audio instance — loaded once, reused
+  // ── Room lookup map (populated once, refreshed each poll) ──────────────
+  private roomMap = new Map<number, Room>();
+
   private alertAudio = new Audio('assets/template/sounds/alert.mp3');
 
-  /** Observable that components subscribe to */
   notifications = this.notifications$.asObservable();
-
-  /** Observable for toast popups */
-  toasts = this.toasts$.asObservable();
+  toasts        = this.toasts$.asObservable();
 
   get unreadCount(): number {
     return this.notifications$.value.filter(n => !n.read).length;
@@ -53,7 +54,8 @@ export class NotificationService implements OnDestroy {
   }
 
   constructor(
-    private hospService: HospitalizationService,
+    private hospService:  HospitalizationService,
+    private roomService:  RoomService,
     private keycloakService: KeycloakService
   ) {
     if (this.keycloakService.isUserInRole('doctor')) {
@@ -70,13 +72,26 @@ export class NotificationService implements OnDestroy {
   }
 
   private checkForCriticals(): void {
-    this.hospService.getAll().subscribe({
-      next: (data: any[]) => {
+    // Load rooms + hospitalizations in parallel so we can resolve roomNumber
+    forkJoin({
+      hospitalizations: this.hospService.getAll(),
+      rooms:            this.roomService.getAll()
+    }).subscribe({
+      next: ({ hospitalizations, rooms }) => {
+        // Rebuild room lookup map on every poll (handles room changes)
+        this.roomMap = new Map((rooms as Room[]).map(r => [r.id, r]));
+
         const currentNotifs = this.notifications$.value;
         const newNotifs: CriticalNotification[] = [];
 
-        data.forEach(h => {
+        (hospitalizations as any[]).forEach(h => {
           if (!h.vitalSignsRecords?.length) return;
+
+          // Resolve roomId from either h.roomId (new) or h.room?.id (legacy)
+          const roomId: number | null = h.roomId ?? h.room?.id ?? null;
+          const roomNumber = roomId != null
+            ? (this.roomMap.get(roomId)?.roomNumber ?? `#${roomId}`)
+            : '—';
 
           h.vitalSignsRecords.forEach((vs: any) => {
             const alerts = this.evaluateVitals(vs);
@@ -92,19 +107,20 @@ export class NotificationService implements OnDestroy {
               alerts.length > 1 ? 'multiple' : alerts[0].type;
 
             newNotifs.push({
-              id: notifId,
+              id:                notifId,
               hospitalizationId: h.id,
-              patientId: h.userId,
-              roomNumber: h.roomNumber || '—',
+              patientId:         h.userId ?? '—',
+              roomId,
+              roomNumber,
               type,
               message: severity === 'critical'
-                ? `Critical vitals — Room ${h.roomNumber || '—'} · Patient #${h.userId}`
-                : `Abnormal vitals — Room ${h.roomNumber || '—'} · Patient #${h.userId}`,
-              details: alerts.map(a => a.message),
+                ? `Critical vitals — Room ${roomNumber} · Patient #${h.userId}`
+                : `Abnormal vitals — Room ${roomNumber} · Patient #${h.userId}`,
+              details:     alerts.map(a => a.message),
               severity,
-              timestamp: new Date(vs.recordDate),
-              read: false,
-              acknowledged: false
+              timestamp:   new Date(vs.recordDate),
+              read:        false,
+              acknowledged: false,
             });
           });
         });
@@ -116,8 +132,6 @@ export class NotificationService implements OnDestroy {
             return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
           });
           this.notifications$.next(merged);
-
-          // ── Fire sound + toasts for each new alert ────────────────────
           this.playAlertSound(newNotifs.some(n => n.severity === 'critical'));
           newNotifs.forEach(n => this.showToast(n));
         }
@@ -130,11 +144,9 @@ export class NotificationService implements OnDestroy {
 
   private playAlertSound(isCritical: boolean): void {
     try {
-      this.alertAudio.volume = isCritical ? 1.0 : 0.5; // louder for critical
-      this.alertAudio.currentTime = 0;                  // rewind to start
-      this.alertAudio.play().catch(() => {
-        // Browser blocks autoplay until user has interacted with the page — safe to ignore
-      });
+      this.alertAudio.volume      = isCritical ? 1.0 : 0.5;
+      this.alertAudio.currentTime = 0;
+      this.alertAudio.play().catch(() => {});
     } catch (e) {
       console.warn('Could not play alert sound', e);
     }
@@ -146,23 +158,18 @@ export class NotificationService implements OnDestroy {
     const toast: ToastAlert = {
       id:         notif.id,
       message:    notif.message,
-      details:    notif.details.slice(0, 2), // show max 2 detail lines in popup
+      details:    notif.details.slice(0, 2),
       severity:   notif.severity,
       roomNumber: notif.roomNumber,
-      timestamp:  notif.timestamp
+      timestamp:  notif.timestamp,
     };
-
-    const current = this.toasts$.value;
-    this.toasts$.next([toast, ...current]);
-
-    // Auto-dismiss after 6 seconds (critical) or 4 seconds (warning)
+    this.toasts$.next([toast, ...this.toasts$.value]);
     const ttl = notif.severity === 'critical' ? 6000 : 4000;
     setTimeout(() => this.dismissToast(toast.id), ttl);
   }
 
   dismissToast(id: string): void {
-    const updated = this.toasts$.value.filter(t => t.id !== id);
-    this.toasts$.next(updated);
+    this.toasts$.next(this.toasts$.value.filter(t => t.id !== id));
   }
 
   // ── Clinical thresholds ───────────────────────────────────────────────────
@@ -174,39 +181,27 @@ export class NotificationService implements OnDestroy {
     const alerts: { type: CriticalNotification['type']; message: string; critical: boolean }[] = [];
 
     if (vs.temperature != null) {
-      if (vs.temperature > 39.5)
-        alerts.push({ type: 'temperature', message: `High fever: ${vs.temperature}°C (>39.5°C)`, critical: true });
-      else if (vs.temperature > 38)
-        alerts.push({ type: 'temperature', message: `Fever: ${vs.temperature}°C (>38°C)`, critical: false });
-      else if (vs.temperature < 35)
-        alerts.push({ type: 'temperature', message: `Hypothermia: ${vs.temperature}°C (<35°C)`, critical: true });
-      else if (vs.temperature < 36)
-        alerts.push({ type: 'temperature', message: `Low temperature: ${vs.temperature}°C (<36°C)`, critical: false });
+      if      (vs.temperature > 39.5) alerts.push({ type: 'temperature', message: `High fever: ${vs.temperature}°C (>39.5°C)`,    critical: true  });
+      else if (vs.temperature > 38)   alerts.push({ type: 'temperature', message: `Fever: ${vs.temperature}°C (>38°C)`,            critical: false });
+      else if (vs.temperature < 35)   alerts.push({ type: 'temperature', message: `Hypothermia: ${vs.temperature}°C (<35°C)`,      critical: true  });
+      else if (vs.temperature < 36)   alerts.push({ type: 'temperature', message: `Low temperature: ${vs.temperature}°C (<36°C)`,  critical: false });
     }
 
     if (vs.heartRate != null) {
-      if (vs.heartRate > 150)
-        alerts.push({ type: 'heartRate', message: `Severe tachycardia: ${vs.heartRate} bpm (>150)`, critical: true });
-      else if (vs.heartRate > 100)
-        alerts.push({ type: 'heartRate', message: `Tachycardia: ${vs.heartRate} bpm (>100)`, critical: false });
-      else if (vs.heartRate < 40)
-        alerts.push({ type: 'heartRate', message: `Severe bradycardia: ${vs.heartRate} bpm (<40)`, critical: true });
-      else if (vs.heartRate < 60)
-        alerts.push({ type: 'heartRate', message: `Bradycardia: ${vs.heartRate} bpm (<60)`, critical: false });
+      if      (vs.heartRate > 150) alerts.push({ type: 'heartRate', message: `Severe tachycardia: ${vs.heartRate} bpm (>150)`, critical: true  });
+      else if (vs.heartRate > 100) alerts.push({ type: 'heartRate', message: `Tachycardia: ${vs.heartRate} bpm (>100)`,        critical: false });
+      else if (vs.heartRate < 40)  alerts.push({ type: 'heartRate', message: `Severe bradycardia: ${vs.heartRate} bpm (<40)`,  critical: true  });
+      else if (vs.heartRate < 60)  alerts.push({ type: 'heartRate', message: `Bradycardia: ${vs.heartRate} bpm (<60)`,         critical: false });
     }
 
     if (vs.oxygenSaturation != null) {
-      if (vs.oxygenSaturation < 90)
-        alerts.push({ type: 'oxygenSaturation', message: `Critical SpO₂: ${vs.oxygenSaturation}% (<90%)`, critical: true });
-      else if (vs.oxygenSaturation < 95)
-        alerts.push({ type: 'oxygenSaturation', message: `Low SpO₂: ${vs.oxygenSaturation}% (<95%)`, critical: false });
+      if      (vs.oxygenSaturation < 90) alerts.push({ type: 'oxygenSaturation', message: `Critical SpO₂: ${vs.oxygenSaturation}% (<90%)`, critical: true  });
+      else if (vs.oxygenSaturation < 95) alerts.push({ type: 'oxygenSaturation', message: `Low SpO₂: ${vs.oxygenSaturation}% (<95%)`,      critical: false });
     }
 
     if (vs.respiratoryRate != null) {
-      if (vs.respiratoryRate > 30 || vs.respiratoryRate < 8)
-        alerts.push({ type: 'respiratoryRate', message: `Critical resp. rate: ${vs.respiratoryRate}/min`, critical: true });
-      else if (vs.respiratoryRate > 20 || vs.respiratoryRate < 12)
-        alerts.push({ type: 'respiratoryRate', message: `Abnormal resp. rate: ${vs.respiratoryRate}/min`, critical: false });
+      if      (vs.respiratoryRate > 30 || vs.respiratoryRate < 8)  alerts.push({ type: 'respiratoryRate', message: `Critical resp. rate: ${vs.respiratoryRate}/min`,  critical: true  });
+      else if (vs.respiratoryRate > 20 || vs.respiratoryRate < 12) alerts.push({ type: 'respiratoryRate', message: `Abnormal resp. rate: ${vs.respiratoryRate}/min`,   critical: false });
     }
 
     return alerts;
@@ -215,22 +210,19 @@ export class NotificationService implements OnDestroy {
   // ── Public actions ────────────────────────────────────────────────────────
 
   markAllRead(): void {
-    const updated = this.notifications$.value.map(n => ({ ...n, read: true }));
-    this.notifications$.next(updated);
+    this.notifications$.next(this.notifications$.value.map(n => ({ ...n, read: true })));
   }
 
   markRead(id: string): void {
-    const updated = this.notifications$.value.map(n =>
+    this.notifications$.next(this.notifications$.value.map(n =>
       n.id === id ? { ...n, read: true } : n
-    );
-    this.notifications$.next(updated);
+    ));
   }
 
   acknowledge(id: string): void {
-    const updated = this.notifications$.value.map(n =>
+    this.notifications$.next(this.notifications$.value.map(n =>
       n.id === id ? { ...n, acknowledged: true, read: true } : n
-    );
-    this.notifications$.next(updated);
+    ));
   }
 
   clearAll(): void {

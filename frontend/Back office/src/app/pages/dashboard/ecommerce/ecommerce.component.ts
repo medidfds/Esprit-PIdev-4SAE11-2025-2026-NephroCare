@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { ClinicalService, DoctorEfficiencyMetric } from '../../../services/clinical.service';
 
 type DashboardModule = {
   name: string;
@@ -22,18 +23,21 @@ type RoleArea = {
   ],
   templateUrl: './ecommerce.component.html',
 })
-export class EcommerceComponent {
+export class EcommerceComponent implements OnInit {
   readonly today = new Date();
+  doctorEfficiency: DoctorEfficiencyMetric[] = [];
+  loadingDoctorEfficiency = true;
+  doctorEfficiencyError: string | null = null;
 
   readonly projectModules: DashboardModule[] = [
     {
-      name: 'Clinical Service',
+      name: 'Clinical Module',
       description: 'Consultations, medical histories, triage queue and doctor assignment flows.',
       route: '/clinical',
       status: 'active'
     },
     {
-      name: 'Hospitalization Service',
+      name: 'Hospitalization Module',
       description: 'In-patient records, room follow-up, vitals and doctor workload statistics.',
       route: '/hospitalization',
       status: 'active'
@@ -51,9 +55,39 @@ export class EcommerceComponent {
       status: 'monitoring'
     },
     {
-      name: 'Dialysis Module',
+      name: 'Pharmacy Module',
+      description: 'Medication workflows, prescription support and stock operations.',
+      route: '/pharmacy',
+      status: 'active'
+    },
+    {
+      name: 'Pharmacy Stock Analytics',
+      description: 'Stock trends, movement indicators and pharmacy performance insights.',
+      route: '/statistique-pharmacy',
+      status: 'monitoring'
+    },
+    {
+      name: 'Diagnostic Module',
+      description: 'Diagnostic orders and result management for lab and imaging processes.',
+      route: '/diagnostic',
+      status: 'active'
+    },
+    {
+      name: 'Diagnostic Results',
+      description: 'Structured review of lab findings and image interpretation records.',
+      route: '/diagnostic-result',
+      status: 'active'
+    },
+    {
+      name: 'Dialysis Management',
       description: 'Treatment plan/session execution and patient dialysis lifecycle follow-up.',
-      route: '/calendar',
+      route: '/dialysis/treatments',
+      status: 'monitoring'
+    },
+    {
+      name: 'Dialysis Settings',
+      description: 'Administrative parameters and configuration for dialysis operations.',
+      route: '/dialysis/admin/settings',
       status: 'monitoring'
     },
     {
@@ -71,4 +105,71 @@ export class EcommerceComponent {
     { role: 'Lab / Radiology', responsibilities: 'Diagnostic result entry and imaging/lab workflows.' },
     { role: 'Admin', responsibilities: 'System governance, account lifecycle, and module supervision.' }
   ];
+
+  constructor(private clinicalService: ClinicalService) {}
+
+  ngOnInit(): void {
+    this.loadDoctorEfficiency();
+  }
+
+  get topDoctorEfficiency(): DoctorEfficiencyMetric[] {
+    return this.doctorEfficiency.slice(0, 5);
+  }
+
+  get bestEfficiencyScore(): number {
+    return this.topDoctorEfficiency.length > 0 ? this.topDoctorEfficiency[0].efficiencyScore : 0;
+  }
+
+  get averageSlaRespectRate(): number {
+    if (this.topDoctorEfficiency.length === 0) {
+      return 0;
+    }
+    const total = this.topDoctorEfficiency.reduce((sum, item) => sum + item.slaRespectRate, 0);
+    return total / this.topDoctorEfficiency.length;
+  }
+
+  get totalTrackedCases(): number {
+    return this.topDoctorEfficiency.reduce((sum, item) => sum + item.assignedCases, 0);
+  }
+
+  getEfficiencyTone(score: number): string {
+    if (score >= 80) {
+      return 'Excellent';
+    }
+    if (score >= 60) {
+      return 'Good';
+    }
+    if (score >= 40) {
+      return 'Average';
+    }
+    return 'Low';
+  }
+
+  getEfficiencyToneClass(score: number): string {
+    if (score >= 80) {
+      return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300';
+    }
+    if (score >= 60) {
+      return 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300';
+    }
+    if (score >= 40) {
+      return 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300';
+    }
+    return 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300';
+  }
+
+  private loadDoctorEfficiency(): void {
+    this.loadingDoctorEfficiency = true;
+    this.doctorEfficiencyError = null;
+    this.clinicalService.getDoctorEfficiency().subscribe({
+      next: (metrics) => {
+        this.doctorEfficiency = metrics ?? [];
+        this.loadingDoctorEfficiency = false;
+      },
+      error: (err) => {
+        this.loadingDoctorEfficiency = false;
+        this.doctorEfficiencyError = err.message || 'Failed to load doctor efficiency metrics';
+      }
+    });
+  }
 }

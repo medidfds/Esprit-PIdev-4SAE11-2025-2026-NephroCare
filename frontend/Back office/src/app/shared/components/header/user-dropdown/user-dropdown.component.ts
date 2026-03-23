@@ -13,13 +13,34 @@ import { KeycloakService } from 'keycloak-angular';
 })
 export class UserDropdownComponent implements OnInit {
   isOpen = false;
-  username: string = '';
+  username = 'User';
+  displayName = 'User';
+  email = '';
 
   constructor(private keycloakService: KeycloakService) {}
 
-  ngOnInit(): void {
-    const tokenParsed = this.keycloakService.getKeycloakInstance().tokenParsed as Record<string, any>;
-    this.username = tokenParsed['preferred_username'] || 'User';
+  async ngOnInit(): Promise<void> {
+    try {
+      const tokenParsed = this.keycloakService.getKeycloakInstance().tokenParsed as Record<string, any>;
+      this.username = tokenParsed?.['preferred_username'] || 'User';
+
+      const profile = await this.keycloakService.loadUserProfile();
+      const fullName = `${profile.firstName ?? ''} ${profile.lastName ?? ''}`.trim();
+      this.displayName = fullName || profile.username || this.username;
+      this.email = profile.email ?? '';
+    } catch (err) {
+      console.error('Failed to resolve navbar user profile', err);
+      this.displayName = this.username;
+      this.email = '';
+    }
+  }
+
+  get initials(): string {
+    const parts = this.displayName.trim().split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    }
+    return this.displayName.charAt(0).toUpperCase() || 'U';
   }
 
   toggleDropdown() {

@@ -11,5 +11,11 @@ export function initializeKeycloak(keycloak: KeycloakService) {
                 pkceMethod: 'S256',
             },
             enableBearerInterceptor: false, // because you use your own interceptor
+            // ✅ exclure le pharmacy service du token Bearer
+            bearerExcludedUrls: [
+                'http://localhost:8070/pharmacy',
+                'http://localhost:8070/pharmacy/api',
+                'http://localhost:8070/pharmacy/api/stock',
+            ],
         });
 }

@@ -109,6 +109,7 @@ public class MapperUtil {
         dto.setRecommendedMaxWaitMinutes(queueItem.getMaxWaitMinutes());
         dto.setDeadlineAt(queueItem.getDeadlineAt());
         dto.setQueueStatus(queueItem.getStatus());
+        dto.setSepsisAlert(queueItem.isSepsisAlert());
         return dto;
     }
 
@@ -132,6 +133,7 @@ public class MapperUtil {
         dto.setLastEscalationAt(queueItem.getLastEscalationAt());
         dto.setManualOverride(queueItem.isManualOverride());
         dto.setOverrideReason(queueItem.getOverrideReason());
+        dto.setSepsisAlert(queueItem.isSepsisAlert());
         return dto;
     }
 }

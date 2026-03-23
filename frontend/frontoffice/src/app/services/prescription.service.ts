@@ -60,4 +60,7 @@ export class PrescriptionService {
   delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
+   getByUser(userId: string): Observable<Prescription[]> {
+    return this.http.get<Prescription[]>(`${this.baseUrl}/user/${userId}`);
+  }
 }

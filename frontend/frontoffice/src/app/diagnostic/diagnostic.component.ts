@@ -13,7 +13,7 @@ import {
 
 interface DiagnosticOrder {
   id?: string;
-  orderType: string;
+  orderType?: string;
   testName: string;
   orderDate: string;
   priority: string;

@@ -20,6 +20,9 @@ import { ClinicalComponent } from './pages/clinical/clinical.component';
 import { TreatmentListComponent } from './pages/dialysis/treatment-list/treatment-list.component';
 import { SessionListComponent } from './pages/dialysis/session-list/session-list.component';
 import { ConsultationsCalendarComponent } from './pages/consultations-calendar/consultations-calendar.component';
+import { HospitalArchitectureComponent } from './pages/dashboard/hospital-architecture/hospital-architecture.component';
+import { StatistiquePharmacyComponent } from './pages/stock/statistique-pharmacy/statistique-pharmacy.component';
+import { DiagnosticResultComponent } from './pages/dashboard/diagnostic-result/diagnostic-result.component';
 
 
 import { RoleGuard } from './guards/role.guard';
@@ -60,12 +63,17 @@ export const routes: Routes = [
       /*{ path: 'pharmacy', component: PharmacyComponent },
       { path: 'diagnosis', component: DiagnosisComponent },*/
       { path: 'hospitalization', component: HospitalizationComponent },
+      { path: 'diagnostic', component: DiagnosticComponent },
       { path: 'statistique-hospitalization', component: StatistiqueHospitalizationComponent },
+      { path: 'architecture', component: HospitalArchitectureComponent }, // Placeholder for architecture overview
       { path: 'clinical', component: ClinicalComponent },
       { path: 'pharmacy', component: PharmacyComponent },
+       { path: 'statistique-pharmacy', component: StatistiquePharmacyComponent },
       { path: 'consultations-calendar', component: ConsultationsCalendarComponent },
       {path: 'diagnostic', component: DiagnosticComponent},
-      // --- Dialysis Routes ---
+      { path: 'diagnostic-result', component: DiagnosticResultComponent },
+
+     // --- Dialysis Routes ---
       {
         path: 'dialysis/treatments',
         component: TreatmentListComponent,

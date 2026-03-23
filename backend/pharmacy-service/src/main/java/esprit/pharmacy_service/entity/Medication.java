@@ -1,6 +1,7 @@
 package esprit.pharmacy_service.entity;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import esprit.pharmacy_service.entity.Enumerations.MedicationRoute;
@@ -15,7 +16,7 @@ import java.time.LocalDate;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonInclude(JsonInclude.Include.ALWAYS)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Medication {
 
     @Id
@@ -49,7 +50,11 @@ public class Medication {
     @JsonProperty
     private LocalDate endDate;
 
+    @JsonProperty
+    private String userId;
+
     @ManyToOne
     @JoinColumn(name = "prescription_id")
+    @JsonIgnore
     private Prescription prescription;
 }

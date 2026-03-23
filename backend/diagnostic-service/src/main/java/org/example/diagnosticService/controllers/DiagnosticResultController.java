@@ -8,7 +8,8 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/diagnostic-results")
-public class DiagnosticResultController {
+public class
+DiagnosticResultController {
     @Autowired
     private DiagnosticResultService service;
 
