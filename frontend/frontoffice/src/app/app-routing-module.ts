@@ -11,6 +11,7 @@ import { ClinicalComponent } from './clinical/clinical.component';
 import { PharmacyComponent } from './pharmacy/pharmacy.component';
 import { BadgeViewerComponent } from './pages/badge-viewer/badge-viewer.component';
 import { DiagnosticResultComponent } from './diagnostic-result/diagnostic-result.component';
+import { DialysisPortalComponent } from './dialysis/pages/dialysis-portal/dialysis-portal.component';
 
 
 const routes: Routes = [
@@ -38,6 +39,10 @@ const routes: Routes = [
     component: DiagnosticCalendarComponent,
     canActivate: [AuthGuard],
     data: { roles: ['labTech'] }
+  },
+   {
+    path: 'dialysis-portal',
+    component: DialysisPortalComponent
   },
   {
     path: 'clinical',

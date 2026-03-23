@@ -1,95 +1,36 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
-import { interval, of, Subscription } from 'rxjs';
-import { catchError, startWith, switchMap } from 'rxjs/operators';
-import { KeycloakService } from 'keycloak-angular';
 import { DropdownComponent } from '../../ui/dropdown/dropdown.component';
 import { DropdownItemComponent } from '../../ui/dropdown/dropdown-item/dropdown-item.component';
-
-export interface DiagnosticNotification {
-  id: string;
-  type: string;
-  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-  title: string;
-  message: string;
-  targetUserId: string;
-  relatedOrderId?: string;
-  isRead: boolean;
-  isAcknowledged: boolean;
-  createdAt: string;
-}
+import { NotificationService, Toast } from '../../../../services/notification.service';
 
 @Component({
   selector: 'app-notification-dropdown',
   templateUrl: './notification-dropdown.component.html',
   imports: [CommonModule, RouterModule, DropdownComponent, DropdownItemComponent]
 })
-export class NotificationDropdownComponent implements OnInit, OnDestroy {
-  private readonly baseUrl = 'http://localhost:8070/diagnostic/notifications';
-  // No notifications endpoint exists yet in diagnostic-service.
-  // Keep false to avoid repeated 404 requests from the browser.
-  private readonly notificationsEnabled = false;
-
-  currentUserId = '';
+export class NotificationDropdownComponent implements OnInit {
   isOpen = false;
   notifying = false;
-  notifications: DiagnosticNotification[] = [];
-  private notificationsEndpointDisabled = false;
+  toasts: Toast[] = [];
+  unreadCount = 0;
 
-  private pollSub!: Subscription;
-
-  constructor(
-    private http: HttpClient,
-    private keycloakService: KeycloakService
-  ) {}
+  constructor(private notif: NotificationService) {}
 
   ngOnInit(): void {
-    if (!this.notificationsEnabled) {
-      return;
-    }
-
-    this.currentUserId = this.resolveCurrentUserId();
-    if (!this.currentUserId) {
-      return;
-    }
-
-    this.pollSub = interval(30_000)
-      .pipe(
-        startWith(0),
-        switchMap(() => {
-          if (this.notificationsEndpointDisabled) {
-            return of([] as DiagnosticNotification[]);
-          }
-          return this.http
-            .get<DiagnosticNotification[]>(`${this.baseUrl}/user/${this.currentUserId}`)
-            .pipe(
-              catchError((err) => {
-                if (err?.status === 404) {
-                  this.notificationsEndpointDisabled = true;
-                } else {
-                  console.error('Notification error', err);
-                }
-                return of([] as DiagnosticNotification[]);
-              })
-            );
-        })
-      )
-      .subscribe((data) => {
-        this.notifications = data;
-        this.notifying = data.some((n) => !n.isRead);
-      });
-  }
-
-  ngOnDestroy(): void {
-    this.pollSub?.unsubscribe();
+    this.notif.toasts.subscribe((t: Toast[]) => {
+      this.toasts = t;
+      this.unreadCount = t.filter(n => !n.read).length;
+      this.notifying = this.unreadCount > 0;
+    });
   }
 
   toggleDropdown(): void {
     this.isOpen = !this.isOpen;
-    if (this.isOpen && this.unreadCount > 0) {
-      this.markAllRead();
+    if (this.isOpen) {
+      this.notif.markAllRead();
+      this.notifying = false;
     }
   }
 
@@ -97,84 +38,47 @@ export class NotificationDropdownComponent implements OnInit, OnDestroy {
     this.isOpen = false;
   }
 
-  markAllRead(): void {
-    if (!this.currentUserId) {
-      return;
-    }
-
-    this.http
-      .put<void>(`${this.baseUrl}/user/${this.currentUserId}/read-all`, null)
-      .pipe(catchError(() => of(void 0)))
-      .subscribe(() => {
-        this.notifications.forEach((n) => (n.isRead = true));
-        this.notifying = false;
-      });
-  }
-
-  acknowledge(notif: DiagnosticNotification, event: MouseEvent): void {
+  remove(id: string, event: Event): void {
     event.stopPropagation();
-    if (!this.currentUserId) {
-      return;
-    }
-
-    this.http
-      .put<DiagnosticNotification>(`${this.baseUrl}/${notif.id}/acknowledge`, null, {
-        params: { by: this.currentUserId }
-      })
-      .pipe(catchError(() => of(notif)))
-      .subscribe(() => {
-        notif.isAcknowledged = true;
-        notif.isRead = true;
-      });
+    this.notif.remove(id);
   }
 
-  get unreadCount(): number {
-    return this.notifications.filter((n) => !n.isRead).length;
+  clearAll(): void {
+    this.notif.clearAll();
   }
 
-  get hasCritical(): boolean {
-    return this.notifications.some((n) => n.severity === 'CRITICAL' && !n.isAcknowledged);
-  }
-
-  severityIcon(severity: string): string {
-    switch (severity) {
-      case 'CRITICAL':
-        return 'Critical';
-      case 'HIGH':
-        return 'High';
-      case 'MEDIUM':
-        return 'Medium';
-      default:
-        return 'Info';
-    }
-  }
-
-  severityDotClass(severity: string): string {
-    switch (severity) {
-      case 'CRITICAL':
-        return 'bg-red-500';
-      case 'HIGH':
-        return 'bg-orange-500';
-      case 'MEDIUM':
-        return 'bg-yellow-400';
-      default:
-        return 'bg-gray-400';
-    }
-  }
-
-  timeAgo(dateStr: string): string {
-    if (!dateStr) return '';
-    const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-    if (diff < 60) return "A l'instant";
+  timeAgo(date: Date): string {
+    const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+    if (diff < 60) return 'Just now';
     if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)} h ago`;
-    return `${Math.floor(diff / 86400)} j ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`;
+    return `${Math.floor(diff / 86400)} days ago`;
   }
 
-  private resolveCurrentUserId(): string {
-    const token: any = this.keycloakService.getKeycloakInstance()?.tokenParsed;
-    const candidate = token?.preferred_username || token?.sub || '';
-    return String(candidate || '').trim();
+  iconFor(type: string): string {
+    const icons: Record<string, string> = {
+      success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️'
+    };
+    return icons[type] || '🔔';
+  }
+
+  bgFor(type: string): string {
+    const colors: Record<string, string> = {
+      success: 'bg-green-100 dark:bg-green-500/10',
+      error:   'bg-red-100 dark:bg-red-500/10',
+      warning: 'bg-yellow-100 dark:bg-yellow-500/10',
+      info:    'bg-blue-100 dark:bg-blue-500/10'
+    };
+    return colors[type] || 'bg-gray-100';
+  }
+
+  borderFor(type: string): string {
+    const borders: Record<string, string> = {
+      success: 'border-l-4 border-green-400',
+      error:   'border-l-4 border-red-400',
+      warning: 'border-l-4 border-yellow-400',
+      info:    'border-l-4 border-blue-400'
+    };
+    return borders[type] || '';
   }
 }
-

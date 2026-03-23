@@ -48,6 +48,7 @@ function initializeKeycloak(keycloak: KeycloakService) {
     PharmacyComponent,
     DiagnosticCalendarComponent,
     DiagnosticResultComponent
+    
   ],
   imports: [
     CommonModule,

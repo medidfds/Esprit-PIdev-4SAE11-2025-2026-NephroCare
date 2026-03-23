@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AppModalComponent } from '../../../../../shared/components/ui/app-modal/app-modal.component';
 import { ButtonComponent } from '../../../../../shared/components/ui/button/button.component';
-import { SessionReportDto } from '../../../../../shared/services/dialysis.service';
+import {DialysisService, SessionReportDto} from '../../../../../shared/services/dialysis.service';
 
 @Component({
     selector: 'app-session-report-modal',
@@ -11,6 +11,7 @@ import { SessionReportDto } from '../../../../../shared/services/dialysis.servic
     templateUrl: './session-report-modal.component.html',
 })
 export class SessionReportModalComponent {
+    constructor(private dialysisService: DialysisService) {}
     @Input() open = false;
     @Input() busy = false;
     @Input() report: SessionReportDto | null = null;
@@ -31,7 +32,7 @@ export class SessionReportModalComponent {
         return path.split('.').reduce((acc: any, key: string) => (acc && acc[key] != null ? acc[key] : null), obj);
     }
 
-    recommendationsList(): string[] {
+    recommendationsList(): any[] {
         const r = this.json('recommendations');
         return Array.isArray(r) ? r : [];
     }
@@ -65,5 +66,29 @@ export class SessionReportModalComponent {
     }
     isAdequate(): boolean {
         return !!this.json('adequacy.overallAdequate');
+    }
+    riskScore(): number | null {
+        const v = this.json('decisionSupport.dialysisRiskScore');
+        return typeof v === 'number' ? v : null;
+    }
+
+    stabilityIndex(): number | null {
+        const v = this.json('decisionSupport.patientStabilityIndex');
+        return typeof v === 'number' ? v : null;
+    }
+    downloadPdf(): void {
+        const id = this.report?.sessionId;
+        if (!id) return;
+
+        this.dialysisService.downloadReportPdf(id).subscribe(blob => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dialysis-report-${id}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        });
     }
 }

@@ -9,4 +9,5 @@ import java.util.UUID;
 public interface SessionReportRepository extends JpaRepository<SessionReport, UUID> {
     Optional<SessionReport> findBySessionId(UUID sessionId);
     boolean existsBySessionId(UUID sessionId);
+
 }

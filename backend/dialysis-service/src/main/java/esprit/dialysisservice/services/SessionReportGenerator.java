@@ -1,6 +1,5 @@
 package esprit.dialysisservice.services;
 
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import esprit.dialysisservice.entities.DialysisSession;
 import esprit.dialysisservice.entities.DialysisTreatment;
@@ -10,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -23,44 +23,39 @@ public class SessionReportGenerator {
             SystemConfig cfg,
             String nurseName,
             String patientName,
-            String doctorName
+            String doctorName,
+            List<DialysisSession> historyDesc // last N completed, DESC by date
     ) {
-        double ktvTh = cfg != null && cfg.getKtvAlertThreshold() != null ? cfg.getKtvAlertThreshold() : 1.2;
+        double ktvTh = (cfg != null && cfg.getKtvAlertThreshold() != null) ? cfg.getKtvAlertThreshold() : 1.2;
         double urrTh = 65.0;
 
-        // Core values
         Double urr = session.getUrr();
         Double spKtV = session.getSpKtV();
         Double eKtV = session.getEKtV();
+        Double ktv = bestKtv(session);
 
         boolean urrOk = urr != null && urr >= urrTh;
-        boolean ktvOk = spKtV != null && spKtV >= ktvTh;
-
+        boolean ktvOk = ktv != null && ktv >= ktvTh;
         boolean adequate = urrOk && ktvOk;
 
-        // UF
-        Double uf = null;
-        if (session.getWeightBefore() != null && session.getWeightAfter() != null) {
-            uf = session.getWeightBefore() - session.getWeightAfter();
-        }
-        String ufFlag = "NORMAL";
-        if (uf != null) {
-            if (uf > 3.0) ufFlag = "HIGH_UF";
-            else if (uf < 0.5) ufFlag = "LOW_UF";
-        }
+        Double ufCalc = calcUf(session);
+        String ufFlag = ufFlag(ufCalc);
 
-        // Recommendations (rule-based)
-        List<String> rec = new ArrayList<>();
-        if (!ktvOk) rec.add("Low spKt/V: consider prescription review (duration/frequency) and check vascular access.");
-        if (!urrOk) rec.add("Low URR: verify sampling timing and evaluate clearance/access issues.");
-        if ("HIGH_UF".equals(ufFlag)) rec.add("High ultrafiltration: review dry weight and interdialytic weight gain.");
-        if ("LOW_UF".equals(ufFlag)) rec.add("Low ultrafiltration: verify target dry weight and fluid intake assessment.");
-        if (session.getComplications() != null && !session.getComplications().isBlank()) {
-            rec.add("Complications noted: ensure clinical follow-up.");
-        }
-        if (rec.isEmpty()) rec.add("No alerts. Continue current prescription and monitoring.");
+        // Advanced recs
+        List<Map<String, Object>> rec = new ArrayList<>();
+        addAdequacyRecs(rec, ktv, ktvTh, urr, urrTh, ktvOk, urrOk);
+        addUfrRecs(rec, session, treatment, ufCalc);
+        addBpRecs(rec, session.getPreBloodPressure());
+        addComplicationRecs(rec, session.getComplications());
 
-        // JSON structure
+        // ==== HISTORY-BASED ANALYTICS ====
+        HistoryStats stats = computeHistoryStats(historyDesc, session.getId());
+        int riskScore = computeRiskScore(session, treatment, ktv, ktvTh, urr, urrTh, ufCalc, stats);
+        int stabilityIndex = computeStabilityIndex(stats);
+
+        List<Map<String, Object>> anomalies = detectAnomalies(session, ktv, urr, ufCalc, stats);
+
+        // ==== JSON ====
         Map<String, Object> json = new LinkedHashMap<>();
         json.put("generatedAt", LocalDateTime.now().toString());
 
@@ -69,16 +64,13 @@ public class SessionReportGenerator {
         summary.put("sessionDate", session.getSessionDate() != null ? session.getSessionDate().toString() : null);
         summary.put("shift", session.getShift() != null ? session.getShift().toString() : null);
 
-      // IDs kept (optional)
         summary.put("nurseId", session.getNurseId() != null ? session.getNurseId().toString() : null);
         summary.put("patientId", treatment.getPatientId() != null ? treatment.getPatientId().toString() : null);
         summary.put("doctorId", treatment.getDoctorId() != null ? treatment.getDoctorId().toString() : null);
 
-     // Display labels (use these in UI)
         summary.put("nurseName", nurseName);
         summary.put("patientName", patientName);
         summary.put("doctorName", doctorName);
-
         json.put("summary", summary);
 
         Map<String, Object> treatmentInfo = new LinkedHashMap<>();
@@ -94,6 +86,7 @@ public class SessionReportGenerator {
         adequacyBlock.put("urr", urr);
         adequacyBlock.put("spKtV", spKtV);
         adequacyBlock.put("eKtV", eKtV);
+        adequacyBlock.put("bestKtv", ktv);
         adequacyBlock.put("urrThreshold", urrTh);
         adequacyBlock.put("ktvThreshold", ktvTh);
         adequacyBlock.put("urrPass", urrOk);
@@ -105,7 +98,7 @@ public class SessionReportGenerator {
         fluid.put("weightBefore", session.getWeightBefore());
         fluid.put("weightAfter", session.getWeightAfter());
         fluid.put("ultrafiltrationVolume", session.getUltrafiltrationVolume());
-        fluid.put("calculatedUF", uf);
+        fluid.put("calculatedUF", ufCalc);
         fluid.put("flag", ufFlag);
         json.put("fluid", fluid);
 
@@ -114,72 +107,464 @@ public class SessionReportGenerator {
         hemo.put("complications", session.getComplications());
         json.put("hemodynamics", hemo);
 
+        Map<String, Object> decisionSupport = new LinkedHashMap<>();
+        decisionSupport.put("dialysisRiskScore", riskScore);        // 0..100
+        decisionSupport.put("patientStabilityIndex", stabilityIndex); // 0..100
+        decisionSupport.put("historyWindow", stats.n);
+        decisionSupport.put("baseline", stats.baselineAsJson());
+        decisionSupport.put("anomalies", anomalies);
+        json.put("decisionSupport", decisionSupport);
+
         json.put("recommendations", rec);
 
-        // Text rendering (printable)
-        String text = buildText(session, treatment, ktvTh, urrTh, urrOk, ktvOk, adequate, uf, ufFlag, rec,
+        String text = buildText(session, treatment, adequate, rec, riskScore, stabilityIndex, anomalies,
                 nurseName, patientName, doctorName);
+
         try {
             String jsonStr = objectMapper.writeValueAsString(json);
             return new GeneratedReport(jsonStr, text, ktvTh, urrTh);
         } catch (Exception e) {
-            // fallback: never fail endSession due to report serialization
-            String fallbackJson = "{\"error\":\"failed_to_serialize_report\"}";
-            return new GeneratedReport(fallbackJson, text, ktvTh, urrTh);
+            return new GeneratedReport("{}", text, ktvTh, urrTh);
         }
     }
+
+    // ===============================
+    // Decision support computations
+    // ===============================
+
+    private int computeRiskScore(
+            DialysisSession session,
+            DialysisTreatment treatment,
+            Double ktv,
+            double ktvTh,
+            Double urr,
+            double urrTh,
+            Double ufCalc,
+            HistoryStats stats
+    ) {
+        int score = 0;
+
+        // adequacy risk
+        if (ktv == null) score += 10;
+        else if (ktv < ktvTh) score += 25;
+        else if (ktv < ktvTh + 0.1) score += 10;
+
+        if (urr == null) score += 10;
+        else if (urr < urrTh) score += 20;
+        else if (urr < urrTh + 2) score += 8;
+
+        // UF rate risk (needs duration & dry weight)
+        Double ufr = calcUfr(session, treatment, ufCalc);
+        if (ufr != null) {
+            if (ufr > 13) score += 25;
+            else if (ufr > 10) score += 12;
+        }
+
+        // BP risk
+        int[] bp = parseBp(session.getPreBloodPressure());
+        if (bp[0] > 0 && bp[1] > 0) {
+            int sys = bp[0], dia = bp[1];
+            if (sys >= 180 || dia >= 120) score += 30;
+            else if (sys >= 160 || dia >= 100) score += 15;
+            else if (sys < 90 || dia < 60) score += 12;
+        }
+
+        // complications risk (keywords)
+        String c = safeLower(session.getComplications());
+        if (c.contains("hypotens")) score += 20;
+        if (c.contains("cramp")) score += 10;
+        if (c.contains("bleed")) score += 15;
+        if (c.contains("chest") || c.contains("pain")) score += 20;
+
+        // trend risk: if baseline is drifting down
+        if (stats.n >= 4 && stats.ktvMean != null && ktv != null) {
+            if (ktv < stats.ktvMean - 0.15) score += 8;
+        }
+        if (stats.n >= 4 && stats.urrMean != null && urr != null) {
+            if (urr < stats.urrMean - 5) score += 8;
+        }
+
+        return clampInt(score, 0, 100);
+    }
+
+    private int computeStabilityIndex(HistoryStats stats) {
+        if (stats.n < 3) return 50; // neutral if not enough history
+
+        // lower variability => higher stability
+        double penalty = 0;
+
+        if (stats.ktvStd != null) penalty += Math.min(25, stats.ktvStd * 25); // e.g. std 0.2 -> 5
+        if (stats.urrStd != null) penalty += Math.min(25, stats.urrStd * 0.7); // e.g. std 8 -> 5.6
+        if (stats.ufStd != null)  penalty += Math.min(20, stats.ufStd * 6);   // e.g. std 0.5 -> 3
+        if (stats.bpSysStd != null) penalty += Math.min(15, stats.bpSysStd * 0.2); // std 15 -> 3
+
+        int index = (int) Math.round(100 - penalty);
+        return clampInt(index, 0, 100);
+    }
+
+    private List<Map<String, Object>> detectAnomalies(
+            DialysisSession session,
+            Double ktv,
+            Double urr,
+            Double ufCalc,
+            HistoryStats stats
+    ) {
+        List<Map<String, Object>> out = new ArrayList<>();
+        if (stats.n < 4) return out;
+
+        addZAnomaly(out, "Kt/V", ktv, stats.ktvMean, stats.ktvStd, 2.0);
+        addZAnomaly(out, "URR", urr, stats.urrMean, stats.urrStd, 2.0);
+
+        Double uf = (session.getUltrafiltrationVolume() != null) ? session.getUltrafiltrationVolume() : ufCalc;
+        addZAnomaly(out, "UF(L)", uf, stats.ufMean, stats.ufStd, 2.3);
+
+        int[] bp = parseBp(session.getPreBloodPressure());
+        if (bp[0] > 0) addZAnomaly(out, "BP_SYS", (double) bp[0], stats.bpSysMean, stats.bpSysStd, 2.3);
+
+        return out;
+    }
+
+    private void addZAnomaly(List<Map<String, Object>> out, String metric, Double value,
+                             Double mean, Double std, double threshold) {
+        if (value == null || mean == null || std == null || std <= 0.000001) return;
+        double z = (value - mean) / std;
+        if (Math.abs(z) >= threshold) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("metric", metric);
+            m.put("value", value);
+            m.put("baselineMean", mean);
+            m.put("baselineStd", std);
+            m.put("zScore", z);
+            m.put("severity", Math.abs(z) >= (threshold + 1.0) ? "HIGH" : "MEDIUM");
+            out.add(m);
+        }
+    }
+
+    private HistoryStats computeHistoryStats(List<DialysisSession> historyDesc, UUID currentSessionId) {
+        final List<DialysisSession> hist = (historyDesc == null) ? List.of() : historyDesc;
+
+        // remove current session if it exists in history
+        final List<DialysisSession> filtered = hist.stream()
+                .filter(s -> s.getId() != null && !s.getId().equals(currentSessionId))
+                .collect(Collectors.toList());
+
+        // now use `filtered` for stats
+        List<Double> ktv = filtered.stream().map(this::bestKtv).filter(Objects::nonNull).toList();
+        List<Double> urr = filtered.stream().map(DialysisSession::getUrr).filter(Objects::nonNull).toList();
+
+        List<Double> uf = filtered.stream()
+                .map(s -> s.getUltrafiltrationVolume() != null ? s.getUltrafiltrationVolume() : calcUf(s))
+                .filter(Objects::nonNull)
+                .toList();
+
+        List<Integer> sys = filtered.stream()
+                .map(s -> parseBp(s.getPreBloodPressure())[0])
+                .filter(x -> x > 0)
+                .toList();
+
+        return new HistoryStats(
+                filtered.size(),
+                mean(ktv), std(ktv),
+                mean(urr), std(urr),
+                mean(uf), std(uf),
+                meanInt(sys), stdInt(sys)
+        );
+    }
+
+    // ===============================
+    // Recommendations blocks
+    // ===============================
+
+    private void addAdequacyRecs(List<Map<String, Object>> rec, Double ktv, double ktvTh,
+                                 Double urr, double urrTh, boolean ktvOk, boolean urrOk) {
+        if (!ktvOk && !urrOk) {
+            addRec(rec, "HIGH", "Inadequate dialysis (clearance below targets)",
+                    "Kt/V=" + fmt2(ktv) + " (≥" + ktvTh + "), URR=" + fmt1(urr) + "% (≥" + urrTh + "%)",
+                    List.of(
+                            "Verify access function (recirculation/stenosis) and blood flow settings.",
+                            "Re-check pre/post urea sampling timing and documentation.",
+                            "Consider increasing effective duration or frequency if clinically appropriate."
+                    ));
+        } else if (!ktvOk) {
+            addRec(rec, "MEDIUM", "Kt/V below target",
+                    "Kt/V=" + fmt2(ktv) + " (≥" + ktvTh + ")",
+                    List.of(
+                            "Check delivered time vs prescribed time and interruptions.",
+                            "Assess access function and needle placement.",
+                            "Consider prescription review (duration, dialyzer, blood/dialysate flow)."
+                    ));
+        } else if (!urrOk) {
+            addRec(rec, "MEDIUM", "URR below target",
+                    "URR=" + fmt1(urr) + "% (≥" + urrTh + "%)",
+                    List.of(
+                            "Confirm correct sampling time (pre and post) and lab handling.",
+                            "Evaluate clearance/access performance if persistently low."
+                    ));
+        } else {
+            addRec(rec, "INFO", "Adequacy within targets",
+                    "Kt/V and URR meet thresholds for this session.",
+                    List.of("Continue current monitoring plan."));
+        }
+    }
+
+    private void addUfrRecs(List<Map<String, Object>> rec, DialysisSession session,
+                            DialysisTreatment treatment, Double ufCalc) {
+        Double ufLiters = session.getUltrafiltrationVolume();
+        if (ufLiters == null && ufCalc != null) ufLiters = ufCalc;
+
+        Double ufr = calcUfr(session, treatment, ufCalc);
+        if (ufr == null) return;
+
+        if (ufr > 13.0) {
+            addRec(rec, "HIGH", "High ultrafiltration rate (risk of hypotension/cramps)",
+                    String.format("UFR=%.1f ml/kg/h", ufr),
+                    List.of(
+                            "Reassess dry weight and interdialytic weight gain.",
+                            "Consider longer session duration or more frequent sessions if feasible.",
+                            "Monitor BP symptoms closely; document cramps/hypotension events."
+                    ));
+        } else if (ufr > 10.0) {
+            addRec(rec, "MEDIUM", "Moderately elevated ultrafiltration rate",
+                    String.format("UFR=%.1f ml/kg/h", ufr),
+                    List.of("Reinforce fluid restriction guidance and monitor tolerance."));
+        }
+    }
+
+    private void addBpRecs(List<Map<String, Object>> rec, String bpStr) {
+        int[] bp = parseBp(bpStr);
+        int sys = bp[0], dia = bp[1];
+        if (sys <= 0 || dia <= 0) return;
+
+        if (sys >= 180 || dia >= 120) {
+            addRec(rec, "HIGH", "Severely elevated pre-dialysis blood pressure",
+                    "BP=" + sys + "/" + dia,
+                    List.of("Escalate to clinician evaluation and ensure antihypertensive plan is reviewed."));
+        } else if (sys < 90 || dia < 60) {
+            addRec(rec, "MEDIUM", "Low pre-dialysis blood pressure",
+                    "BP=" + sys + "/" + dia,
+                    List.of("Assess volume status and review UF target; monitor intradialytic symptoms."));
+        }
+    }
+
+    private void addComplicationRecs(List<Map<String, Object>> rec, String complications) {
+        String c = safeLower(complications);
+        if (c.isBlank()) return;
+
+        if (c.contains("cramp")) {
+            addRec(rec, "MEDIUM", "Cramps reported", complications,
+                    List.of("Consider UF reduction or sodium profiling per protocol."));
+        }
+        if (c.contains("hypotens")) {
+            addRec(rec, "HIGH", "Intradialytic hypotension reported", complications,
+                    List.of("Review UF rate, dry weight, and BP management."));
+        }
+        if (c.contains("nausea") || c.contains("vomit")) {
+            addRec(rec, "LOW", "GI symptoms reported", complications,
+                    List.of("Monitor and document; evaluate triggers if recurrent."));
+        }
+    }
+
+    // ===============================
+    // Text rendering
+    // ===============================
 
     private String buildText(
             DialysisSession s,
             DialysisTreatment t,
-            double ktvTh,
-            double urrTh,
-            boolean urrOk,
-            boolean ktvOk,
             boolean adequate,
-            Double uf,
-            String ufFlag,
-            List<String> rec,
+            List<Map<String, Object>> rec,
+            int riskScore,
+            int stabilityIndex,
+            List<Map<String, Object>> anomalies,
             String nurseName,
             String patientName,
             String doctorName
     ) {
-
         StringBuilder sb = new StringBuilder();
+
         sb.append("Dialysis Session Report\n");
         sb.append("======================\n");
-        sb.append("Session: ").append(s.getId()).append("\n");
         sb.append("Date: ").append(s.getSessionDate()).append(" | Shift: ").append(s.getShift()).append("\n");
         sb.append("Patient: ").append(patientName).append("\n");
         sb.append("Doctor: ").append(doctorName).append("\n");
         sb.append("Nurse: ").append(nurseName).append("\n\n");
 
-        sb.append("Treatment\n");
-        sb.append("- Type: ").append(t.getDialysisType()).append("\n");
-        sb.append("- Access: ").append(t.getVascularAccessType()).append("\n");
-        sb.append("- Frequency/week: ").append(t.getFrequencyPerWeek()).append("\n");
-        sb.append("- Prescribed duration (min): ").append(t.getPrescribedDurationMinutes()).append("\n");
-        sb.append("- Target dry weight: ").append(t.getTargetDryWeight()).append("\n\n");
+        sb.append("Decision Support\n");
+        sb.append("- Dialysis Risk Score: ").append(riskScore).append("/100\n");
+        sb.append("- Patient Stability Index: ").append(stabilityIndex).append("/100\n");
+        sb.append("- Overall adequacy: ").append(adequate ? "ADEQUATE" : "INADEQUATE").append("\n\n");
 
-        sb.append("Adequacy\n");
-        sb.append("- URR: ").append(s.getUrr()).append("% (target >= ").append(urrTh).append(") -> ").append(urrOk ? "PASS" : "FAIL").append("\n");
-        sb.append("- spKt/V: ").append(s.getSpKtV()).append(" (target >= ").append(ktvTh).append(") -> ").append(ktvOk ? "PASS" : "FAIL").append("\n");
-        sb.append("- eKt/V: ").append(s.getEKtV()).append("\n");
-        sb.append("- Overall: ").append(adequate ? "ADEQUATE" : "INADEQUATE").append("\n\n");
-
-        sb.append("Fluid\n");
-        sb.append("- Weight before: ").append(s.getWeightBefore()).append(" | Weight after: ").append(s.getWeightAfter()).append("\n");
-        sb.append("- UF calc (before-after): ").append(uf).append(" | Flag: ").append(ufFlag).append("\n");
-        sb.append("- UF volume field: ").append(s.getUltrafiltrationVolume()).append("\n\n");
-
-        sb.append("Hemodynamics / Notes\n");
-        sb.append("- BP: ").append(s.getPreBloodPressure()).append("\n");
-        sb.append("- Complications: ").append(s.getComplications()).append("\n\n");
+        if (anomalies != null && !anomalies.isEmpty()) {
+            sb.append("Anomaly Detection\n");
+            for (Map<String, Object> a : anomalies) {
+                sb.append("- [").append(a.get("severity")).append("] ")
+                        .append(a.get("metric")).append(" anomaly: ")
+                        .append("value=").append(a.get("value"))
+                        .append(", z=").append(String.format("%.2f", (Double) a.get("zScore")))
+                        .append("\n");
+            }
+            sb.append("\n");
+        }
 
         sb.append("Recommendations\n");
-        for (String r : rec) sb.append("- ").append(r).append("\n");
+        for (Map<String, Object> r : rec) {
+            sb.append("- [").append(r.get("severity")).append("] ")
+                    .append(r.get("title")).append("\n");
+            sb.append("  Evidence: ").append(r.get("evidence")).append("\n");
+            @SuppressWarnings("unchecked")
+            List<String> actions = (List<String>) r.get("actions");
+            if (actions != null) {
+                for (String act : actions) sb.append("  - ").append(act).append("\n");
+            }
+        }
 
         return sb.toString();
+    }
+
+    // ===============================
+    // Helpers
+    // ===============================
+
+    private void addRec(List<Map<String, Object>> rec, String severity, String title, String evidence, List<String> actions) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("severity", severity);
+        m.put("title", title);
+        m.put("evidence", evidence);
+        m.put("actions", actions);
+        rec.add(m);
+    }
+
+    private Double bestKtv(DialysisSession s) {
+        if (s == null) return null;
+        if (s.getSpKtV() != null) return s.getSpKtV();
+        if (s.getEKtV() != null) return s.getEKtV();
+        return s.getAchievedKtV();
+    }
+
+    private Double calcUf(DialysisSession s) {
+        if (s.getWeightBefore() == null || s.getWeightAfter() == null) return null;
+        return s.getWeightBefore() - s.getWeightAfter();
+    }
+
+    private String ufFlag(Double uf) {
+        if (uf == null) return "UNKNOWN";
+        if (uf > 3.0) return "HIGH_UF";
+        if (uf < 0.5) return "LOW_UF";
+        return "NORMAL";
+    }
+
+    private Double calcUfr(DialysisSession session, DialysisTreatment treatment, Double ufCalc) {
+        Double ufLiters = session.getUltrafiltrationVolume();
+        if (ufLiters == null && ufCalc != null) ufLiters = ufCalc;
+
+        Integer durMin = treatment.getPrescribedDurationMinutes();
+        Double dry = treatment.getTargetDryWeight();
+
+        if (ufLiters == null || durMin == null || dry == null) return null;
+        if (durMin <= 0 || dry <= 0) return null;
+
+        double hours = durMin / 60.0;
+        return (ufLiters * 1000.0) / (dry * hours); // ml/kg/h
+    }
+
+    private int[] parseBp(String bp) {
+        int sys = -1, dia = -1;
+        if (bp != null && bp.contains("/")) {
+            try {
+                String[] parts = bp.trim().split("/");
+                sys = Integer.parseInt(parts[0].trim());
+                dia = Integer.parseInt(parts[1].trim());
+            } catch (Exception ignored) {}
+        }
+        return new int[]{sys, dia};
+    }
+
+    private String safeLower(String s) {
+        return s == null ? "" : s.toLowerCase();
+    }
+
+    private String fmt2(Double v) {
+        return v == null ? "—" : String.format("%.2f", v);
+    }
+
+    private String fmt1(Double v) {
+        return v == null ? "—" : String.format("%.1f", v);
+    }
+
+    private int clampInt(int v, int min, int max) {
+        return Math.max(min, Math.min(max, v));
+    }
+
+    private Double mean(List<Double> xs) {
+        if (xs == null || xs.isEmpty()) return null;
+        double sum = 0;
+        for (double x : xs) sum += x;
+        return sum / xs.size();
+    }
+
+    private Double std(List<Double> xs) {
+        if (xs == null || xs.size() < 2) return null;
+        Double m = mean(xs);
+        if (m == null) return null;
+        double var = 0;
+        for (double x : xs) var += (x - m) * (x - m);
+        var /= (xs.size() - 1);
+        return Math.sqrt(var);
+    }
+
+    private Double meanInt(List<Integer> xs) {
+        if (xs == null || xs.isEmpty()) return null;
+        double sum = 0;
+        for (int x : xs) sum += x;
+        return sum / xs.size();
+    }
+
+    private Double stdInt(List<Integer> xs) {
+        if (xs == null || xs.size() < 2) return null;
+        Double m = meanInt(xs);
+        if (m == null) return null;
+        double var = 0;
+        for (int x : xs) var += (x - m) * (x - m);
+        var /= (xs.size() - 1);
+        return Math.sqrt(var);
+    }
+
+    private static class HistoryStats {
+        final int n;
+
+        final Double ktvMean, ktvStd;
+        final Double urrMean, urrStd;
+        final Double ufMean, ufStd;
+        final Double bpSysMean, bpSysStd;
+
+        HistoryStats(int n,
+                     Double ktvMean, Double ktvStd,
+                     Double urrMean, Double urrStd,
+                     Double ufMean, Double ufStd,
+                     Double bpSysMean, Double bpSysStd) {
+            this.n = n;
+            this.ktvMean = ktvMean;
+            this.ktvStd = ktvStd;
+            this.urrMean = urrMean;
+            this.urrStd = urrStd;
+            this.ufMean = ufMean;
+            this.ufStd = ufStd;
+            this.bpSysMean = bpSysMean;
+            this.bpSysStd = bpSysStd;
+        }
+
+        Map<String, Object> baselineAsJson() {
+            Map<String, Object> b = new LinkedHashMap<>();
+            b.put("ktvMean", ktvMean);
+            b.put("ktvStd", ktvStd);
+            b.put("urrMean", urrMean);
+            b.put("urrStd", urrStd);
+            b.put("ufMean", ufMean);
+            b.put("ufStd", ufStd);
+            b.put("bpSysMean", bpSysMean);
+            b.put("bpSysStd", bpSysStd);
+            return b;
+        }
     }
 
     public record GeneratedReport(String jsonStr, String text, double ktvThreshold, double urrThreshold) {}

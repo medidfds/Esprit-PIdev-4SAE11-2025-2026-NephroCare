@@ -73,7 +73,7 @@ export const routes: Routes = [
       {path: 'diagnostic', component: DiagnosticComponent},
       { path: 'diagnostic-result', component: DiagnosticResultComponent },
 
-      // --- Dialysis Routes ---
+     // --- Dialysis Routes ---
       {
         path: 'dialysis/treatments',
         component: TreatmentListComponent,

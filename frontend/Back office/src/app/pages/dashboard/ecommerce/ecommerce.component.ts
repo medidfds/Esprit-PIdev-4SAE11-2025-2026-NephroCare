@@ -31,13 +31,13 @@ export class EcommerceComponent implements OnInit {
 
   readonly projectModules: DashboardModule[] = [
     {
-      name: 'Clinical Service',
+      name: 'Clinical Module',
       description: 'Consultations, medical histories, triage queue and doctor assignment flows.',
       route: '/clinical',
       status: 'active'
     },
     {
-      name: 'Hospitalization Service',
+      name: 'Hospitalization Module',
       description: 'In-patient records, room follow-up, vitals and doctor workload statistics.',
       route: '/hospitalization',
       status: 'active'
@@ -55,9 +55,39 @@ export class EcommerceComponent implements OnInit {
       status: 'monitoring'
     },
     {
-      name: 'Dialysis Module',
+      name: 'Pharmacy Module',
+      description: 'Medication workflows, prescription support and stock operations.',
+      route: '/pharmacy',
+      status: 'active'
+    },
+    {
+      name: 'Pharmacy Stock Analytics',
+      description: 'Stock trends, movement indicators and pharmacy performance insights.',
+      route: '/statistique-pharmacy',
+      status: 'monitoring'
+    },
+    {
+      name: 'Diagnostic Module',
+      description: 'Diagnostic orders and result management for lab and imaging processes.',
+      route: '/diagnostic',
+      status: 'active'
+    },
+    {
+      name: 'Diagnostic Results',
+      description: 'Structured review of lab findings and image interpretation records.',
+      route: '/diagnostic-result',
+      status: 'active'
+    },
+    {
+      name: 'Dialysis Management',
       description: 'Treatment plan/session execution and patient dialysis lifecycle follow-up.',
-      route: '/calendar',
+      route: '/dialysis/treatments',
+      status: 'monitoring'
+    },
+    {
+      name: 'Dialysis Settings',
+      description: 'Administrative parameters and configuration for dialysis operations.',
+      route: '/dialysis/admin/settings',
       status: 'monitoring'
     },
     {

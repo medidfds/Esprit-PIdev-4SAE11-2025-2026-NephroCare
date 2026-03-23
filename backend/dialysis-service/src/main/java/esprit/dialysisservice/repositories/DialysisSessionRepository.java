@@ -23,7 +23,7 @@ public interface DialysisSessionRepository extends JpaRepository<DialysisSession
     List<DialysisSession> findByTreatmentPatientId(UUID patientId);
 
     void deleteByTreatment_Id(UUID treatmentId);
-
+    List<DialysisSession> findTop10ByTreatment_IdAndWeightAfterIsNotNullOrderBySessionDateDesc(UUID treatmentId);
     @Query("""
         select s from DialysisSession s
         join fetch s.treatment t
@@ -33,11 +33,19 @@ public interface DialysisSessionRepository extends JpaRepository<DialysisSession
                                                       @Param("end") LocalDateTime end);
 
     // ===== Feature 2 analytics (NEW)
-    List<DialysisSession> findByTreatment_IdOrderBySessionDateAsc(UUID treatmentId);
 
     List<DialysisSession> findByTreatment_PatientIdAndSessionDateBetweenOrderBySessionDateAsc(
             UUID patientId,
             LocalDateTime start,
             LocalDateTime end
     );
-}
+    @Query("select s from DialysisSession s where s.weightAfter is not null")
+    List<DialysisSession> findAllCompleted();
+    @Query("""
+select s from DialysisSession s
+join s.treatment t
+where t.patientId = :patientId
+order by s.sessionDate desc
+""")
+    List<DialysisSession> findHistoryByPatientDesc(@Param("patientId") UUID patientId);
+    List<DialysisSession> findByTreatment_IdOrderBySessionDateAsc(UUID treatmentId);}
