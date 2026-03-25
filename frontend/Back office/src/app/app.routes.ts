@@ -33,6 +33,7 @@ import { DiagnosticComponent } from './pages/dashboard/diagnostic/diagnostic.com
 import {SystemConfigComponent} from "./pages/dialysis/admin/system-config/system-config.component";
 import {AdminAuditComponent} from "./pages/dialysis/admin/audit/admin-audit.component";
 import {MyScheduleComponent} from "./pages/dialysis/my-schedule/my-schedule.component";
+import { AlertsListComponent } from './pages/dialysis/alerts/alerts-list.component';
 export const routes: Routes = [
   {
     path: '',
@@ -106,6 +107,12 @@ export const routes: Routes = [
         canActivate: [RoleGuard],
         data: { roles: ['nurse'] }
 
+      },
+      {
+        path: 'dialysis/alerts',
+        component: AlertsListComponent,
+        canActivate: [RoleGuard],
+        data: { roles: ['doctor', 'nurse', 'admin'] }
       },
     ] },
 

@@ -3,19 +3,19 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { Subscription, interval, startWith, switchMap, forkJoin, of, finalize } from 'rxjs';
 
-import { DropdownComponent } from '../../ui/dropdown/dropdown.component';
-import { DropdownItemComponent } from '../../ui/dropdown/dropdown-item/dropdown-item.component';
+import { DropdownComponent} from "../../../../shared/components/ui/dropdown/dropdown.component";
+import { DropdownItemComponent} from "../../../../shared/components/ui/dropdown/dropdown-item/dropdown-item.component";
 
-import { NotificationApiService, NotificationDto } from '../../../services/notification-api.service';
-import { DialysisService } from '../../../services/dialysis.service';
+import { NotificationApiService, NotificationDto} from "../../../../shared/services/notification-api.service";
+import { DialysisService} from "../../../../shared/services/dialysis.service";
 
 @Component({
-  selector: 'app-notification-dropdown',
-  templateUrl: './notification-dropdown.component.html',
+  selector: 'app-dialysis-notification',
+  templateUrl: './dialysis-notification.component.html',
   standalone: true,
   imports: [CommonModule, RouterModule, DropdownComponent, DropdownItemComponent],
 })
-export class NotificationDropdownComponent implements OnInit, OnDestroy {
+export class DialysisNotificationComponent implements OnInit, OnDestroy {
   isOpen = false;
 
   notifying = false;      // ping dot

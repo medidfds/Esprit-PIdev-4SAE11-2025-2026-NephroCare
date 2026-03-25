@@ -39,7 +39,7 @@ export class AppSidebarComponent {
         // Dialysis
         { name: "Dialysis Management", path: "/dialysis/treatments" },
         { name: "Dialysis Settings", path: "/dialysis/admin/settings" },
-        { name: "My Dialysis Schedule", path: "/dialysis/my-schedule" },
+        { name: "alerts", path: "/dialysis/alerts" },
          // nurse/admin
       ],
     },
