@@ -41,7 +41,7 @@ const routes: Routes = [
     data: { roles: ['labTech'] }
   },
    {
-    path: 'dialysis-portal',
+    path: 'dialysis',
     component: DialysisPortalComponent
   },
   {
