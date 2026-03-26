@@ -57,10 +57,13 @@ public class DialysisSolverService {
         DialysisTreatment treatment = treatmentRepository.findById(treatmentId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Treatment not found"));
 
+        if (treatment.getStatus() == null || !"ACTIVE".equalsIgnoreCase(treatment.getStatus().name())) {
+            throw new ResponseStatusException(CONFLICT, "Treatment must be ACTIVE to solve");
+        }
+
         SystemConfig cfg = systemConfigRepository.findById(1L)
                 .orElseThrow(() -> new ResponseStatusException(INTERNAL_SERVER_ERROR, "SystemConfig id=1 not found"));
 
-        // Load existing sessions in horizon (join fetch treatment)
         LocalDateTime start = from.atStartOfDay();
         LocalDateTime end = to.plusDays(1).atStartOfDay().minusNanos(1);
         List<DialysisSession> existing = sessionRepository.findAllWithTreatmentBetween(start, end);
@@ -68,7 +71,7 @@ public class DialysisSolverService {
         SolverModels.TreatmentRules tr = new SolverModels.TreatmentRules(
                 treatment.getId().toString(),
                 treatment.getPatientId() != null ? treatment.getPatientId().toString() : null,
-                treatment.getStatus() != null && "ACTIVE".equalsIgnoreCase(treatment.getStatus().name()),
+                true,
                 safeInt(treatment.getFrequencyPerWeek(), 0)
         );
 
@@ -79,14 +82,17 @@ public class DialysisSolverService {
         SolverModels.SystemRules sr = new SolverModels.SystemRules(cfg.getMaxConcurrentSessionsPerShift());
 
         List<SolverModels.ExistingSession> ex = existing.stream()
+                .filter(s -> s.getTreatment() != null)
+                .filter(s -> s.getTreatment().getId() != null)
+                .filter(s -> !treatmentId.equals(s.getTreatment().getId())) // important: exclude same treatment when re-suggesting
                 .map(this::toExistingSession)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
         List<String> nurseIdStrings = (nurseIds == null ? List.<UUID>of() : nurseIds).stream()
                 .filter(Objects::nonNull)
-                .map(id -> id.toString())
-                .collect(java.util.stream.Collectors.toList());
+                .map(UUID::toString)
+                .collect(Collectors.toList());
 
         SolverModels.SolverRequest req = new SolverModels.SolverRequest(
                 tr,
@@ -129,7 +135,10 @@ public class DialysisSolverService {
         if (s.getSessionDate() == null) return null;
         if (s.getShift() == null) return null;
 
-        String patientId = s.getTreatment().getPatientId() != null ? s.getTreatment().getPatientId().toString() : null;
+        String patientId = s.getTreatment().getPatientId() != null
+                ? s.getTreatment().getPatientId().toString()
+                : null;
+
         if (patientId == null) return null;
 
         LocalDate day = s.getSessionDate().toLocalDate();
@@ -146,11 +155,15 @@ public class DialysisSolverService {
     }
 
     private SolverModels.Shift toSolverShift(DialysisShift shift) {
-        return shift == DialysisShift.MORNING ? SolverModels.Shift.MORNING : SolverModels.Shift.AFTERNOON;
+        return shift == DialysisShift.MORNING
+                ? SolverModels.Shift.MORNING
+                : SolverModels.Shift.AFTERNOON;
     }
 
     private DialysisShift toShiftEnum(SolverModels.Shift shift) {
-        return shift == SolverModels.Shift.MORNING ? DialysisShift.MORNING : DialysisShift.AFTERNOON;
+        return shift == SolverModels.Shift.MORNING
+                ? DialysisShift.MORNING
+                : DialysisShift.AFTERNOON;
     }
 
     private int safeInt(Integer v, int def) {

@@ -73,7 +73,9 @@ public class SessionReportPdfGenerator {
 
                 // ===== Header (only once) =====
                 cs.setFont(fontTitle, titleSize);
-                cs.showText(safePdfText(title));
+                String displayTitle = (title != null && title.startsWith("Dialysis Session Report"))
+                        ? "Dialysis Session Report" : title;
+                cs.showText(safePdfText(displayTitle));
                 cs.newLineAtOffset(0, -leading * 1.6f);
                 y -= leading * 1.6f;
 
@@ -99,8 +101,27 @@ public class SessionReportPdfGenerator {
                 for (String line : safeLines) {
                     if (line == null) line = "";
 
+                    // Requirement: Remove UUIDs from the displayed output
+                    String uuidRegex = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
+                    String processedLine = line.replaceAll(uuidRegex, "");
+                    String trimmed = processedLine.trim();
+                    String lower = trimmed.toLowerCase();
+
+                    // Requirement: Remove only explicit technical ID lines
+                    if (lower.startsWith("session id:") ||
+                        lower.startsWith("treatment id:") ||
+                        lower.startsWith("patient id:") ||
+                        lower.startsWith("doctor id:") ||
+                        lower.startsWith("nurse id:")) {
+                        continue;
+                    }
+
+                    // Requirement: Do NOT skip lines just because they contain "id:" somewhere (unless they became empty)
+                    if (line.matches(".*" + uuidRegex + ".*") && trimmed.isEmpty()) {
+                        continue;
+                    }
+
                     // OPTIONAL: remove duplicate header lines if reportText already contains them
-                    String trimmed = line.trim();
                     if (trimmed.equalsIgnoreCase("Dialysis Session Report")) continue;
                     if (trimmed.matches("^=+$")) continue;         // "======" underline
                     if (trimmed.matches("^[\\-]{5,}$")) continue;  // "-----"
@@ -123,7 +144,7 @@ public class SessionReportPdfGenerator {
                     }
 
                     // wrap each line
-                    for (String wrapped : wrap(line, 95)) {
+                    for (String wrapped : wrap(processedLine, 95)) {
                         if (y <= margin + leading) {
                             current.endText();
                             current.close();
@@ -186,6 +207,7 @@ public class SessionReportPdfGenerator {
         int i = 0;
         while (i < t.length()) {
             int end = Math.min(i + maxLen, t.length());
+
             int lastSpace = t.lastIndexOf(' ', end);
             if (lastSpace <= i) lastSpace = end;
             out.add(t.substring(i, lastSpace).trim());

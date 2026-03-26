@@ -42,6 +42,8 @@ public class DialysisSessionServiceImpl implements IDialysisSessionService {
     private final DialysisMapper mapper;
 
     private final SystemConfigService systemConfigService;
+    private final AlertService alertService;
+
     private final SessionConflictLogService conflictLogService;
 
     private final SessionReportService sessionReportService;
@@ -204,11 +206,16 @@ public class DialysisSessionServiceImpl implements IDialysisSessionService {
             throw new IllegalStateException("Session already completed.");
         }
 
-        if (weightAfter == null || weightAfter <= 0) throw new IllegalStateException("weightAfter must be positive.");
-        if (postDialysisUrea == null || postDialysisUrea <= 0) throw new IllegalStateException("postDialysisUrea must be positive.");
-        if (preDialysisUrea == null || preDialysisUrea <= 0) throw new IllegalStateException("preDialysisUrea must be positive (required for Kt/V).");
+        if (weightAfter == null || weightAfter <= 0) {
+            throw new IllegalStateException("weightAfter must be positive.");
+        }
+        if (postDialysisUrea == null || postDialysisUrea <= 0) {
+            throw new IllegalStateException("postDialysisUrea must be positive.");
+        }
+        if (preDialysisUrea == null || preDialysisUrea <= 0) {
+            throw new IllegalStateException("preDialysisUrea must be positive (required for Kt/V).");
+        }
 
-        // IMPORTANT (missing in your code)
         if (postDialysisUrea >= preDialysisUrea) {
             throw new IllegalStateException("postDialysisUrea must be lower than preDialysisUrea.");
         }
@@ -230,9 +237,12 @@ public class DialysisSessionServiceImpl implements IDialysisSessionService {
             scheduledSessionRepository.save(sch);
         });
 
-        // Generate report (required)
         SystemConfig cfg = systemConfigService.getOrCreate();
         sessionReportService.generateAndSave(saved.getId(), nurseId, cfg);
+
+        // NEW: create alerts after report/session finalization
+        alertService.createAlertsForCompletedSession(saved.getId());
+
         return mapper.toSessionResponse(saved);
     }
 
