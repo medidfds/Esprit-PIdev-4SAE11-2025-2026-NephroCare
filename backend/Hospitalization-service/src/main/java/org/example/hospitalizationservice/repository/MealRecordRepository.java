@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface MealRecordRepository extends JpaRepository<MealRecord, Long> {
@@ -35,6 +36,17 @@ public interface MealRecordRepository extends JpaRepository<MealRecord, Long> {
     List<MealRecord> findByPlanSince(
             @Param("plan") NutritionPlan plan,
             @Param("from") java.time.LocalDateTime from
+    );
+
+    @Query("SELECT m FROM MealRecord m " +
+            "WHERE m.nutritionPlan.id = :planId " +
+            "AND m.recordedAt >= :from " +
+            "AND m.recordedAt < :to " +
+            "ORDER BY m.recordedAt")
+    List<MealRecord> findByPlanIdAndDateRange(
+            @Param("planId") Long planId,
+            @Param("from")   LocalDateTime from,
+            @Param("to") LocalDateTime to
     );
 
     List<MealRecord> findByNutritionPlanOrderByRecordedAtDesc(NutritionPlan plan);

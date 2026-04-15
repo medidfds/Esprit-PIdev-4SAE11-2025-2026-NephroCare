@@ -1,4 +1,3 @@
-// NutritionSummaryService.java feature 2 Daily summary
 package org.example.hospitalizationservice.service;
 
 import lombok.RequiredArgsConstructor;
@@ -19,17 +18,42 @@ public class NutritionSummaryService {
 
     private final MealRecordRepository mealRecordRepository;
 
+    // ═════════════════════════════════════════════════════════════════════════
+    //  PUBLIC OVERLOADS
+    // ═════════════════════════════════════════════════════════════════════════
+
     /**
-     * Returns a plain Map so the controller can return it directly as JSON
-     * without any DTO class. All computation stays here.
+     * Single-day endpoint variant — queries the DB for meals on the given date.
+     * Used directly by the daily-summary REST endpoint.
      */
     public Map<String, Object> getDailySummary(NutritionPlan plan, LocalDate date) {
         List<MealRecord> meals = mealRecordRepository.findByPlanAndDate(plan, date);
+        return buildSummary(plan, date, meals);
+    }
 
-        int calories = meals.stream().mapToInt(m -> weighted(m.getCalories(), m.getConsumptionPercent())).sum();
-        int protein  = meals.stream().mapToInt(m -> weighted(m.getProteinG(),  m.getConsumptionPercent())).sum();
-        int carbs    = meals.stream().mapToInt(m -> weighted(m.getCarbsG(),    m.getConsumptionPercent())).sum();
-        int fat      = meals.stream().mapToInt(m -> weighted(m.getFatG(),      m.getConsumptionPercent())).sum();
+    /**
+     * Bulk-friendly variant — accepts a pre-fetched meal list so no extra DB
+     * query is issued per day.  Used by NutritionTrendService and
+     * NutritionRiskService to eliminate the N+1 pattern.
+     */
+    public Map<String, Object> getDailySummaryFromMeals(NutritionPlan plan,
+                                                        LocalDate date,
+                                                        List<MealRecord> meals) {
+        return buildSummary(plan, date, meals);
+    }
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  CORE COMPUTATION  (shared by both public overloads)
+    // ═════════════════════════════════════════════════════════════════════════
+
+    private Map<String, Object> buildSummary(NutritionPlan plan,
+                                             LocalDate date,
+                                             List<MealRecord> meals) {
+
+        int calories = meals.stream().mapToInt(m -> weighted(m.getCalories(),       m.getConsumptionPercent())).sum();
+        int protein  = meals.stream().mapToInt(m -> weighted(m.getProteinG(),        m.getConsumptionPercent())).sum();
+        int carbs    = meals.stream().mapToInt(m -> weighted(m.getCarbsG(),          m.getConsumptionPercent())).sum();
+        int fat      = meals.stream().mapToInt(m -> weighted(m.getFatG(),            m.getConsumptionPercent())).sum();
 
         Map<String, Object> consumed = new LinkedHashMap<>();
         consumed.put("calories", calories);
@@ -52,16 +76,21 @@ public class NutritionSummaryService {
         return result;
     }
 
+    // ═════════════════════════════════════════════════════════════════════════
+    //  RECOMMENDATIONS
+    // ═════════════════════════════════════════════════════════════════════════
+
     public List<String> buildRecommendations(Map<String, Double> achievement) {
         List<String> recs = new ArrayList<>();
-        if (achievement.get("calories") < 70) recs.add("Caloric intake critically low — consider nutritional supplements");
-        if (achievement.get("protein")  < 60) recs.add("Protein intake insufficient — may delay wound healing");
-        if (achievement.get("carbs")   > 130) recs.add("Carbohydrate intake exceeds target — monitor blood glucose");
-        if (achievement.get("fat")     > 130) recs.add("Fat intake exceeds target — review meal composition");
+        if (achievement.get("calories") < 70)  recs.add("Caloric intake critically low — consider nutritional supplements");
+        if (achievement.get("protein")  < 60)  recs.add("Protein intake insufficient — may delay wound healing");
+        if (achievement.get("carbs")    > 130) recs.add("Carbohydrate intake exceeds target — monitor blood glucose");
+        if (achievement.get("fat")      > 130) recs.add("Fat intake exceeds target — review meal composition");
         return recs;
     }
 
-    // Weighted by how much was actually consumed
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
     private int    weighted(int value, int pct) { return (int) Math.round(value * pct / 100.0); }
     public  double pct(int actual, int target)  { return target == 0 ? 0 : Math.round(actual * 1000.0 / target) / 10.0; }
 }

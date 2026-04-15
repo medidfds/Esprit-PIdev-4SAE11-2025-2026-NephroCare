@@ -27,7 +27,6 @@
               [ngClass]="trendColors[plan!.trend!]">
           {{ trendIcon(plan!.trend!) }} {{ plan!.trend! | titlecase }}
         </span>
-        <!-- Profile status pill -->
         <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
               [ngClass]="profile ? 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400'
                                  : 'bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-warning-400'">
@@ -58,7 +57,6 @@
       <p class="mb-1 text-base font-semibold text-gray-800 dark:text-white/90">No nutrition plan yet</p>
       <p class="mb-2 text-sm text-gray-400">Auto-generate a plan using the patient's clinical profile</p>
 
-      <!-- Warning when no profile -->
       <div *ngIf="!profile && !loadingProfile"
            class="mb-5 flex items-center gap-2 rounded-xl border border-warning-200 bg-warning-50 px-4 py-3 text-xs text-warning-700 dark:border-warning-500/20 dark:bg-warning-500/10 dark:text-warning-400">
         <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -89,7 +87,7 @@
       <div class="h-48 w-full animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800"></div>
     </div>
 
-    <!-- ══ TAB BAR — always visible (profile tab doesn't need a plan) ══ -->
+    <!-- ══ TAB BAR ══ -->
     <div class="mb-6 flex items-center gap-1 overflow-x-auto rounded-xl border border-gray-200 bg-white p-1
                 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
       <button *ngFor="let tab of ([
@@ -110,7 +108,6 @@
           <path stroke-linecap="round" stroke-linejoin="round" [attr.d]="tab.icon"/>
         </svg>
         {{ tab.label }}
-        <!-- Dot indicator on profile tab when no profile exists -->
         <span *ngIf="tab.key === 'profile' && !profile && activeTab !== 'profile'"
               class="absolute right-2 top-2 h-2 w-2 rounded-full bg-warning-500"></span>
       </button>
@@ -306,11 +303,14 @@
 
       <!-- ── RISK ASSESSMENT ── -->
       <div *ngIf="activeTab === 'risk'">
-        <div *ngIf="loadingRisk" class="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
-          <div *ngFor="let i of [1,2,3]" class="h-20 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800"></div>
+        <div *ngIf="loadingRisk" class="grid grid-cols-1 gap-4 sm:grid-cols-4 mb-6">
+          <div *ngFor="let i of [1,2,3,4]" class="h-20 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800"></div>
         </div>
         <ng-container *ngIf="!loadingRisk && risk">
-          <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+
+          <!-- ── Stat cards ── -->
+          <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
+            <!-- Risk level -->
             <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
               <p class="mb-2 text-xs text-gray-400">Risk level</p>
               <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold" [ngClass]="riskColors[risk.riskLevel]">
@@ -318,15 +318,56 @@
                 {{ risk.riskLevel | titlecase }}
               </span>
             </div>
+            <!-- Consecutive low days -->
             <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
               <p class="mb-1 text-xs text-gray-400">Consecutive low-intake days</p>
               <p class="text-3xl font-semibold text-gray-900 dark:text-white/90">{{ risk.consecutiveLowDays }}<span class="text-sm font-normal text-gray-400 ml-1">/ last 7</span></p>
             </div>
+            <!-- ✅ Fixed: was averageCalorieAchievement — now averageCompositeScore -->
             <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-              <p class="mb-1 text-xs text-gray-400">Avg calorie achievement (7d)</p>
-              <p class="text-3xl font-semibold dark:text-white/90" [ngClass]="achievementColor(risk.averageCalorieAchievement)">{{ risk.averageCalorieAchievement }}%</p>
+              <p class="mb-1 text-xs text-gray-400">Avg composite score (7d)</p>
+              <p class="text-3xl font-semibold dark:text-white/90" [ngClass]="achievementColor(risk.averageCompositeScore)">{{ risk.averageCompositeScore }}%</p>
+            </div>
+            <!-- ✅ New: volatility score -->
+            <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+              <p class="mb-1 text-xs text-gray-400">Intake volatility (σ)</p>
+              <p class="text-3xl font-semibold dark:text-white/90"
+                 [ngClass]="risk.volatilityScore > 25 ? 'text-warning-600 dark:text-warning-400' : 'text-success-600 dark:text-success-400'">
+                {{ risk.volatilityScore }}%
+              </p>
+              <p class="mt-0.5 text-xs text-gray-400">
+                {{ risk.volatilityScore > 25 ? 'Erratic intake pattern' : 'Stable intake pattern' }}
+              </p>
             </div>
           </div>
+
+          <!-- ✅ New: 7-day macro averages -->
+          <div class="mb-6 rounded-2xl border border-gray-200 bg-white shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
+            <div class="border-b border-gray-100 px-6 py-4 dark:border-gray-800">
+              <h3 class="text-base font-semibold text-gray-800 dark:text-white/90">7-day macro averages</h3>
+            </div>
+            <div class="grid grid-cols-2 gap-4 p-5 sm:grid-cols-4">
+              <div *ngFor="let m of [
+                { key: 'calories', label: 'Calories' },
+                { key: 'protein',  label: 'Protein'  },
+                { key: 'carbs',    label: 'Carbs'    },
+                { key: 'fat',      label: 'Fat'      }
+              ]">
+                <p class="mb-1 text-xs text-gray-400">{{ m.label }}</p>
+                <p class="text-2xl font-semibold dark:text-white/90"
+                   [ngClass]="achievementColor(risk.macroAverageAchievements[m.key])">
+                  {{ risk.macroAverageAchievements[m.key] }}%
+                </p>
+                <div class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
+                  <div class="h-full rounded-full transition-all duration-700"
+                       [ngClass]="barColor(risk.macroAverageAchievements[m.key])"
+                       [style.width]="barWidth(risk.macroAverageAchievements[m.key])"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Risk triggers -->
           <div class="rounded-2xl border border-gray-200 bg-white shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="border-b border-gray-100 px-6 py-4 dark:border-gray-800"><h3 class="text-base font-semibold text-gray-800 dark:text-white/90">Risk triggers</h3></div>
             <div class="p-5 space-y-3">
@@ -345,6 +386,7 @@
               </div>
             </div>
           </div>
+
           <div class="mt-4 flex justify-end">
             <button (click)="loadRisk()" class="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-medium text-gray-700 shadow-theme-xs transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
               <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
@@ -358,17 +400,77 @@
       <div *ngIf="activeTab === 'trend'">
         <div *ngIf="loadingTrend" class="h-48 w-full animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800"></div>
         <ng-container *ngIf="!loadingTrend && trend">
+
+          <!-- ✅ Fixed: was trend.trend — now trend.overallTrend -->
           <div class="mb-6 flex items-center gap-4 rounded-xl border border-gray-200 bg-white px-6 py-4 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
-            <span class="text-3xl font-bold">{{ trendIcon(trend.trend) }}</span>
+            <span class="text-3xl font-bold">{{ trendIcon(trend.overallTrend) }}</span>
             <div>
               <p class="text-xs text-gray-400 mb-1">7-day intake trend</p>
-              <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold" [ngClass]="trendColors[trend.trend]">{{ trend.trend | titlecase }}</span>
+              <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold" [ngClass]="trendColors[trend.overallTrend]">{{ trend.overallTrend | titlecase }}</span>
+            </div>
+            <div class="ml-2 flex items-center gap-1.5 rounded-lg border border-gray-100 bg-gray-50 px-3 py-1.5 text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+              Slope <span class="font-semibold" [ngClass]="trend.overallSlope > 0 ? 'text-success-600 dark:text-success-400' : trend.overallSlope < 0 ? 'text-error-600 dark:text-error-400' : ''">
+                {{ trend.overallSlope > 0 ? '+' : '' }}{{ trend.overallSlope }}%/day
+              </span>
             </div>
             <button (click)="loadTrend()" class="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 shadow-theme-xs transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
               <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
               Refresh
             </button>
           </div>
+
+          <!-- ✅ New: per-macro trend badges -->
+          <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div *ngFor="let m of [
+              { key: 'calories', label: 'Calories' },
+              { key: 'protein',  label: 'Protein'  },
+              { key: 'carbs',    label: 'Carbs'    },
+              { key: 'fat',      label: 'Fat'      }
+            ]" class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+              <p class="text-xs text-gray-400 mb-1.5">{{ m.label }}</p>
+              <div class="flex items-center justify-between">
+                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold"
+                      [ngClass]="trendColors[trend.macroTrends[m.key].trend]">
+                  {{ trendIcon(trend.macroTrends[m.key].trend) }} {{ trend.macroTrends[m.key].trend | titlecase }}
+                </span>
+                <span class="text-xs text-gray-400">avg {{ trend.macroTrends[m.key].weekAvg }}%</span>
+              </div>
+              <p class="mt-1 text-xs" [ngClass]="trend.macroTrends[m.key].slope >= 0 ? 'text-success-600 dark:text-success-400' : 'text-error-600 dark:text-error-400'">
+                {{ trend.macroTrends[m.key].slope > 0 ? '+' : '' }}{{ trend.macroTrends[m.key].slope }}%/day
+              </p>
+            </div>
+          </div>
+
+          <!-- ✅ New: clinical patterns detected -->
+          <div *ngIf="trend.patterns.length"
+               class="mb-6 rounded-xl border border-brand-200 bg-brand-50 p-4 dark:border-brand-500/20 dark:bg-brand-500/10">
+            <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-brand-700 dark:text-brand-400">Clinical Patterns Detected</p>
+            <ul class="space-y-1.5">
+              <li *ngFor="let p of trend.patterns"
+                  class="flex items-start gap-2 text-xs text-brand-700 dark:text-brand-400">
+                <svg class="mt-0.5 h-3.5 w-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                {{ p }}
+              </li>
+            </ul>
+          </div>
+
+          <!-- ✅ New: days-until-critical countdown (DECLINING only) -->
+          <div *ngIf="trend.estimatedDaysUntilCritical"
+               class="mb-6 flex items-center gap-3 rounded-xl border border-error-200 bg-error-50 px-5 py-3
+                      dark:border-error-500/20 dark:bg-error-500/10">
+            <svg class="h-5 w-5 flex-shrink-0 text-error-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-sm text-error-700 dark:text-error-400">
+              At the current rate, the composite score is projected to reach the critical threshold in
+              <span class="font-bold">{{ trend.estimatedDaysUntilCritical }} day{{ trend.estimatedDaysUntilCritical !== 1 ? 's' : '' }}</span>.
+              Immediate clinical review recommended.
+            </p>
+          </div>
+
+          <!-- Day-by-day table -->
           <div class="rounded-2xl border border-gray-200 bg-white shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="border-b border-gray-100 px-6 py-4 dark:border-gray-800"><h3 class="text-base font-semibold text-gray-800 dark:text-white/90">Day-by-day breakdown</h3></div>
             <div class="overflow-x-auto">
@@ -380,7 +482,8 @@
                     <th class="px-5 py-3.5 font-medium text-gray-500 whitespace-nowrap dark:text-gray-400">Protein</th>
                     <th class="px-5 py-3.5 font-medium text-gray-500 whitespace-nowrap dark:text-gray-400">Carbs</th>
                     <th class="px-5 py-3.5 font-medium text-gray-500 whitespace-nowrap dark:text-gray-400">Fat</th>
-                    <th class="px-5 py-3.5 font-medium text-gray-500 whitespace-nowrap dark:text-gray-400">Overall</th>
+                    <!-- ✅ Fixed: was overallAchievement — now weightedComposite -->
+                    <th class="px-5 py-3.5 font-medium text-gray-500 whitespace-nowrap dark:text-gray-400">Composite</th>
                     <th class="px-5 py-3.5 font-medium text-gray-500 whitespace-nowrap dark:text-gray-400">Bar</th>
                   </tr>
                 </thead>
@@ -391,10 +494,12 @@
                     <td class="px-5 py-4 text-gray-700 dark:text-gray-300">{{ p.proteinG }} g</td>
                     <td class="px-5 py-4 text-gray-700 dark:text-gray-300">{{ p.carbsG }} g</td>
                     <td class="px-5 py-4 text-gray-700 dark:text-gray-300">{{ p.fatG }} g</td>
-                    <td class="px-5 py-4 font-semibold" [ngClass]="achievementColor(p.overallAchievement)">{{ p.overallAchievement }}%</td>
+                    <!-- ✅ Fixed: was p.overallAchievement — now p.weightedComposite -->
+                    <td class="px-5 py-4 font-semibold" [ngClass]="achievementColor(p.weightedComposite)">{{ p.weightedComposite }}%</td>
                     <td class="px-5 py-4">
                       <div class="h-1.5 w-24 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-700">
-                        <div class="h-full rounded-full" [ngClass]="barColor(p.overallAchievement)" [style.width]="barWidth(p.overallAchievement)"></div>
+                        <!-- ✅ Fixed: was p.overallAchievement — now p.weightedComposite -->
+                        <div class="h-full rounded-full" [ngClass]="barColor(p.weightedComposite)" [style.width]="barWidth(p.weightedComposite)"></div>
                       </div>
                     </td>
                   </tr>
@@ -566,14 +671,12 @@
     ══════════════════════════════════════════ -->
     <div *ngIf="activeTab === 'profile'">
 
-      <!-- Loading -->
       <div *ngIf="loadingProfile" class="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
         <div *ngFor="let i of [1,2,3]" class="h-20 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-800"></div>
       </div>
 
       <div *ngIf="!loadingProfile" class="rounded-2xl border border-gray-200 bg-white shadow-theme-sm dark:border-gray-800 dark:bg-white/[0.03]">
 
-        <!-- Card header -->
         <div class="flex items-center gap-3 border-b border-gray-100 px-6 py-5 dark:border-gray-800">
           <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 dark:bg-brand-500/[0.12]">
             <svg class="h-5 w-5 text-brand-500 dark:text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
@@ -588,7 +691,6 @@
               {{ profile ? 'Edit clinical data for precise macro targets.' : 'No profile yet. Fill in the form to enable auto-calculation.' }}
             </p>
           </div>
-          <!-- BMI live badge -->
           <div *ngIf="bmi" class="flex flex-col items-end">
             <span class="text-2xl font-bold" [ngClass]="bmiColor">{{ bmi }}</span>
             <span class="text-xs font-medium" [ngClass]="bmiColor">BMI · {{ bmiCategory }}</span>
@@ -597,7 +699,6 @@
 
         <div class="p-6">
 
-          <!-- Success / error banners -->
           <div *ngIf="profileSuccess"
                class="mb-5 flex items-center gap-2 rounded-xl border border-success-200 bg-success-50 px-4 py-3 text-sm text-success-700 dark:border-success-500/20 dark:bg-success-500/10 dark:text-success-400">
             <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -609,7 +710,6 @@
 
           <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
 
-            <!-- ── Row 1: Identity ── -->
             <div class="mb-5">
               <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Identity</p>
               <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
@@ -630,11 +730,9 @@
               </div>
             </div>
 
-            <!-- ── Row 2: Anthropometrics ── -->
             <div class="mb-5">
               <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Anthropometrics</p>
               <div class="grid grid-cols-2 gap-5 sm:grid-cols-4">
-                <!-- Gender -->
                 <div class="col-span-2">
                   <label class="mb-1.5 block text-theme-sm font-medium text-gray-700 dark:text-gray-400">Gender <span class="text-error-500">*</span></label>
                   <div class="flex gap-2">
@@ -666,7 +764,6 @@
               </div>
             </div>
 
-            <!-- ── Row 3: Kidney Function ── -->
             <div class="mb-5">
               <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Kidney Function</p>
               <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
@@ -695,7 +792,6 @@
               </div>
             </div>
 
-            <!-- ── Row 4: Comorbidities ── -->
             <div class="mb-5">
               <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Comorbidities</p>
               <div class="flex flex-wrap gap-3">
@@ -722,7 +818,6 @@
               </div>
             </div>
 
-            <!-- ── Row 5: Activity Level ── -->
             <div class="mb-7">
               <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Activity Level <span class="text-error-500">*</span></p>
               <div class="flex flex-wrap gap-2">
@@ -739,7 +834,6 @@
               <p *ngIf="profileFieldError('activityLevel','required')" class="mt-1.5 text-xs text-error-600">Please select an activity level</p>
             </div>
 
-            <!-- Actions -->
             <div class="flex items-center gap-3">
               <button type="submit" [disabled]="savingProfile"
                       class="inline-flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-2.5 text-theme-sm font-medium text-white
@@ -747,7 +841,6 @@
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                 {{ savingProfile ? 'Saving…' : (profile ? 'Update Profile' : 'Create Profile') }}
               </button>
-              <!-- After saving, allow immediate plan suggestion -->
               <button *ngIf="profile && !plan" type="button" (click)="setTab('summary'); suggestPlan()"
                       class="inline-flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-6 py-2.5 text-theme-sm font-medium text-brand-700
                              shadow-theme-xs transition hover:bg-brand-100 dark:border-brand-500/20 dark:bg-brand-500/10 dark:text-brand-300">

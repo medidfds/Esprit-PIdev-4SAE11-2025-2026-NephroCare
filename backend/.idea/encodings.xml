@@ -9,6 +9,8 @@
     <file url="file://$PROJECT_DIR$/dialysis-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/discovery-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/gateway-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/order-service/order-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/order-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/pharmacy-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/user-service/src/main/java" charset="UTF-8" />
   </component>

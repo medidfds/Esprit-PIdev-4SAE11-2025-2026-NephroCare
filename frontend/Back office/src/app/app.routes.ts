@@ -65,6 +65,12 @@ export const routes: Routes = [
       /*{ path: 'pharmacy', component: PharmacyComponent },
       { path: 'diagnosis', component: DiagnosisComponent },*/
       { path: 'hospitalization', component: HospitalizationComponent },
+      {
+        path: 'nutrition/:id',
+        loadComponent: () =>
+        import('./pages/dashboard/nutrition/nutrition.component')
+        .then(m => m.NutritionComponent)
+      },
       { path: 'diagnostic', component: DiagnosticComponent },
       { path: 'statistique-hospitalization', component: StatistiqueHospitalizationComponent },
       { path: 'architecture', component: HospitalArchitectureComponent }, // Placeholder for architecture overview

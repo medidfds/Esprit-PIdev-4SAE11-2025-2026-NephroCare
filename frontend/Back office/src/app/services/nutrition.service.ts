@@ -40,29 +40,45 @@ export interface DailySummary {
 }
 
 export interface RiskAssessment {
-  riskLevel:                 string;
-  consecutiveLowDays:        number;
-  averageCalorieAchievement: number;
-  triggers:                  string[];
+  riskLevel:                string;
+  consecutiveLowDays:       number;
+  averageCompositeScore:    number;
+  volatilityScore:          number;
+  macroAverageAchievements: Record<string, number>;  // ← was { calories: number; protein: number; carbs: number; fat: number; }
+  appliedWeights: Record<string, number>;
+  triggers:       string[];
+}
+
+export interface MacroTrend {
+  trend:   string;
+  slope:   number;
+  weekAvg: number;
+}
+
+export interface TrendPoint {
+  date:               string;
+  calories:           number;
+  proteinG:           number;
+  carbsG:             number;
+  fatG:               number;
+  calorieAchievement: number;
+  proteinAchievement: number;
+  carbAchievement:    number;
+  fatAchievement:     number;
+  weightedComposite:  number;
 }
 
 export interface WeeklyTrend {
-  trend:  string;
-  points: {
-    date:               string;
-    calories:           number;
-    proteinG:           number;
-    carbsG:             number;
-    fatG:               number;
-    overallAchievement: number;
-  }[];
+  overallTrend:               string;
+  overallSlope:               number;
+  macroTrends:                Record<string, MacroTrend>;
+  points:                     TrendPoint[];
+  patterns:                   string[];
+  appliedWeights:             Record<string, number>;
+  estimatedDaysUntilCritical?: number;
 }
 
-// ✅ Lightweight shape — only the 4 fields the nutrition module needs.
-//    Old: GET /api/hospitalizations/{id}  → returned full Hospitalization
-//         + @JsonManagedReference vitalSignsRecords  → extra VitalSigns SELECT
-//         + @JsonManagedReference nutritionPlan      → extra NutritionPlan SELECT
-//    New: GET /api/nutrition/hosp-info/{id} → returns {id, userId, admissionReason, status} only
+// Lightweight shape — only the 4 fields the nutrition module needs.
 export interface HospitalizationInfo {
   id:              number;
   userId:          string;
@@ -84,7 +100,7 @@ export class NutritionService {
 
   reCalculatePlan(hospitalizationId: number): Observable<NutritionPlan> {
     return this.http.put<NutritionPlan>(`${this.base}/plan/suggest/${hospitalizationId}`, {});
-  } 
+  }
 
   // ── Plan ──────────────────────────────────────────────────────────────
   suggestAndCreate(hospitalizationId: number): Observable<NutritionPlan> {

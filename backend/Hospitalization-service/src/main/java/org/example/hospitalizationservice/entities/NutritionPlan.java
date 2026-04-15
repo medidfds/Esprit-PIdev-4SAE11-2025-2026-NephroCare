@@ -55,7 +55,6 @@ public class NutritionPlan {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "hospitalization_id", nullable = false, unique = true)
     @JsonBackReference("hosp-nutrition")
-    @JsonIgnore   // ← add: guards against LazyInitializationException if ever
     //   serialized outside a @JsonManagedReference context
     private Hospitalization hospitalization;
 
@@ -66,7 +65,7 @@ public class NutritionPlan {
     @Column(name = "hospitalization_id", insertable = false, updatable = false)
     private Long hospitalizationId;
 
-    @OneToMany(mappedBy = "nutritionPlan", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "nutritionPlan", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonIgnore
     private List<MealRecord> mealRecords = new ArrayList<>();
 }

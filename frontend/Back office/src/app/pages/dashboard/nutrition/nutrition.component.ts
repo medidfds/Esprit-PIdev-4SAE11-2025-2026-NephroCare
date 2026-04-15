@@ -145,7 +145,7 @@ export class NutritionComponent implements OnInit {
         this.loadProfile();
         this.resolvePatientName(hosp.userId);
       },
-      error: () => this.loadPlan()   // fallback: still try plan
+      error: () => this.loadPlan()
     });
   }
 
@@ -153,7 +153,6 @@ export class NutritionComponent implements OnInit {
     this.keycloakAdminService.getUserById(userId).subscribe({
       next: user => {
         this.patientFullName = KeycloakAdminService.displayName(user);
-        // Pre-fill fullName only if no profile exists yet
         if (!this.profile) {
           this.profileForm.get('fullName')?.setValue(this.patientFullName);
         }
@@ -204,53 +203,49 @@ export class NutritionComponent implements OnInit {
   }
 
   suggestPlan(): void {
-  if (!this.profile) {
-    this.planError = 'No patient profile found. Please create the patient profile first.';
-    this.activeTab = 'profile';
-    return;
-  }
-  this.loadingPlan = true;
-  this.planError   = '';
-
-  // If plan already exists, recalculate (PUT) instead of suggest (POST)
-  const obs$ = this.plan
-    ? this.service.reCalculatePlan(this.hospitalizationId)
-    : this.service.suggestAndCreate(this.hospitalizationId);
-
-  obs$.subscribe({
-    next: plan => {
-      this.plan        = plan;
-      this.loadingPlan = false;
-      this.initPlanForm(plan);
-      // Invalidate cached summary/risk/trend — macros changed
-      this.summary = null;
-      this.risk    = null;
-      this.trend   = null;
-      this.loadSummary();
-    },
-    error: err => {
-      if (err.status === 409) {
-        // Race condition: plan was created between the check and the POST
-        // Switch to recalculate path
-        this.service.reCalculatePlan(this.hospitalizationId).subscribe({
-          next: plan => {
-            this.plan        = plan;
-            this.loadingPlan = false;
-            this.initPlanForm(plan);
-            this.summary = null;
-            this.risk    = null;
-            this.trend   = null;
-            this.loadSummary();
-          },
-          error: () => { this.planError = 'Could not recalculate the plan.'; this.loadingPlan = false; }
-        });
-      } else {
-        this.planError   = err?.error?.message || 'Could not create the plan.';
-        this.loadingPlan = false;
-      }
+    if (!this.profile) {
+      this.planError = 'No patient profile found. Please create the patient profile first.';
+      this.activeTab = 'profile';
+      return;
     }
-  });
-}
+    this.loadingPlan = true;
+    this.planError   = '';
+
+    const obs$ = this.plan
+      ? this.service.reCalculatePlan(this.hospitalizationId)
+      : this.service.suggestAndCreate(this.hospitalizationId);
+
+    obs$.subscribe({
+      next: plan => {
+        this.plan        = plan;
+        this.loadingPlan = false;
+        this.initPlanForm(plan);
+        this.summary = null;
+        this.risk    = null;
+        this.trend   = null;
+        this.loadSummary();
+      },
+      error: err => {
+        if (err.status === 409) {
+          this.service.reCalculatePlan(this.hospitalizationId).subscribe({
+            next: plan => {
+              this.plan        = plan;
+              this.loadingPlan = false;
+              this.initPlanForm(plan);
+              this.summary = null;
+              this.risk    = null;
+              this.trend   = null;
+              this.loadSummary();
+            },
+            error: () => { this.planError = 'Could not recalculate the plan.'; this.loadingPlan = false; }
+          });
+        } else {
+          this.planError   = err?.error?.message || 'Could not create the plan.';
+          this.loadingPlan = false;
+        }
+      }
+    });
+  }
 
   savePlan(): void {
     this.planForm.markAllAsTouched();
@@ -315,7 +310,8 @@ export class NutritionComponent implements OnInit {
     if (!this.plan?.id) return;
     this.loadingTrend = true;
     this.service.getWeeklyTrend(this.plan.id).subscribe({
-      next: t => { this.trend = t; this.loadingTrend = false; if (this.plan) this.plan.trend = t.trend; },
+      // ✅ Fixed: was t.trend — backend now returns overallTrend
+      next: t => { this.trend = t; this.loadingTrend = false; if (this.plan) this.plan.trend = t.overallTrend; },
       error: () => { this.loadingTrend = false; }
     });
   }
@@ -428,7 +424,6 @@ export class NutritionComponent implements OnInit {
       error: () => {
         this.profile = null;
         this.loadingProfile = false;
-        // No profile yet — pre-fill name if already resolved
         if (this.patientFullName) {
           this.profileForm.get('fullName')?.setValue(this.patientFullName);
         }
