@@ -10,6 +10,7 @@ import { DialysisSeriesPoint, PatientWeeklyAdequacyRow} from "../../../../../sha
     standalone: true,
     imports: [CommonModule, BadgeComponent, BarChartOneComponent, LineChartOneComponent],
     templateUrl: './session-analytics.component.html',
+    styleUrls: ['./session-analytics.component.css'],
 })
 export class SessionAnalyticsComponent {
     @Input() avgKtV: number | null = null;

@@ -3,13 +3,15 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AppModalComponent} from "../../../../../shared/components/ui/app-modal/app-modal.component";
 import { ButtonComponent} from "../../../../../shared/components/ui/button/button.component";
-    import { SolverSuggestResponse, NurseDto} from "../../../../../shared/services/dialysis.service";
+import { SolverSuggestResponse, NurseDto } from "../../../../../shared/services/dialysis.service";
+import { BadgeComponent } from "../../../../../shared/components/ui/badge/badge.component";
 
 @Component({
     selector: 'app-solver-modal',
     standalone: true,
-    imports: [CommonModule, FormsModule, AppModalComponent, ButtonComponent],
+    imports: [CommonModule, FormsModule, AppModalComponent, ButtonComponent, BadgeComponent],
     templateUrl: './solver-modal.component.html',
+    styleUrls: ['./solver-modal.component.css'],
 })
 export class SolverModalComponent {
     @Input() open = false;
@@ -43,6 +45,22 @@ export class SolverModalComponent {
         solverCount: number;
         selectedNurseIds: string[];
     }>();
+
+    onInputChange(field: string, value: any): void {
+        if (field === 'solverFrom') this.solverFrom = value;
+        if (field === 'solverTo') this.solverTo = value;
+        if (field === 'solverCount') this.solverCount = Number(value);
+        this.onChange();
+    }
+
+    toggleNurse(id: string): void {
+        if (this.selectedNurseIds.includes(id)) {
+            this.selectedNurseIds = this.selectedNurseIds.filter(x => x !== id);
+        } else {
+            this.selectedNurseIds = [...this.selectedNurseIds, id];
+        }
+        this.onChange();
+    }
 
     onChange(): void {
         this.updateInputs.emit({

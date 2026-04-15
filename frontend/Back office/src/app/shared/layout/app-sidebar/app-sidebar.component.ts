@@ -2,15 +2,23 @@ import { CommonModule } from '@angular/common';
 import { Component, ElementRef, QueryList, ViewChildren, ChangeDetectorRef } from '@angular/core';
 import { SidebarService } from '../../services/sidebar.service';
 import { NavigationEnd, Router, RouterModule } from '@angular/router';
+import { KeycloakService } from 'keycloak-angular';
 import { SafeHtmlPipe } from '../../pipe/safe-html.pipe';
 import { SidebarWidgetComponent } from './app-sidebar-widget.component';
 import { combineLatest, Subscription } from 'rxjs';
+
+type NavSubItem = {
+  name: string;
+  path: string;
+  roles?: string[];
+};
 
 type NavItem = {
   name: string;
   icon: string;
   path?: string;
-  subItems?: { name: string; path: string }[];
+  roles?: string[];
+  subItems?: NavSubItem[];
 };
 
 @Component({
@@ -61,10 +69,22 @@ export class AppSidebarComponent {
       name: 'Dialysis Module',
       icon: `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none"><path d="M12 3c3.5 0 6 2.5 6 5.5 0 4.5-6 12.5-6 12.5S6 13 6 8.5C6 5.5 8.5 3 12 3Z" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="8.5" r="2" stroke="currentColor" stroke-width="1.5"/></svg>`,
       subItems: [
-        { name: 'Dialysis Management', path: '/dialysis/treatments' },
-        { name: 'My Dialysis Schedule', path: '/dialysis/my-schedule' },
-        { name: 'Dialysis Settings', path: '/dialysis/admin/settings' },
-        { name: 'Dialysis Audit Logs', path: '/dialysis/admin/audit' },
+        { name: 'Dialysis Management',   path: '/dialysis/treatments', roles: ['admin', 'nurse', 'doctor'] },
+        { name: 'My Dialysis Schedule',  path: '/dialysis/my-schedule', roles: ['nurse'] },
+        { name: 'Dialysis Settings',     path: '/dialysis/admin/settings', roles: ['admin'] },
+      ],
+    },
+    {
+      name: 'Transport & Logistics',
+      roles: ['admin'],
+      icon: `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none"><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="5.5" cy="18.5" r="2.5" stroke="currentColor" stroke-width="1.5"/><circle cx="18.5" cy="18.5" r="2.5" stroke="currentColor" stroke-width="1.5"/></svg>`,
+      subItems: [
+        { name: 'Readiness Monitoring',       path: '/dialysis/readiness-transport/readiness' },
+        { name: 'Pending Transport Requests', path: '/dialysis/readiness-transport/transport' },
+        { name: 'Shared Ride Groups',         path: '/dialysis/readiness-transport/ride-groups' },
+        { name: 'Fleet Dashboard',            path: '/dialysis/readiness-transport/fleet' },
+        { name: 'Vehicle Management',         path: '/dialysis/readiness-transport/vehicle-management' },
+        { name: 'Escalation Logs',            path: '/dialysis/readiness-transport/escalation-logs' },
       ],
     },
     {
@@ -93,11 +113,45 @@ export class AppSidebarComponent {
   constructor(
     public sidebarService: SidebarService,
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private keycloak: KeycloakService
   ) {
     this.isExpanded$ = this.sidebarService.isExpanded$;
     this.isMobileOpen$ = this.sidebarService.isMobileOpen$;
     this.isHovered$ = this.sidebarService.isHovered$;
+  }
+
+  get filteredNavItems(): NavItem[] {
+    const userRoles = this.keycloak.getUserRoles();
+    
+    return this.navItems
+      .map(item => {
+        // 1. Deep copy logic to not mutate the original items
+        const newItem = { ...item };
+        
+        // 2. Filter subItems first if they exist
+        if (newItem.subItems) {
+          newItem.subItems = newItem.subItems.filter(sub => {
+            if (!sub.roles) return true; // default visible
+            return sub.roles.some(role => userRoles.includes(role));
+          });
+        }
+        
+        return newItem;
+      })
+      .filter(item => {
+        // 3. Check top-level role constraint
+        if (item.roles && !item.roles.some(role => userRoles.includes(role))) {
+          return false;
+        }
+        
+        // 4. PRUNING: If it has subItems but all were filtered out, hide the entire group
+        if (item.subItems && item.subItems.length === 0) {
+          return false;
+        }
+        
+        return true;
+      });
   }
 
   ngOnInit() {

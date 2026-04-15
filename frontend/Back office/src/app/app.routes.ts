@@ -34,6 +34,15 @@ import {SystemConfigComponent} from "./pages/dialysis/admin/system-config/system
 import {AdminAuditComponent} from "./pages/dialysis/admin/audit/admin-audit.component";
 import {MyScheduleComponent} from "./pages/dialysis/my-schedule/my-schedule.component";
 import { AlertsListComponent } from './pages/dialysis/alerts/alerts-list.component';
+
+// Transport & Readiness Imports
+import { ReadinessMonitoringComponent } from './pages/dialysis/readiness-transport/readiness-monitoring/readiness-monitoring.component';
+import { PendingTransportRequestsComponent } from './pages/dialysis/readiness-transport/pending-transport-requests/pending-transport-requests.component';
+import { SharedRideGroupsComponent } from './pages/dialysis/readiness-transport/shared-ride-groups/shared-ride-groups.component';
+import { FleetDashboardComponent } from './pages/dialysis/readiness-transport/fleet-dashboard/fleet-dashboard.component';
+import { VehicleManagementComponent } from './pages/dialysis/readiness-transport/vehicle-management/vehicle-management.component';
+import { EscalationLogsComponent } from './pages/dialysis/readiness-transport/escalation-logs/escalation-logs.component';
+
 export const routes: Routes = [
   {
     path: '',
@@ -111,6 +120,44 @@ export const routes: Routes = [
       {
         path: 'dialysis/alerts',
         component: AlertsListComponent,
+        canActivate: [RoleGuard],
+        data: { roles: ['doctor', 'nurse', 'admin'] }
+      },
+
+      // --- Dialysis Readiness & Transport Routes ---
+      {
+        path: 'dialysis/readiness-transport/readiness',
+        component: ReadinessMonitoringComponent,
+        canActivate: [RoleGuard],
+        data: { roles: ['doctor', 'nurse', 'admin'] }
+      },
+      {
+        path: 'dialysis/readiness-transport/transport',
+        component: PendingTransportRequestsComponent,
+        canActivate: [RoleGuard],
+        data: { roles: ['doctor', 'nurse', 'admin'] }
+      },
+      {
+        path: 'dialysis/readiness-transport/ride-groups',
+        component: SharedRideGroupsComponent,
+        canActivate: [RoleGuard],
+        data: { roles: ['admin'] }
+      },
+      {
+        path: 'dialysis/readiness-transport/fleet',
+        component: FleetDashboardComponent,
+        canActivate: [RoleGuard],
+        data: { roles: ['admin'] }
+      },
+      {
+        path: 'dialysis/readiness-transport/vehicle-management',
+        component: VehicleManagementComponent,
+        canActivate: [RoleGuard],
+        data: { roles: ['admin'] }
+      },
+      {
+        path: 'dialysis/readiness-transport/escalation-logs',
+        component: EscalationLogsComponent,
         canActivate: [RoleGuard],
         data: { roles: ['doctor', 'nurse', 'admin'] }
       },

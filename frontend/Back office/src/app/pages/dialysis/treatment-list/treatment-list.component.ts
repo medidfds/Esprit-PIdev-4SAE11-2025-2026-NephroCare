@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import {Component, OnInit, ViewEncapsulation} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { KeycloakService } from 'keycloak-angular';
@@ -42,6 +42,8 @@ type TreatmentMetrics = {
     standalone: true,
     imports: [CommonModule, FormsModule, ButtonComponent, BadgeComponent, AppModalComponent],
     templateUrl: './treatment-list.component.html',
+    styleUrls: ['./treatment-list.component.css'],
+
 })
 export class TreatmentListComponent implements OnInit {
     treatments: DialysisTreatment[] = [];

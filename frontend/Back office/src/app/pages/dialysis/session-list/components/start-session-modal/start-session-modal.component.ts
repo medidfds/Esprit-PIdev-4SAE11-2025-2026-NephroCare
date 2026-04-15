@@ -11,6 +11,7 @@ import { DialysisShift} from "../../../../../shared/services/dialysis.service";
     standalone: true,
     imports: [CommonModule, FormsModule, AppModalComponent, ButtonComponent],
     templateUrl: './start-session-modal.component.html',
+    styleUrls: ['./start-session-modal.component.css'],
 })
 export class StartSessionModalComponent {
     @Input() open = false;

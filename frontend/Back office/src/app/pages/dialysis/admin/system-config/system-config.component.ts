@@ -10,14 +10,15 @@ import { ButtonComponent } from '../../../../shared/components/ui/button/button.
     standalone: true,
     imports: [CommonModule, FormsModule, ButtonComponent],
     templateUrl: './system-config.component.html',
+    styleUrls: ['./system-config.component.css'],
 })
 export class SystemConfigComponent implements OnInit {
     loading = true;
-    saving = false;
+    submitting = false;
     error: string | null = null;
-    success: string | null = null;
+    successMessage: string | null = null;
 
-    cfg: SystemConfigDto = {
+    config: SystemConfigDto = {
         maxConcurrentSessionsPerShift: 10,
         morningStart: '08:00',
         morningEnd: '12:00',
@@ -35,11 +36,11 @@ export class SystemConfigComponent implements OnInit {
     load(): void {
         this.loading = true;
         this.error = null;
-        this.success = null;
+        this.successMessage = null;
 
         this.service.getSystemConfig().subscribe({
             next: (data) => {
-                this.cfg = {
+                this.config = {
                     id: data.id,
                     maxConcurrentSessionsPerShift: Number(data.maxConcurrentSessionsPerShift ?? 10),
                     morningStart: this.normalizeTimeForInput(data.morningStart ?? '08:00:00'),
@@ -73,16 +74,16 @@ export class SystemConfigComponent implements OnInit {
     }
 
     isInvalid(): boolean {
-        const cap = Number(this.cfg.maxConcurrentSessionsPerShift);
-        const th = Number(this.cfg.ktvAlertThreshold);
+        const cap = Number(this.config.maxConcurrentSessionsPerShift);
+        const th = Number(this.config.ktvAlertThreshold);
 
         if (!Number.isFinite(cap) || cap < 1) return true;
         if (!Number.isFinite(th) || th <= 0) return true;
 
-        const ms = this.cfg.morningStart;
-        const me = this.cfg.morningEnd;
-        const as = this.cfg.afternoonStart;
-        const ae = this.cfg.afternoonEnd;
+        const ms = this.config.morningStart;
+        const me = this.config.morningEnd;
+        const as = this.config.afternoonStart;
+        const ae = this.config.afternoonEnd;
 
         if (!ms || !me || !as || !ae) return true;
 
@@ -99,28 +100,28 @@ export class SystemConfigComponent implements OnInit {
 
     save(): void {
         this.error = null;
-        this.success = null;
+        this.successMessage = null;
 
         if (this.isInvalid()) {
             this.error = 'Please correct the fields (times/capacity/threshold).';
             return;
         }
 
-        this.saving = true;
+        this.submitting = true;
 
         const payload: SystemConfigDto = {
-            id: this.cfg.id,
-            maxConcurrentSessionsPerShift: Number(this.cfg.maxConcurrentSessionsPerShift),
-            morningStart: this.normalizeTimeForBackend(this.cfg.morningStart),
-            morningEnd: this.normalizeTimeForBackend(this.cfg.morningEnd),
-            afternoonStart: this.normalizeTimeForBackend(this.cfg.afternoonStart),
-            afternoonEnd: this.normalizeTimeForBackend(this.cfg.afternoonEnd),
-            ktvAlertThreshold: Number(this.cfg.ktvAlertThreshold),
+            id: this.config.id,
+            maxConcurrentSessionsPerShift: Number(this.config.maxConcurrentSessionsPerShift),
+            morningStart: this.normalizeTimeForBackend(this.config.morningStart),
+            morningEnd: this.normalizeTimeForBackend(this.config.morningEnd),
+            afternoonStart: this.normalizeTimeForBackend(this.config.afternoonStart),
+            afternoonEnd: this.normalizeTimeForBackend(this.config.afternoonEnd),
+            ktvAlertThreshold: Number(this.config.ktvAlertThreshold),
         };
 
         this.service.updateSystemConfig(payload).subscribe({
             next: (res) => {
-                this.cfg = {
+                this.config = {
                     ...payload,
                     id: res.id ?? payload.id,
                     morningStart: this.normalizeTimeForInput(res.morningStart ?? payload.morningStart),
@@ -131,12 +132,12 @@ export class SystemConfigComponent implements OnInit {
                     maxConcurrentSessionsPerShift: Number(res.maxConcurrentSessionsPerShift ?? payload.maxConcurrentSessionsPerShift),
                 };
 
-                this.saving = false;
-                this.success = 'Saved successfully.';
+                this.submitting = false;
+                this.successMessage = 'Saved successfully.';
             },
             error: (err) => {
                 console.error(err);
-                this.saving = false;
+                this.submitting = false;
                 this.error = err?.error?.messages?.join(', ') || 'Failed to save system config.';
             },
         });

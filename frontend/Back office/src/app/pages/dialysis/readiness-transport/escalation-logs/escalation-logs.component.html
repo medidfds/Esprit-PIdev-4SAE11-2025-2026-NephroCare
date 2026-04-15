@@ -1,0 +1,80 @@
+<div class="el-card">
+    
+    <!-- Header -->
+    <div class="el-header">
+        <div class="el-header__title-group">
+            <div class="el-header__icon">
+                <i class="bi bi-shield-exclamation text-xl"></i>
+            </div>
+            <div>
+                <h3 class="el-header__title">Escalation Logs</h3>
+                <p class="el-header__subtitle">History of critical readiness alerts and system overrides</p>
+            </div>
+        </div>
+        <button class="el-btn el-btn--outline" (click)="loadLogs()">
+            <i class="bi bi-arrow-repeat"></i>
+        </button>
+    </div>
+
+    <!-- Body / Loading -->
+    @if (isLoading) {
+        <div class="el-loading">
+            <div class="el-spinner"></div>
+            <p>Loading escalation history...</p>
+        </div>
+    } @else {
+        
+        <!-- Table -->
+        @if (logs.length > 0) {
+            <div class="el-table-wrap">
+                <table class="el-table">
+                    <thead>
+                        <tr>
+                            <th>Log ID</th>
+                            <th>Event Level</th>
+                            <th>Triggered At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (log of logs; track log.id) {
+                            <tr class="el-row">
+                                <!-- Log ID -->
+                                <td>
+                                    <div class="el-log">
+                                        <i class="bi bi-file-earmark-text el-log__icon"></i>
+                                        <span class="el-log__id">#{{ log.id.toString().substring(0, 8) }}</span>
+                                    </div>
+                                    <div class="text-[10px] text-gray-400 mt-1">Session: {{ log.scheduledSessionId | slice:0:8 }}...</div>
+                                    <div class="text-[10px] text-gray-400 mt-0.5">Patient: {{ patientNames[log.patientId] || (log.patientId | slice:0:8) }}</div>
+                                </td>
+
+                                <!-- Event Level -->
+                                <td>
+                                    <span class="el-badge" [ngClass]="getLevelClass(log.level)">
+                                        {{ getLevelLabel(log.level) }}
+                                    </span>
+                                </td>
+
+                                <!-- Triggered At -->
+                                <td>
+                                    <div class="text-xs font-medium">
+                                        {{ log.triggeredAt | date:'short' }}
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        } @else {
+            <!-- Empty State -->
+            <div class="el-empty">
+                <div class="el-empty__icon">
+                    <i class="bi bi-check2-shield text-6xl"></i>
+                </div>
+                <h4 class="el-empty__title">System clear</h4>
+                <p class="el-empty__sub">No escalation events have been logged yet.</p>
+            </div>
+        }
+    }
+</div>

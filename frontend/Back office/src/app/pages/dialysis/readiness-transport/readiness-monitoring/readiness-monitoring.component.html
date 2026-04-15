@@ -1,0 +1,139 @@
+<div class="rm-wrapper">
+
+    <!-- Header -->
+    <div class="rm-header">
+        <div class="rm-header-left">
+            <div class="rm-icon-box">
+                <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+            </div>
+            <div>
+                <h2 class="rm-title">Readiness Monitoring</h2>
+                <p class="rm-subtitle">Live tracking of patient readiness and session blocks</p>
+            </div>
+        </div>
+        <div class="rm-count-pill">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            {{ readinessList.length }} Sessions Tracked
+        </div>
+    </div>
+
+    <!-- Body -->
+    <div class="rm-body">
+
+        <!-- Loading -->
+        <div *ngIf="isLoading" class="rm-loading">
+            <div class="rm-spinner"></div>
+            <p>Loading readiness scores...</p>
+        </div>
+
+        <!-- Table Card -->
+        <div *ngIf="!isLoading" class="rm-table-card">
+            <div class="rm-table-wrapper">
+                <table class="rm-table">
+                    <thead>
+                    <tr>
+                        <th>Session</th>
+                        <th>Status</th>
+                        <th>Score</th>
+                        <th>Warning Reason</th>
+                        <th>Blocking Reason</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr *ngFor="let item of readinessList" class="rm-row">
+
+                        <!-- Session ID -->
+                        <td>
+                            <div class="rm-session-id" title="Full Session ID: {{ item.scheduledSessionId }}">
+                                <div class="rm-id-dot"></div>
+                                Session
+                            </div>
+                        </td>
+
+                        <!-- Status -->
+                        <td>
+                <span class="rm-badge"
+                      [ngClass]="{
+                    'badge-not-ready': item.readinessStatus === 'NOT_READY',
+                    'badge-warning':   item.readinessStatus === 'READY_WITH_WARNING',
+                    'badge-ready':     item.readinessStatus === 'READY'
+                  }">
+                  <span class="badge-dot"></span>
+                    {{ item.readinessStatus | titlecase }}
+                </span>
+                        </td>
+
+                        <!-- Score -->
+                        <td>
+                            <div class="rm-score-wrapper">
+                                <div class="rm-score-ring"
+                                     [ngClass]="{
+                      'ring-red':    item.globalScore < 50,
+                      'ring-yellow': item.globalScore >= 50 && item.globalScore < 80,
+                      'ring-green':  item.globalScore >= 80
+                    }">
+                                    {{ item.globalScore }}
+                                </div>
+                                <div class="rm-score-bar-bg">
+                                    <div class="rm-score-bar-fill"
+                                         [ngClass]="{
+                        'fill-red':    item.globalScore < 50,
+                        'fill-yellow': item.globalScore >= 50 && item.globalScore < 80,
+                        'fill-green':  item.globalScore >= 80
+                      }"
+                                         [style.width.%]="item.globalScore">
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- Warning Reason -->
+                        <td>
+                <span *ngIf="item.warningReason" class="rm-warning-text">
+                  <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                  </svg>
+                    {{ item.warningReason }}
+                </span>
+                            <span *ngIf="!item.warningReason" class="rm-empty-cell">—</span>
+                        </td>
+
+                        <!-- Blocking Reason -->
+                        <td>
+                <span *ngIf="item.blockingReason" class="rm-blocking-text">
+                  <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                  </svg>
+                    {{ item.blockingReason }}
+                </span>
+                            <span *ngIf="!item.blockingReason" class="rm-empty-cell">—</span>
+                        </td>
+
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State -->
+            <div class="rm-empty" *ngIf="readinessList.length === 0">
+                <div class="rm-empty-icon">
+                    <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <p class="rm-empty-title">No readiness scores available</p>
+                <p class="rm-empty-sub">Check back later for active patient sessions.</p>
+            </div>
+        </div>
+
+    </div>
+</div>

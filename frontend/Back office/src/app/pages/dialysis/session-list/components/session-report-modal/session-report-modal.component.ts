@@ -2,13 +2,15 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AppModalComponent } from '../../../../../shared/components/ui/app-modal/app-modal.component';
 import { ButtonComponent } from '../../../../../shared/components/ui/button/button.component';
-import {DialysisService, SessionReportDto} from '../../../../../shared/services/dialysis.service';
+import { DialysisService, SessionReportDto } from '../../../../../shared/services/dialysis.service';
+import { BadgeComponent } from '../../../../../shared/components/ui/badge/badge.component';
 
 @Component({
     selector: 'app-session-report-modal',
     standalone: true,
-    imports: [CommonModule, AppModalComponent, ButtonComponent],
+    imports: [CommonModule, AppModalComponent, ButtonComponent, BadgeComponent],
     templateUrl: './session-report-modal.component.html',
+    styleUrls: ['./session-report-modal.component.css'],
 })
 export class SessionReportModalComponent {
     constructor(private dialysisService: DialysisService) {}
@@ -58,6 +60,19 @@ export class SessionReportModalComponent {
         return this.json('fluid.flag') || '-';
     }
 
+    preUreaValue(): number {
+        return this.json('urea.preDialysisUrea') || 0;
+    }
+    postUreaValue(): number {
+        return this.json('urea.postDialysisUrea') || 0;
+    }
+    weightBeforeValue(): number {
+        return this.json('fluid.weightBefore') || 0;
+    }
+    weightAfterValue(): number {
+        return this.json('fluid.weightAfter') || 0;
+    }
+
     urrOk(): boolean {
         return !!this.json('adequacy.urrPass');
     }
@@ -90,5 +105,9 @@ export class SessionReportModalComponent {
             a.remove();
             URL.revokeObjectURL(url);
         });
+    }
+
+    generatePDF(report: any): void {
+        this.downloadPdf();
     }
 }

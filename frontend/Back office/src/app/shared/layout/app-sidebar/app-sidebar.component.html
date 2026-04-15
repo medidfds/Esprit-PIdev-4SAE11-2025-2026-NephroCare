@@ -51,7 +51,7 @@
         </h2>
 
         <ul class="flex flex-col gap-1.5">
-          @for (nav of navItems; track $index; let i = $index) {
+          @for (nav of filteredNavItems; track $index; let i = $index) {
             <li>
               @if (nav.subItems) {
                 <button

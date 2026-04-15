@@ -1,0 +1,108 @@
+/* ─── Variables & Tokens ─── */
+:host {
+    --sh-bg-card: #ffffff;
+    --sh-border: #e2e8f0;
+    --sh-text-main: #1e293b;
+    --sh-text-muted: #64748b;
+    --sh-accent: #3b82f6;
+
+    display: block;
+    margin-bottom: 1.5rem;
+}
+
+:host-context(.dark) {
+    --sh-bg-card: #111827;
+    --sh-border: #1f2937;
+    --sh-text-main: #f1f5f9;
+    --sh-text-muted: #94a3b8;
+}
+
+.sh-card {
+    background: var(--sh-bg-card);
+    border: 1px solid var(--sh-border);
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.sh-info-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.sh-title {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--sh-text-main);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sh-title__mode {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--sh-accent);
+    background: rgba(59, 130, 246, 0.1);
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.375rem;
+}
+
+.sh-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.sh-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+/* ─── Reusing button styles from theme ─── */
+.sh-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.sh-btn--primary {
+    background: var(--sh-accent);
+    color: white;
+}
+
+.sh-btn--primary:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+}
+
+.sh-btn--outline {
+    border-color: var(--sh-border);
+    color: var(--sh-text-main);
+}
+
+.sh-btn--outline:hover {
+    background: #f8fafc;
+    border-color: var(--sh-accent);
+    color: var(--sh-accent);
+}
+
+.sh-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}

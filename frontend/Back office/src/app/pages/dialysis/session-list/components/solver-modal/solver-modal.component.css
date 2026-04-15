@@ -1,0 +1,113 @@
+/* ─── Variables & Tokens ─── */
+:host {
+    --sm-bg-card: #ffffff;
+    --sm-border: #e2e8f0;
+    --sm-text-main: #1e293b;
+    --sm-text-muted: #64748b;
+    --sm-accent: #3b82f6;
+
+    display: block;
+}
+
+:host-context(.dark) {
+    --sm-bg-card: #111827;
+    --sm-border: #1f2937;
+    --sm-text-main: #f1f5f9;
+    --sm-text-muted: #94a3b8;
+}
+
+.sm-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    padding: 1.5rem;
+}
+
+.sm-form__col-span-2 { grid-column: span 2; }
+
+.sm-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--sm-text-muted);
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.05em;
+}
+
+.sm-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--sm-border);
+    background: #f8fafc;
+    color: var(--sm-text-main);
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.sm-input:focus {
+    border-color: var(--sm-accent);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    outline: none;
+}
+
+/* ─── Results Area ─── */
+.sm-results {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: #f8fafc;
+    border-radius: 1rem;
+    border: 1px solid var(--sm-border);
+}
+
+.sm-plan {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.sm-slot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: white;
+    border: 1px solid var(--sm-border);
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+}
+
+.sm-slot__day { font-weight: 700; color: var(--sm-text-main); }
+.sm-slot__shift { font-size: 0.75rem; color: var(--sm-text-muted); text-transform: uppercase; }
+
+/* ─── Multi-select ─── */
+.sm-nurses {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 0.75rem;
+    border: 1px solid var(--sm-border);
+    border-radius: 0.75rem;
+    background: white;
+}
+
+.sm-nurse-tag {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    background: #f1f5f9;
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.sm-nurse-tag--selected {
+    background: var(--sm-accent);
+    color: white;
+}

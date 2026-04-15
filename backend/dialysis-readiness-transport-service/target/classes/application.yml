@@ -1,0 +1,35 @@
+server:
+  port: 8085
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/readiness_db?createDatabaseIfNotExist=true
+    username: readiness_user
+    password: 1234
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8180/realms/nephro-realm
+
+# Internal service-to-service call for fallback PatientAvailability creation
+dialysis-service:
+  base-url: http://localhost:8075
+
+simulation:
+  force-active: true
+  vehicle:
+    interval: 5000

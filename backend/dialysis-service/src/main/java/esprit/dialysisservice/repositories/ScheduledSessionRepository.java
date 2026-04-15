@@ -7,6 +7,7 @@ import esprit.dialysisservice.entities.enums.ScheduledStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,6 +38,24 @@ public interface ScheduledSessionRepository extends JpaRepository<ScheduledSessi
     List<ScheduledSession> findByNurseIdAndNurseConfirmationAndDayGreaterThanEqualOrderByDayAsc(
             UUID nurseId, NurseConfirmationStatus status, LocalDate day
     );
+
+    List<ScheduledSession> findByPatientIdAndDayGreaterThanEqualOrderByDayAsc(UUID patientId, LocalDate day);
+
+    List<ScheduledSession> findByStatusAndDayBefore(
+            ScheduledStatus status,
+            LocalDate day
+    );
+    List<ScheduledSession> findByStatusAndNurseConfirmationAndLastAssignmentAtBefore(
+            ScheduledStatus status,
+            NurseConfirmationStatus confirmation,
+            LocalDateTime threshold
+    );
+    List<ScheduledSession> findByDayAndStatusAndNurseConfirmation(
+            LocalDate day,
+            ScheduledStatus status,
+            NurseConfirmationStatus confirmation
+    );
+    List<ScheduledSession> findByDayAndStatus(LocalDate day, ScheduledStatus status);
 
 
 }

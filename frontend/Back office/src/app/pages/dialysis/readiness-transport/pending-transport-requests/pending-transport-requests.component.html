@@ -1,0 +1,147 @@
+<div class="ptr-wrapper">
+
+    <!-- Header -->
+    <div class="ptr-header">
+        <div class="ptr-header-left">
+            <div class="ptr-icon-box">
+                <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+            </div>
+            <div>
+                <h2 class="ptr-title">Pending Transport Requests</h2>
+                <p class="ptr-subtitle">Review and manage transport requirements for upcoming sessions</p>
+            </div>
+        </div>
+        <div class="ptr-count-pill">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {{ requests.length }} Pending
+        </div>
+    </div>
+
+    <div class="ptr-body">
+
+        <!-- Error Message -->
+        <div *ngIf="errorMessage" class="ptr-alert ptr-alert-error">
+            <div class="ptr-alert-icon">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <span>{{ errorMessage }}</span>
+        </div>
+
+        <!-- Success Message -->
+        <div *ngIf="successMessage" class="ptr-alert ptr-alert-success">
+            <div class="ptr-alert-icon">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <span>{{ successMessage }}</span>
+        </div>
+
+        <!-- Loading State -->
+        <div *ngIf="isLoading" class="ptr-loading">
+            <div class="ptr-spinner"></div>
+            <p>Loading requests...</p>
+        </div>
+
+        <!-- Table -->
+        <div *ngIf="!isLoading" class="ptr-table-wrapper">
+            <table class="ptr-table">
+                <thead>
+                <tr>
+                    <th>Patient</th>
+                    <th>Pickup Zone</th>
+                    <th>Wheelchair</th>
+                    <th>Status</th>
+                    <th class="text-right">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr *ngFor="let req of requests" class="ptr-row">
+
+                    <td>
+              <span class="ptr-patient-name" title="Full ID: {{ req.patientId }} | Session: {{ req.scheduledSessionId }}">
+                {{ patientNames[req.patientId] || 'Loading...' }}
+              </span>
+                    </td>
+
+                    <td>
+                        <div class="ptr-zone">
+                            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span [title]="req.pickupAddress || req.pickupZone">
+                                {{ req.pickupAddress ? (req.pickupAddress | slice:0:30) + (req.pickupAddress.length > 30 ? '...' : '') : req.pickupZone }}
+                            </span>
+                        </div>
+                    </td>
+
+                    <td>
+              <span *ngIf="req.wheelchairRequired" class="ptr-badge badge-wheelchair">
+                <span class="badge-dot"></span>
+                Required
+              </span>
+                        <span *ngIf="!req.wheelchairRequired" class="ptr-badge badge-no-wheelchair">
+                <span class="badge-dot"></span>
+                No
+              </span>
+                    </td>
+
+                    <td>
+               <span class="ptr-badge badge-pending">
+                 <span class="badge-dot"></span>
+                   {{ formatStatus(req.status) }}
+               </span>
+                    </td>
+
+                    <td class="ptr-actions-cell">
+                        <button
+                                class="ptr-btn ptr-btn-approve"
+                                [disabled]="processingId === req.id || !req.id"
+                                (click)="approve(req.id)">
+                            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Approve
+                        </button>
+                        <button
+                                class="ptr-btn ptr-btn-reject"
+                                [disabled]="processingId === req.id || !req.id"
+                                (click)="reject(req.id)">
+                            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Reject
+                        </button>
+                    </td>
+
+                </tr>
+                </tbody>
+            </table>
+
+            <!-- Empty State -->
+            <div class="ptr-empty" *ngIf="requests.length === 0">
+                <div class="ptr-empty-icon">
+                    <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <p class="ptr-empty-title">All caught up!</p>
+                <p class="ptr-empty-sub">No pending requests require attention right now.</p>
+            </div>
+        </div>
+
+    </div>
+</div>

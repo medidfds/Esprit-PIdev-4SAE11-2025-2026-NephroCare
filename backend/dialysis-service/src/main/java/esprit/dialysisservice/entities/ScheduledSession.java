@@ -68,11 +68,14 @@ public class ScheduledSession {
     // audit
     private LocalDateTime createdAt;
     private String createdBy;
+    @Column(name = "reassign_attempts")
+    private int reassignAttempts = 0;
 
     @PrePersist
     public void prePersist() {
         if (createdAt == null) createdAt = LocalDateTime.now();
         if (lastAssignmentAt == null) lastAssignmentAt = createdAt;
         if (nurseConfirmation == null) nurseConfirmation = NurseConfirmationStatus.PENDING;
+        if (reassignAttempts < 0) reassignAttempts = 0;
     }
 }

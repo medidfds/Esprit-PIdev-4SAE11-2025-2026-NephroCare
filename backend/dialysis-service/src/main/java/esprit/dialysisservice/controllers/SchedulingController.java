@@ -62,4 +62,18 @@ public class SchedulingController {
         UUID userId = extractUserId(authentication); // doctor/admin
         return ResponseEntity.ok(schedulingService.confirm(dto, userId));
     }
+
+    // Patient: upcoming scheduled sessions (pre-session logistics)
+    @GetMapping("/patient/upcoming")
+    @PreAuthorize("hasAnyRole('patient','PATIENT')")
+    public ResponseEntity<List<ScheduledSessionResponseDTO>> patientUpcoming(Authentication authentication) {
+        UUID patientId = extractUserId(authentication);
+        return ResponseEntity.ok(schedulingService.getPatientUpcoming(patientId));
+    }
+
+    // Internal: fetch a single scheduled session by ID (used by transport-service for fallback)
+    @GetMapping("/internal/{id}")
+    public ResponseEntity<ScheduledSessionResponseDTO> getById(@PathVariable UUID id) {
+        return ResponseEntity.ok(schedulingService.getById(id));
+    }
 }

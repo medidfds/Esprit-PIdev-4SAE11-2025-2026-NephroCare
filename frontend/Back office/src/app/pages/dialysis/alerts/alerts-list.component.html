@@ -1,66 +1,110 @@
-<div class="alerts-page">
-    <div class="alerts-header">
-        <div>
-            <h2>Dialysis Alerts</h2>
-            <p>Monitor and manage open clinical alerts.</p>
-        </div>
-
-        <button class="refresh-btn" (click)="loadAlerts()">Refresh</button>
-    </div>
-
-    <div class="filters">
-        <select [value]="selectedSeverity" (change)="onSeverityChange($any($event.target).value)">
-            <option value="ALL">All severities</option>
-            <option value="CRITICAL">Critical</option>
-            <option value="WARNING">Warning</option>
-            <option value="INFO">Info</option>
-        </select>
-
-        <select [value]="selectedCategory" (change)="onCategoryChange($any($event.target).value)">
-            <option value="ALL">All categories</option>
-            <option value="ADEQUACY">Adequacy</option>
-            <option value="HEMODYNAMIC">Hemodynamic</option>
-            <option value="WEIGHT">Weight</option>
-            <option value="COMPLICATION">Complication</option>
-            <option value="GLOBAL">Global</option>
-        </select>
-    </div>
-
-    <div *ngIf="loading" class="state-box">
-        Loading alerts...
-    </div>
-
-    <div *ngIf="error" class="state-box error-box">
-        {{ error }}
-    </div>
-
-    <div *ngIf="!loading && filteredAlerts.length === 0" class="state-box">
-        No open alerts found.
-    </div>
-
-    <div class="alerts-grid" *ngIf="filteredAlerts.length > 0">
-        <div class="alert-card" *ngFor="let alert of filteredAlerts">
-            <div class="alert-top">
-        <span class="severity-badge" [ngClass]="severityClass(alert.severity)">
-          {{ alert.severity }}
-        </span>
-                <span class="alert-date">{{ alert.createdAt | date:'short' }}</span>
+<div class="al-card">
+    <!-- Header with Filters -->
+    <div class="al-header">
+        <div class="al-header__title-group">
+            <div class="al-header__icon">
+                <i class="bi bi-bell-fill"></i>
             </div>
-
-            <h3>{{ alert.title }}</h3>
-            <p class="alert-message">{{ alert.message }}</p>
-
-            <div class="alert-meta">
-                <div><strong>Category:</strong> {{ alert.category }}</div>
-                <div><strong>Patient ID:</strong> {{ alert.patientId }}</div>
-                <div><strong>Session ID:</strong> {{ alert.sessionId }}</div>
-                <div><strong>Status:</strong> {{ alert.status }}</div>
-            </div>
-
-            <div class="alert-actions">
-                <button class="ack-btn" (click)="acknowledge(alert)">Acknowledge</button>
-                <button class="resolve-btn" (click)="resolve(alert)">Resolve</button>
+            <div>
+                <h3 class="al-header__title text-slate-800 dark:text-white">Unified Alert Hub</h3>
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Clinical & Logistics Exceptions</p>
             </div>
         </div>
+
+        <div class="flex items-center gap-3">
+            <!-- Category Filter -->
+            <select class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold"
+                    (change)="onCategoryChange($any($event.target).value)">
+                <option value="ALL">All Categories</option>
+                <option value="COMPLICATION">Clinical (Complication)</option>
+                <option value="READINESS">Readiness</option>
+                <option value="HEMODYNAMIC">Hemodynamic</option>
+                <option value="WEIGHT">Weight</option>
+                <option value="ADEQUACY">Adequacy</option>
+                <option value="GLOBAL">Global</option>
+            </select>
+
+            <!-- Severity Filter -->
+            <select class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold"
+                    (change)="onSeverityChange($any($event.target).value)">
+                <option value="ALL">All Severities</option>
+                <option value="CRITICAL">Critical</option>
+                <option value="WARNING">Warning</option>
+                <option value="INFO">Info</option>
+            </select>
+
+            <button class="al-btn al-btn--outline flex items-center gap-2" (click)="loadAlerts()">
+                <i class="bi bi-arrow-clockwise"></i>
+                Sync
+            </button>
+        </div>
     </div>
+
+    <!-- Body / List -->
+    @if (loading) {
+        <div class="p-20 text-center">
+            <div class="w-10 h-10 border-4 border-slate-100 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Hydrating alerts...</p>
+        </div>
+    } @else {
+        <div class="al-list">
+            @for (alert of filteredAlerts; track alert.id) {
+                <div class="al-item" [class.al-item--unread]="true">
+                    <!-- Icon / Indicator -->
+                    <div class="al-indicator" 
+                         [class.al-indicator--risk]="alert.severity === 'CRITICAL' || alert.severity === 'WARNING'"
+                         [class.al-indicator--info]="alert.severity === 'INFO'">
+                        @if (alert.category === 'HEMODYNAMIC') {
+                            <i class="bi bi-heart-pulse-fill text-red-500 text-lg"></i>
+                        } @else if (alert.category === 'COMPLICATION') {
+                             <i class="bi bi-exclamation-diamond-fill text-orange-500 text-lg"></i>
+                        } @else if (alert.category === 'ADEQUACY' || alert.category === 'GLOBAL') {
+                            <i class="bi bi-shield-check-fill text-blue-500 text-lg"></i>
+                        } @else if (alert.category === 'WEIGHT') {
+                             <i class="bi bi-droplets-fill text-cyan-500 text-lg"></i>
+                        } @else if (alert.category === 'READINESS') {
+                             <i class="bi bi-truck text-emerald-500 text-lg"></i>
+                        } @else {
+                             <i class="bi bi-info-circle text-lg"></i>
+                        }
+                    </div>
+
+                    <!-- Content -->
+                    <div class="al-content">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-[10px] font-black uppercase tracking-widest text-blue-500 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded">
+                                {{ alert.category }}
+                            </span>
+                            <span class="text-[10px] text-slate-400 font-bold uppercase">
+                                {{ alert.createdAt | date:'HH:mm • MMM d' }}
+                            </span>
+                        </div>
+                        <div class="al-subject">{{ alert.title }}</div>
+                        <div class="al-body">{{ alert.message }}</div>
+                        
+                        <div class="al-meta">
+                            <span><i class="bi bi-person-fill"></i> Patient: {{ alert.patientId.substring(0,8) }}...</span>
+                            <span><i class="bi bi-clipboard2-pulse"></i> Session: {{ alert.sessionId?.substring(0,8) }}...</span>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="al-actions">
+                        <button class="al-btn al-btn--outline" (click)="acknowledge(alert)">
+                            Acknowledge
+                        </button>
+                        <button class="al-btn al-btn--primary" (click)="resolve(alert)">
+                            Resolve
+                        </button>
+                    </div>
+                </div>
+            } @empty {
+                <div class="al-empty">
+                    <i class="bi bi-shield-check text-6xl text-slate-200 mb-6 block"></i>
+                    <h4 class="text-slate-800 dark:text-white font-bold text-xl mb-2">No Active Alerts</h4>
+                    <p class="text-slate-400 text-sm max-w-sm mx-auto">The clinical environment and logistics pipeline are currently within safe operational thresholds.</p>
+                </div>
+            }
+        </div>
+    }
 </div>

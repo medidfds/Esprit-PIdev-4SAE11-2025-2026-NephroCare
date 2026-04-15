@@ -1,5 +1,6 @@
 package esprit.dialysisservice.services;
 
+import esprit.dialysisservice.dtos.request.AlertRequestDTO;
 import esprit.dialysisservice.dtos.response.AlertResponseDTO;
 import esprit.dialysisservice.entities.Alert;
 import esprit.dialysisservice.entities.DialysisSession;
@@ -22,6 +23,32 @@ public class AlertService {
 
     private final AlertRepository alertRepository;
     private final DialysisSessionRepository sessionRepository;
+
+    @Transactional
+    public void createAlert(AlertRequestDTO dto) {
+        if (dto.getPatientId() == null) {
+            throw new IllegalArgumentException("Patient ID is required for alert creation");
+        }
+
+        // Avoid duplicate open alerts for same session/category
+        if (dto.getSessionId() != null && alertRepository.existsBySessionIdAndCategoryAndStatus(
+                dto.getSessionId(), dto.getCategory(), "OPEN")) {
+            return;
+        }
+
+        Alert alert = Alert.builder()
+                .patientId(dto.getPatientId())
+                .sessionId(dto.getSessionId())
+                .severity(dto.getSeverity() != null ? dto.getSeverity() : "INFO")
+                .category(dto.getCategory() != null ? dto.getCategory() : "GLOBAL")
+                .title(dto.getTitle())
+                .message(dto.getMessage())
+                .status("OPEN")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        alertRepository.save(alert);
+    }
 
     @Transactional
     public void createAlertsForCompletedSession(UUID sessionId) {

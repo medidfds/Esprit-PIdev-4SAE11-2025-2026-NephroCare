@@ -1,0 +1,66 @@
+/* ─── Variables & Tokens ─── */
+:host {
+    display: block;
+}
+
+.ed-form {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.ed-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.05em;
+}
+
+.ed-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #1e293b;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.ed-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    outline: none;
+}
+
+.ed-footer {
+    padding: 1rem 1.5rem;
+    display: flex;
+    gap: 1rem;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    border-radius: 0 0 1rem 1rem;
+}
+
+.ed-btn {
+    flex: 1;
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.ed-btn--primary { background: #0f172a; color: white; }
+.ed-btn--primary:hover { background: #1e293b; }
+.ed-btn--outline { border-color: #e2e8f0; color: #1e293b; background: white; }
+.ed-btn--outline:hover { background: #f8fafc; }

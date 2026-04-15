@@ -3,7 +3,7 @@ export interface Alert {
     patientId: string;
     sessionId: string;
     severity: 'INFO' | 'WARNING' | 'CRITICAL';
-    category: 'ADEQUACY' | 'HEMODYNAMIC' | 'WEIGHT' | 'COMPLICATION' | 'GLOBAL';
+    category: 'ADEQUACY' | 'HEMODYNAMIC' | 'WEIGHT' | 'COMPLICATION' | 'GLOBAL' | 'READINESS';
     title: string;
     message: string;
     status: 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED';

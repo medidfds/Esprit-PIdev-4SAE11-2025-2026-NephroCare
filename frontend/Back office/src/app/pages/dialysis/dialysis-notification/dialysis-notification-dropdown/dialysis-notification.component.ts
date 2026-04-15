@@ -12,6 +12,7 @@ import { DialysisService} from "../../../../shared/services/dialysis.service";
 @Component({
   selector: 'app-dialysis-notification',
   templateUrl: './dialysis-notification.component.html',
+  styleUrls: ['./dialysis-notification.component.css'],
   standalone: true,
   imports: [CommonModule, RouterModule, DropdownComponent, DropdownItemComponent],
 })

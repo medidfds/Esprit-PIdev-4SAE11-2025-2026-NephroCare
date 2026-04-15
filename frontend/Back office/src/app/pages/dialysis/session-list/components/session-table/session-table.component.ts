@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import {Component, EventEmitter, Input, Output, ViewEncapsulation} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonComponent } from "../../../../../shared/components/ui/button/button.component";
@@ -11,6 +11,7 @@ import { DialysisService } from "../../../../../shared/services/dialysis.service
     standalone: true,
     imports: [CommonModule, FormsModule, ButtonComponent, BadgeComponent],
     templateUrl: './session-table.component.html',
+    styleUrls: ['./session-table.component.css'],  // ← add
 })
 export class SessionTableComponent {
 
@@ -39,6 +40,18 @@ export class SessionTableComponent {
     @Output() edit = new EventEmitter<DialysisSession>();
     @Output() end = new EventEmitter<DialysisSession>();
     @Output() delete = new EventEmitter<DialysisSession>();
+
+    onStatusChange(event: any): void {
+        this.onFiltersChanged();
+    }
+
+    onDateChange(event: any): void {
+        this.onFiltersChanged();
+    }
+
+    onSearchInput(event: any): void {
+        this.onFiltersChanged();
+    }
 
     onFiltersChanged(): void {
         this.filtersChange.emit({

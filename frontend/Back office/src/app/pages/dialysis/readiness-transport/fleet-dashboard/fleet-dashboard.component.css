@@ -1,0 +1,411 @@
+/* ─── Wrapper ─────────────────────────────────────────── */
+.fd-wrapper {
+    padding: 28px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 22px !important;
+    font-family: 'Inter', 'Segoe UI', sans-serif !important;
+    background: #f8fafc !important;
+    min-height: 100% !important;
+}
+
+/* ─── Header ──────────────────────────────────────────── */
+.fd-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+    gap: 16px !important;
+    background: white !important;
+    padding: 20px 24px !important;
+    border-radius: 14px !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05) !important;
+}
+
+.fd-header-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 14px !important;
+}
+
+.fd-icon-box {
+    width: 46px !important;
+    height: 46px !important;
+    background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(99,102,241,0.35) !important;
+    flex-shrink: 0 !important;
+}
+
+.fd-title {
+    font-size: 1.15rem !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.fd-subtitle {
+    font-size: 0.8rem !important;
+    color: #94a3b8 !important;
+    margin: 2px 0 0 !important;
+    padding: 0 !important;
+}
+
+/* ─── Connection Status Pill ──────────────────────────── */
+.fd-status-pill {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    padding: 6px 14px !important;
+    border-radius: 999px !important;
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    border: 1.5px solid transparent !important;
+}
+
+.fd-status-dot {
+    width: 8px !important;
+    height: 8px !important;
+    border-radius: 50% !important;
+    background: currentColor !important;
+    flex-shrink: 0 !important;
+}
+
+.status-connected {
+    background: #dcfce7 !important;
+    color: #16a34a !important;
+    border-color: #bbf7d0 !important;
+}
+
+.status-connected .fd-status-dot {
+    background: #16a34a !important;
+    box-shadow: 0 0 0 3px rgba(22,163,74,0.2) !important;
+    animation: fdPulse 1.5s ease-in-out infinite !important;
+}
+
+.status-connecting {
+    background: #fef9c3 !important;
+    color: #a16207 !important;
+    border-color: #fde68a !important;
+}
+
+.status-disconnected {
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
+    border-color: #fecaca !important;
+}
+
+@keyframes fdPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(22,163,74,0.4); }
+    50%       { box-shadow: 0 0 0 5px rgba(22,163,74,0); }
+}
+
+/* ─── Stats ───────────────────────────────────────────── */
+.fd-stats {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 14px !important;
+}
+
+.fd-stat-card {
+    background: white !important;
+    border: 1px solid #e2e8f0 !important;
+    border-left: 4px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    padding: 16px 18px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 14px !important;
+    transition: transform 0.15s !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04) !important;
+}
+
+.fd-stat-card:hover { transform: translateY(-2px) !important; }
+.fd-stat-card.accent-green { border-left-color: #22c55e !important; }
+.fd-stat-card.accent-gray  { border-left-color: #94a3b8 !important; }
+.fd-stat-card.accent-red   { border-left-color: #ef4444 !important; }
+
+.fd-stat-icon {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+}
+
+.fd-stat-icon.total       { background: #ede9fe !important; color: #7c3aed !important; }
+.fd-stat-icon.active      { background: #dcfce7 !important; color: #16a34a !important; }
+.fd-stat-icon.idle        { background: #f1f5f9 !important; color: #64748b !important; }
+.fd-stat-icon.maintenance { background: #fee2e2 !important; color: #dc2626 !important; }
+
+.fd-stat-card > div {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+}
+
+.fd-stat-number {
+    font-size: 1.7rem !important;
+    font-weight: 800 !important;
+    color: #1e293b !important;
+    line-height: 1 !important;
+}
+
+.fd-stat-number.green { color: #16a34a !important; }
+.fd-stat-number.gray  { color: #64748b !important; }
+.fd-stat-number.red   { color: #dc2626 !important; }
+
+.fd-stat-label {
+    font-size: 0.72rem !important;
+    color: #94a3b8 !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+}
+
+/* ─── Map Card ────────────────────────────────────────── */
+.fd-map-card {
+    background: white !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05) !important;
+}
+
+.fd-map-label {
+    display: flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    padding: 14px 20px !important;
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+    color: #64748b !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.fd-map {
+    width: 100% !important;
+    height: 480px !important;
+    z-index: 10 !important;
+    background: #f8fafc !important;
+}
+
+/* ─── Table Card ──────────────────────────────────────── */
+.fd-table-card {
+    background: white !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04) !important;
+}
+
+.fd-table-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 16px 20px !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.fd-table-title {
+    font-size: 0.9rem !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+}
+
+.fd-vehicle-count {
+    font-size: 0.75rem !important;
+    color: #94a3b8 !important;
+    background: #f1f5f9 !important;
+    padding: 3px 10px !important;
+    border-radius: 999px !important;
+    font-weight: 600 !important;
+}
+
+.fd-table-wrapper {
+    overflow-x: auto !important;
+    width: 100% !important;
+}
+
+.fd-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 0.875rem !important;
+}
+
+.fd-table thead tr {
+    background: #f8fafc !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.fd-table th {
+    padding: 12px 18px !important;
+    text-align: left !important;
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.07em !important;
+    color: #64748b !important;
+}
+
+.fd-table th.text-right { text-align: right !important; }
+
+.fd-row {
+    border-bottom: 1px solid #f1f5f9 !important;
+    transition: background 0.15s !important;
+}
+
+.fd-row:last-child { border-bottom: none !important; }
+.fd-row:hover { background: #f8fafc !important; }
+
+.fd-table td {
+    padding: 13px 18px !important;
+    vertical-align: middle !important;
+}
+
+.fd-table td.text-right { text-align: right !important; }
+
+/* ─── Vehicle Code Cell ───────────────────────────────── */
+.fd-vehicle-code {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    font-size: 0.88rem !important;
+}
+
+.fd-code-dot {
+    width: 9px !important;
+    height: 9px !important;
+    border-radius: 50% !important;
+    flex-shrink: 0 !important;
+}
+
+.fd-code-dot.dot-green { background: #22c55e !important; box-shadow: 0 0 0 2px rgba(34,197,94,0.2) !important; }
+.fd-code-dot.dot-gray  { background: #94a3b8 !important; }
+.fd-code-dot.dot-red   { background: #ef4444 !important; box-shadow: 0 0 0 2px rgba(239,68,68,0.2) !important; }
+
+/* ─── Capacity Badge ──────────────────────────────────── */
+.fd-capacity-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    background: #f1f5f9 !important;
+    color: #475569 !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 6px !important;
+    padding: 4px 10px !important;
+    font-size: 0.78rem !important;
+    font-weight: 500 !important;
+}
+
+/* ─── Status Badges ───────────────────────────────────── */
+.fd-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 4px 10px !important;
+    border-radius: 999px !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    border: 1px solid transparent !important;
+}
+
+.badge-dot {
+    width: 6px !important;
+    height: 6px !important;
+    border-radius: 50% !important;
+    background: currentColor !important;
+    flex-shrink: 0 !important;
+}
+
+.badge-idle        { background: #f1f5f9 !important; color: #64748b !important; border-color: #e2e8f0 !important; }
+.badge-assigned    { background: #dbeafe !important; color: #1d4ed8 !important; border-color: #bfdbfe !important; }
+.badge-onroute     { background: #dcfce7 !important; color: #15803d !important; border-color: #bbf7d0 !important; }
+.badge-maintenance { background: #fee2e2 !important; color: #dc2626 !important; border-color: #fecaca !important; }
+
+/* ─── Locate Button ───────────────────────────────────── */
+.fd-locate-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    background: white !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    padding: 5px 12px !important;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+    color: #3b82f6 !important;
+    cursor: pointer !important;
+    transition: background 0.15s, border-color 0.15s, transform 0.15s !important;
+}
+
+.fd-locate-btn:hover {
+    background: #eff6ff !important;
+    border-color: #3b82f6 !important;
+    transform: translateY(-1px) !important;
+}
+
+.fd-no-location {
+    font-size: 0.75rem !important;
+    color: #cbd5e1 !important;
+    font-style: italic !important;
+}
+
+/* ─── Empty State ─────────────────────────────────────── */
+.fd-empty {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    padding: 56px 20px !important;
+    gap: 8px !important;
+}
+
+.fd-empty-icon {
+    width: 64px !important;
+    height: 64px !important;
+    background: #f1f5f9 !important;
+    border-radius: 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: #94a3b8 !important;
+    margin-bottom: 4px !important;
+}
+
+.fd-empty-title {
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    margin: 0 !important;
+}
+
+.fd-empty-sub {
+    font-size: 0.82rem !important;
+    color: #94a3b8 !important;
+    margin: 0 !important;
+    text-align: center !important;
+    max-width: 320px !important;
+}
+
+/* ─── Responsive ──────────────────────────────────────── */
+@media (max-width: 1024px) {
+    .fd-stats { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+@media (max-width: 640px) {
+    .fd-wrapper { padding: 16px !important; }
+    .fd-stats { grid-template-columns: repeat(2, 1fr) !important; }
+    .fd-map { height: 300px !important; }
+}

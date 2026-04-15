@@ -1,8 +1,10 @@
 package esprit.dialysisservice.controllers;
 
+import esprit.dialysisservice.dtos.request.AlertRequestDTO;
 import esprit.dialysisservice.dtos.response.AlertResponseDTO;
 import esprit.dialysisservice.services.AlertService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -17,6 +19,12 @@ import java.util.UUID;
 public class AlertController {
 
     private final AlertService alertService;
+
+    @PostMapping("/internal")
+    @ResponseStatus(HttpStatus.CREATED)
+    public void createInternalAlert(@RequestBody AlertRequestDTO dto) {
+        alertService.createAlert(dto);
+    }
 
     // Backoffice: doctor / nurse / admin
     @GetMapping("/open")

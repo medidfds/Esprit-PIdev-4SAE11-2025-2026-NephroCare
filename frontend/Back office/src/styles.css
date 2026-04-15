@@ -2,6 +2,7 @@
 layer(base);
 
 @import "tailwindcss";
+@import 'leaflet/dist/leaflet.css';
 @import "swiper/css/bundle";
 
 @custom-variant dark (&:is(.dark *));

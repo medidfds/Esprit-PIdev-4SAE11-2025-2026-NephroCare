@@ -22,12 +22,13 @@ export interface SuspendedTreatmentAuditRow {
     standalone: true,
     imports: [CommonModule, FormsModule, ButtonComponent, BadgeComponent],
     templateUrl: './admin-audit.component.html',
+    styleUrls: ['./admin-audit.component.css'],
 })
 export class AdminAuditComponent implements OnInit {
     loading = true;
     errorMessage: string | null = null;
 
-    rows: SuspendedTreatmentAuditRow[] = [];
+    logs: any[] = [];
 
     // filters
     searchText = '';
@@ -40,23 +41,23 @@ export class AdminAuditComponent implements OnInit {
     constructor(private service: DialysisService) {}
 
     ngOnInit(): void {
-        this.load();
+        this.loadLogs();
     }
 
-    load(): void {
+    loadLogs(): void {
         this.loading = true;
         this.errorMessage = null;
 
         this.service.getSuspendedTreatmentsAudit().subscribe({
             next: (data: any[]) => {
-                // normalize backend keys (supports both "suspendedReason" and "suspensionReason")
-                this.rows = (data ?? []).map((x) => ({
-                    treatmentId: x.treatmentId ?? x.id,
-                    patientName: x.patientName ?? null,
-                    dialysisType: x.dialysisType ?? null,
-                    vascularAccessType: x.vascularAccessType ?? null,
-                    suspensionReason: x.suspensionReason ?? x.suspendedReason ?? null,
-                    suspendedAt: x.suspendedAt ?? null,
+                this.logs = (data ?? []).map((x) => ({
+                    id: x.id || x.treatmentId,
+                    performedAt: x.suspendedAt || new Date().toISOString(),
+                    username: 'System', 
+                    action: 'SUSPEND',
+                    entityType: 'TREATMENT',
+                    entityId: x.treatmentId || x.id,
+                    details: x.suspensionReason || x.suspendedReason || 'Clinical suspension',
                 }));
                 this.loading = false;
             },
@@ -68,100 +69,13 @@ export class AdminAuditComponent implements OnInit {
         });
     }
 
-    get filteredRows(): SuspendedTreatmentAuditRow[] {
-        const q = this.searchText.trim().toLowerCase();
-        const now = new Date();
-
-        const filtered = (this.rows ?? []).filter((r) => {
-            // date filter
-            if (this.dateFilter !== 'ALL') {
-                const d = r.suspendedAt ? new Date(r.suspendedAt) : null;
-                if (!d || isNaN(d.getTime())) return false;
-
-                if (this.dateFilter === 'TODAY') {
-                    const sameDay =
-                        d.getFullYear() === now.getFullYear() &&
-                        d.getMonth() === now.getMonth() &&
-                        d.getDate() === now.getDate();
-                    if (!sameDay) return false;
-                } else if (this.dateFilter === '7D') {
-                    const t = new Date(now);
-                    t.setDate(t.getDate() - 7);
-                    if (d < t) return false;
-                } else if (this.dateFilter === '30D') {
-                    const t = new Date(now);
-                    t.setDate(t.getDate() - 30);
-                    if (d < t) return false;
-                }
-            }
-
-            // search filter
-            if (q) {
-                const hay = `${r.patientName ?? ''} ${r.dialysisType ?? ''} ${r.vascularAccessType ?? ''} ${
-                    r.suspensionReason ?? ''
-                } ${r.suspendedAt ?? ''}`.toLowerCase();
-                if (!hay.includes(q)) return false;
-            }
-
-            return true;
-        });
-
-        // sort
-        const dirMul = this.sortDir === 'asc' ? 1 : -1;
-        return filtered.slice().sort((a, b) => {
-            const va = this.sortValue(a);
-            const vb = this.sortValue(b);
-
-            if (va == null && vb == null) return 0;
-            if (va == null) return 1;
-            if (vb == null) return -1;
-
-            if (va < vb) return -1 * dirMul;
-            if (va > vb) return 1 * dirMul;
-            return 0;
-        });
-    }
-
-    private sortValue(r: SuspendedTreatmentAuditRow): string | number {
-        switch (this.sortBy) {
-            case 'patientName':
-                return (r.patientName ?? '').toLowerCase();
-            case 'dialysisType':
-                return (r.dialysisType ?? '').toLowerCase();
-            case 'vascularAccessType':
-                return (r.vascularAccessType ?? '').toLowerCase();
-            case 'suspendedAt':
-            default:
-                return r.suspendedAt ? new Date(r.suspendedAt).getTime() : 0;
-        }
-    }
-
-    setSort(col: typeof this.sortBy): void {
-        if (this.sortBy === col) {
-            this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
-            return;
-        }
-        this.sortBy = col;
-        this.sortDir = col === 'suspendedAt' ? 'desc' : 'asc';
-    }
-
-    sortIcon(col: typeof this.sortBy): string {
-        if (this.sortBy !== col) return '↕';
-        return this.sortDir === 'asc' ? '↑' : '↓';
-    }
-
-    reasonColor(reason: string | null | undefined): 'success' | 'warning' | 'error' | 'info' | 'primary' | 'light' | 'dark' {
-        const r = (reason ?? '').toLowerCase();
-        if (r.includes('gdpr')) return 'error';
-        if (r.includes('infection') || r.includes('bleed') || r.includes('emergency')) return 'error';
-        if (r.includes('miss') || r.includes('no show') || r.includes('absent')) return 'warning';
-        return 'info';
+    onFilter(): void {
+        // client-side filter stub for now if needed, but the template calls it
+        this.loadLogs();
     }
 
     clearFilters(): void {
         this.searchText = '';
-        this.dateFilter = '30D';
-        this.sortBy = 'suspendedAt';
-        this.sortDir = 'desc';
+        this.loadLogs();
     }
 }

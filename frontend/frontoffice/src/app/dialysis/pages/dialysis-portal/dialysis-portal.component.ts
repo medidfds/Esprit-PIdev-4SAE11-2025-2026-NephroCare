@@ -3,12 +3,26 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import * as L from 'leaflet';
 
 import {
   DialysisFrontService,
   DialysisSessionDto,
-  DialysisTreatmentDto
+  DialysisTreatmentDto,
+  ScheduledSessionDto
 } from '../../../services/dialysis-front.service';
+
+import {
+  DialysisTransportFrontService,
+  PatientAvailabilityResponseDto,
+  PatientAvailabilityResponseRequest,
+  PatientReadinessResponseDto,
+  PatientTransportPreferenceDto,
+  SaveTransportPreferenceRequestDto,
+  TransportRequestDto,
+  AvailabilityStatus,
+  ChildMood
+} from '../../../services/dialysis-transport-front.service';
 
 type SessionFilter = 'all' | 'done' | 'open';
 type SortField = 'date-desc' | 'date-asc' | 'ktv-desc' | 'ktv-asc';
@@ -35,6 +49,14 @@ export class DialysisPortalComponent implements OnInit {
   treatments: DialysisTreatmentDto[] = [];
   sessions: DialysisSessionDto[] = [];
   filteredSessions: DialysisSessionDto[] = [];
+  upcomingSchedule: ScheduledSessionDto[] = [];
+  upcomingLoading = false;
+
+  // Per-session logistics state (keyed by scheduledSessionId)
+  sessionReadinessMap: Record<string, PatientReadinessResponseDto | null> = {};
+  sessionTransportMap: Record<string, TransportRequestDto | null> = {};
+  sessionLogisticsLoading: Record<string, boolean> = {};
+  logisticsExpanded: Record<string, boolean> = {};
 
   hasAnyData = false;
 
@@ -59,8 +81,48 @@ export class DialysisPortalComponent implements OnInit {
   // details drawer (instead of alert)
   detailsOpen = false;
   selectedSession: DialysisSessionDto | null = null;
+  selectedSessionReadiness: PatientReadinessResponseDto | null = null;
+  readinessLoading = false;
 
-  constructor(private api: DialysisFrontService) {}
+  // availability response drawer
+  availabilityOpen = false;
+  selectedAvailabilitySession: DialysisSessionDto | null = null;
+  availabilityLoading = false;
+  availabilitySaving = false;
+  availabilityData: PatientAvailabilityResponseDto | null = null;
+  
+  availabilityForm: PatientAvailabilityResponseRequest = {
+    availabilityStatus: 'CONFIRMED',
+    childMood: 'CALM',
+    transportNeeded: false,
+    hasTransportAlternative: false,
+    comment: ''
+  };
+
+  // transport preferences
+  preferenceOpen = false;
+  preferenceLoading = false;
+  preferenceSaving = false;
+  globalPatientId: string | null = null;
+  preferenceData: PatientTransportPreferenceDto | null = null;
+  preferenceForm: SaveTransportPreferenceRequestDto = {
+    defaultTransportNeeded: false,
+    hasTransportAlternative: false,
+    preferredPickupZone: 'Home',
+    wheelchairRequired: false,
+    notes: '',
+    pickupLat: undefined,
+    pickupLng: undefined,
+    pickupAddress: undefined
+  };
+
+  private map: L.Map | undefined;
+  private marker: L.Marker | undefined;
+
+  constructor(
+    private api: DialysisFrontService,
+    private transportApi: DialysisTransportFrontService
+  ) {}
 
   ngOnInit(): void {
     this.load();
@@ -82,7 +144,203 @@ export class DialysisPortalComponent implements OnInit {
       this.applyFilters();
 
       this.hasAnyData = this.treatments.length > 0 || this.sessions.length > 0;
+      if (this.treatments.length > 0) {
+        this.globalPatientId = this.treatments[0].patientId;
+        this.loadPreference();
+      }
       this.loading = false;
+    });
+
+    // Load upcoming scheduled sessions (correct data source for logistics)
+    this.upcomingLoading = true;
+    this.api.getMyUpcomingSchedule().pipe(catchError(() => of([] as ScheduledSessionDto[]))).subscribe(data => {
+      this.upcomingSchedule = data ?? [];
+      this.upcomingLoading = false;
+      // Auto-load logistics summary for each upcoming session
+      this.upcomingSchedule.forEach(s => this.loadSessionLogistics(s.id));
+    });
+  }
+
+  // ─────────────────────────────────────────────
+  // SESSION LOGISTICS (readiness + transport per upcoming session)
+  // ─────────────────────────────────────────────
+  loadSessionLogistics(sessionId: string): void {
+    if (!sessionId) return;
+    this.sessionLogisticsLoading[sessionId] = true;
+    this.sessionReadinessMap[sessionId] = null;
+    this.sessionTransportMap[sessionId] = null;
+
+    // Load readiness
+    this.transportApi.getReadiness(sessionId).pipe(
+      catchError(() => of(null))
+    ).subscribe(r => {
+      this.sessionReadinessMap[sessionId] = r;
+      // Mark loading done only after both calls complete
+      if (!this.sessionTransportMap.hasOwnProperty(sessionId) || this.sessionTransportMap[sessionId] !== undefined) {
+        this.sessionLogisticsLoading[sessionId] = false;
+      }
+    });
+
+    // Load transport request (404 = no request created yet)
+    this.transportApi.getTransportBySession(sessionId).pipe(
+      catchError(() => of(null))
+    ).subscribe(t => {
+      this.sessionTransportMap[sessionId] = t;
+      this.sessionLogisticsLoading[sessionId] = false;
+    });
+  }
+
+  toggleLogistics(sessionId: string): void {
+    this.logisticsExpanded[sessionId] = !this.logisticsExpanded[sessionId];
+  }
+
+  readinessBadgeClass(status: string | undefined): string {
+    if (status === 'READY') return 'badge-logistics-ok';
+    if (status === 'READY_WITH_WARNING') return 'badge-logistics-warn';
+    if (status === 'NOT_READY') return 'badge-logistics-danger';
+    return 'badge-logistics-muted';
+  }
+
+  readinessBadgeLabel(status: string | undefined): string {
+    if (status === 'READY') return '✓ Ready';
+    if (status === 'READY_WITH_WARNING') return '⚠ Ready with warning';
+    if (status === 'NOT_READY') return '✗ Not ready';
+    return 'Pending';
+  }
+
+  transportBadgeClass(status: string | undefined | null): string {
+    if (!status) return 'badge-logistics-muted';
+    if (status === 'CONFIRMED') return 'badge-logistics-ok';
+    if (status === 'REJECTED') return 'badge-logistics-danger';
+    if (status === 'PENDING_APPROVAL' || status === 'REQUESTED') return 'badge-logistics-pending';
+    return 'badge-logistics-muted';
+  }
+
+  transportBadgeLabel(status: string | undefined | null): string {
+    if (!status) return 'No request';
+    if (status === 'REQUESTED') return '⏳ Requested';
+    if (status === 'PENDING_APPROVAL') return '⏳ Pending approval';
+    if (status === 'CONFIRMED') return '✓ Approved';
+    if (status === 'REJECTED') return '✗ Rejected';
+    if (status === 'CANCELLED') return 'Cancelled';
+    return status;
+  }
+
+  assignmentLabel(transport: TransportRequestDto | null | undefined): string {
+    if (!transport) return '';
+    if (transport.assignedVehicleCode) return `Vehicle: ${transport.assignedVehicleCode}`;
+    if (transport.assignedGroupStatus === 'VALIDATED') return 'Assigned to ride group';
+    if (transport.assignedGroupStatus === 'PROPOSED') return 'Ride group proposed';
+    return 'Not yet assigned';
+  }
+
+  // ─────────────────────────────────────────────
+  // TRANSPORT PREFERENCES
+  // ─────────────────────────────────────────────
+  loadPreference(): void {
+    if (!this.globalPatientId) return;
+    this.preferenceLoading = true;
+    this.transportApi.getPreference(this.globalPatientId).subscribe({
+      next: (data) => {
+        this.preferenceData = data;
+        if (data) {
+           this.preferenceForm = {
+             defaultTransportNeeded: data.defaultTransportNeeded,
+             hasTransportAlternative: data.hasTransportAlternative,
+             preferredPickupZone: data.preferredPickupZone || 'Home',
+             pickupAddress: data.pickupAddress,
+             pickupLat: data.pickupLat,
+             pickupLng: data.pickupLng,
+             wheelchairRequired: data.wheelchairRequired,
+             notes: data.notes || ''
+           };
+        }
+        this.preferenceLoading = false;
+      },
+      error: () => {
+        this.preferenceLoading = false;
+      }
+    });
+  }
+
+  togglePreference(): void {
+    this.preferenceOpen = !this.preferenceOpen;
+    if (this.preferenceOpen) {
+      setTimeout(() => this.initMap(), 200);
+    } else {
+      if (this.map) {
+        this.map.remove();
+        this.map = undefined;
+        this.marker = undefined;
+      }
+    }
+  }
+
+  initMap(): void {
+    if (this.map) {
+      this.map.remove();
+    }
+    const initialLat = this.preferenceForm.pickupLat || 36.8065;
+    const initialLng = this.preferenceForm.pickupLng || 10.1815;
+    
+    this.map = L.map('pickup-map').setView([initialLat, initialLng], 13);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(this.map);
+
+    const customIcon = L.icon({
+      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41]
+    });
+
+    if (this.preferenceForm.pickupLat && this.preferenceForm.pickupLng) {
+      this.marker = L.marker([this.preferenceForm.pickupLat, this.preferenceForm.pickupLng], { icon: customIcon }).addTo(this.map);
+    }
+
+    this.map.on('click', (e: L.LeafletMouseEvent) => {
+      const lat = e.latlng.lat;
+      const lng = e.latlng.lng;
+
+      if (this.marker) {
+        this.marker.setLatLng(e.latlng);
+      } else {
+        this.marker = L.marker(e.latlng, { icon: customIcon }).addTo(this.map!);
+      }
+
+      this.preferenceForm.pickupLat = lat;
+      this.preferenceForm.pickupLng = lng;
+      
+      // Reverse geocode
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.display_name) {
+            this.preferenceForm.pickupAddress = data.display_name;
+          }
+        })
+        .catch(err => console.error('Geocoding error', err));
+    });
+  }
+
+  savePreference(): void {
+    if (!this.globalPatientId) return;
+    this.preferenceSaving = true;
+    this.transportApi.saveOrUpdatePreference(this.globalPatientId, this.preferenceForm).subscribe({
+      next: (data) => {
+        this.preferenceData = data;
+        this.preferenceSaving = false;
+        this.preferenceOpen = false;
+        alert('Transport preferences saved successfully.');
+      },
+      error: () => {
+        this.preferenceSaving = false;
+        alert('Failed to save transport preferences.');
+      }
     });
   }
 
@@ -235,6 +493,15 @@ export class DialysisPortalComponent implements OnInit {
     return 'Kt/V';
   }
 
+  shiftLabel(shift: string): string {
+    const map: Record<string, string> = {
+      MORNING: '🌅 Morning',
+      AFTERNOON: '☀️ Afternoon',
+      EVENING: '🌙 Evening'
+    };
+    return map[shift] ?? shift;
+  }
+
   scrollToSection(id: string): void {
     const el = document.getElementById(id);
     if (!el) return;
@@ -244,15 +511,112 @@ export class DialysisPortalComponent implements OnInit {
   openSessionDetails(s: DialysisSessionDto): void {
     this.selectedSession = s;
     this.detailsOpen = true;
+    this.availabilityOpen = false;
+    this.readinessLoading = true;
+    this.selectedSessionReadiness = null;
+
     setTimeout(() => {
       const el = document.getElementById('session-details');
       el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
+
+    if (s.id) {
+      this.transportApi.getReadiness(s.id).subscribe({
+        next: (data) => {
+          this.selectedSessionReadiness = data;
+          this.readinessLoading = false;
+        },
+        error: () => {
+          this.readinessLoading = false;
+        }
+      });
+    } else {
+      this.readinessLoading = false;
+    }
   }
 
   closeSessionDetails(): void {
     this.detailsOpen = false;
     this.selectedSession = null;
+    this.selectedSessionReadiness = null;
+  }
+
+  // ─────────────────────────────────────────────
+  // AVAILABILITY LOGISTICS (now tied to ScheduledSessionDto)
+  // ─────────────────────────────────────────────
+  openAvailability(s: ScheduledSessionDto): void {
+    this.selectedAvailabilitySession = s as any;
+    this.availabilityOpen = true;
+    this.availabilityLoading = true;
+    this.detailsOpen = false;
+
+    setTimeout(() => {
+      const el = document.getElementById('availability-details');
+      el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+
+    const sessionId = s.id;
+    if (!sessionId) return;
+
+    this.transportApi.getAvailability(sessionId).subscribe({
+      next: (data) => {
+        this.availabilityData = data;
+        this.availabilityForm = {
+          availabilityStatus: data.availabilityStatus || 'CONFIRMED',
+          childMood: data.childMood || 'CALM',
+          transportNeeded: data.transportNeeded || false,
+          hasTransportAlternative: data.hasTransportAlternative || false,
+          comment: ''
+        };
+        this.availabilityLoading = false;
+      },
+      error: () => {
+        // If 404 or backend error, default to empty form
+        this.availabilityData = null;
+        this.availabilityForm = {
+          availabilityStatus: 'CONFIRMED',
+          childMood: 'CALM',
+          transportNeeded: false,
+          hasTransportAlternative: false,
+          comment: ''
+        };
+        this.availabilityLoading = false;
+      }
+    });
+  }
+
+  closeAvailability(): void {
+    this.availabilityOpen = false;
+    this.selectedAvailabilitySession = null;
+  }
+
+  submitAvailability(): void {
+    if (!this.selectedAvailabilitySession?.id) return;
+    
+    this.availabilitySaving = true;
+    this.transportApi.respondToAvailability(this.selectedAvailabilitySession.id, this.availabilityForm).subscribe({
+      next: (data) => {
+        this.availabilityData = data;
+        this.availabilitySaving = false;
+        alert('Availability response saved successfully.');
+        this.closeAvailability();
+        
+        // Refresh readiness internally if the session details drawer is open
+        if (this.selectedAvailabilitySession?.id) {
+           this.transportApi.getReadiness(this.selectedAvailabilitySession.id).subscribe({
+             next: (readyData) => {
+                if (this.selectedSession?.id === this.selectedAvailabilitySession?.id) {
+                    this.selectedSessionReadiness = readyData;
+                }
+             }
+           });
+        }
+      },
+      error: () => {
+        this.availabilitySaving = false;
+        alert('Failed to save availability response.');
+      }
+    });
   }
 
   downloadReport(sessionId: string): void {

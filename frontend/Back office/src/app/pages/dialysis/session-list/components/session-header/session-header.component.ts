@@ -9,6 +9,7 @@ import { DialysisTreatment} from "../../../../../shared/models/dialysis.model";
     standalone: true,
     imports: [CommonModule, ButtonComponent, BadgeComponent],
     templateUrl: './session-header.component.html',
+    styleUrls: ['./session-header.component.css'],
 })
 export class SessionHeaderComponent {
     @Input() viewMode: 'TREATMENT' | 'PATIENT_HISTORY' = 'TREATMENT';

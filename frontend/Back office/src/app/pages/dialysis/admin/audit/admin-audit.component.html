@@ -1,147 +1,104 @@
-<div class="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
-    <div
-            class="border-b border-stroke py-4 px-6.5 dark:border-strokedark flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-    >
-        <div>
-            <h3 class="font-medium text-black dark:text-white">Audit Logs — Suspended Treatments</h3>
+<div class="aa-card">
+    
+    <!-- Header -->
+    <div class="aa-header">
+        <div class="aa-header__title-group">
+            <div class="aa-header__icon shadow-sm">
+                <i class="bi bi-shield-lock-fill text-xl"></i>
+            </div>
+            <div>
+                <h3 class="aa-header__title text-slate-800 dark:text-white">Admin Audit Logs</h3>
+                <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest mt-0.5">System-wide clinical & administrative traceability</p>
+            </div>
         </div>
-
-        <div class="flex flex-wrap gap-2 justify-end">
-            <app-button size="sm" variant="outline" (btnClick)="clearFilters()">Reset</app-button>
-            <app-button size="sm" variant="outline" (btnClick)="load()">Refresh</app-button>
-        </div>
-    </div>
-
-    <!-- Error -->
-    <div *ngIf="errorMessage" class="p-6">
-        <div class="rounded border border-red-300 bg-red-50 px-4 py-3 text-red-700">
-            <strong>Error!</strong> {{ errorMessage }}
-        </div>
+        <button class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black uppercase tracking-widest rounded-xl transition-all" (click)="loadLogs()">
+            <i class="bi bi-arrow-repeat mr-1"></i>
+            Refresh Logs
+        </button>
     </div>
 
     <!-- Filters -->
-    <div class="px-6 pt-4 pb-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div class="flex flex-wrap gap-2 items-center">
-            <label class="text-sm text-gray-600 dark:text-gray-300">Date:</label>
-            <select
-                    [(ngModel)]="dateFilter"
-                    class="rounded border border-stroke px-3 py-2 text-sm dark:border-strokedark dark:bg-form-input"
-            >
-                <option value="ALL">All</option>
-                <option value="TODAY">Today</option>
-                <option value="7D">Last 7 days</option>
-                <option value="30D">Last 30 days</option>
-            </select>
-
-            <label class="ml-3 text-sm text-gray-600 dark:text-gray-300">Sort:</label>
-            <select
-                    [(ngModel)]="sortBy"
-                    class="rounded border border-stroke px-3 py-2 text-sm dark:border-strokedark dark:bg-form-input"
-            >
-                <option value="suspendedAt">Suspended At</option>
-                <option value="patientName">Patient</option>
-                <option value="dialysisType">Type</option>
-                <option value="vascularAccessType">Access</option>
-            </select>
-
-            <select
-                    [(ngModel)]="sortDir"
-                    class="rounded border border-stroke px-3 py-2 text-sm dark:border-strokedark dark:bg-form-input"
-            >
-                <option value="desc">Desc</option>
-                <option value="asc">Asc</option>
-            </select>
-        </div>
-
-        <div class="flex gap-2 items-center">
-            <label class="text-sm text-gray-600 dark:text-gray-300">Search:</label>
-            <input
-                    [(ngModel)]="searchText"
-                    placeholder="patient / type / access / reason"
-                    class="rounded border border-stroke px-3 py-2 text-sm dark:border-strokedark dark:bg-form-input"
-            />
+    <div class="aa-filters">
+        <div class="flex-1 min-w-[300px] relative">
+            <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input type="text" class="aa-input w-full pl-10" [(ngModel)]="searchText" (input)="onFilter()" placeholder="Search by details...">
         </div>
     </div>
 
-    <div class="p-6">
-        <div *ngIf="loading" class="text-sm text-gray-500 dark:text-gray-300">Loading...</div>
-
-        <ng-container *ngIf="!loading">
-            <ng-container *ngIf="filteredRows.length > 0; else empty">
-                <div class="max-w-full overflow-x-auto">
-                    <table class="w-full table-auto">
-                        <thead>
-                        <tr class="bg-gray-2 text-left dark:bg-meta-4">
-                            <th
-                                    class="py-4 px-4 font-medium text-black dark:text-white cursor-pointer"
-                                    (click)="setSort('patientName')"
-                            >
-                                Patient <span class="ml-1 text-xs">{{ sortIcon('patientName') }}</span>
-                            </th>
-
-                            <th
-                                    class="py-4 px-4 font-medium text-black dark:text-white cursor-pointer"
-                                    (click)="setSort('dialysisType')"
-                            >
-                                Type <span class="ml-1 text-xs">{{ sortIcon('dialysisType') }}</span>
-                            </th>
-
-                            <th
-                                    class="py-4 px-4 font-medium text-black dark:text-white cursor-pointer"
-                                    (click)="setSort('vascularAccessType')"
-                            >
-                                Access <span class="ml-1 text-xs">{{ sortIcon('vascularAccessType') }}</span>
-                            </th>
-
-                            <th
-                                    class="py-4 px-4 font-medium text-black dark:text-white cursor-pointer"
-                                    (click)="setSort('suspendedAt')"
-                            >
-                                Suspended At <span class="ml-1 text-xs">{{ sortIcon('suspendedAt') }}</span>
-                            </th>
-
-                            <th class="py-4 px-4 font-medium text-black dark:text-white">Reason</th>
+    <!-- Body -->
+    @if (loading) {
+        <div class="p-20 text-center">
+            <div class="w-10 h-10 border-4 border-blue-100 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Querying audit database...</p>
+        </div>
+    } @else {
+        
+        @if (logs.length > 0) {
+            <div class="aa-table-wrap">
+                <table class="aa-table">
+                    <thead>
+                        <tr>
+                            <th>Performance Time</th>
+                            <th>Operator</th>
+                            <th>Action</th>
+                            <th>Entity / Identifier</th>
+                            <th>Data Snapshot</th>
                         </tr>
-                        </thead>
+                    </thead>
+                    <tbody>
+                        @for (log of logs; track log.id) {
+                            <tr class="hover:bg-slate-50/50 dark:hover:bg-white/[0.02]">
+                                <!-- Time -->
+                                <td class="whitespace-nowrap font-medium text-slate-500">
+                                    {{ log.performedAt | date:'medium' }}
+                                </td>
 
-                        <tbody>
-                        <tr *ngFor="let r of filteredRows" class="border-b border-[#eee] dark:border-strokedark">
-                            <td class="py-5 px-4 text-black dark:text-white">
-                                {{ r.patientName || '-' }}
-                            </td>
+                                <!-- User -->
+                                <td>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-black">
+                                            {{ log.username?.charAt(0) || 'U' }}
+                                        </div>
+                                        <span class="font-bold text-slate-700 dark:text-slate-300">{{ log.username }}</span>
+                                    </div>
+                                </td>
 
-                            <td class="py-5 px-4 text-black dark:text-white">
-                                {{ r.dialysisType || '-' }}
-                            </td>
+                                <!-- Action -->
+                                <td>
+                                    <span class="aa-badge" 
+                                          [class.aa-badge--create]="log.action === 'CREATE'"
+                                          [class.aa-badge--update]="log.action === 'UPDATE'"
+                                          [class.aa-badge--delete]="log.action === 'DELETE'">
+                                        {{ log.action }}
+                                    </span>
+                                </td>
 
-                            <td class="py-5 px-4 text-black dark:text-white">
-                                {{ r.vascularAccessType || '-' }}
-                            </td>
+                                <!-- Entity -->
+                                <td>
+                                    <div class="flex flex-col">
+                                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ log.entityType }}</span>
+                                        <span class="text-xs font-mono text-blue-500 font-bold">ID: {{ log.entityId.substring(0, 12) }}...</span>
+                                    </div>
+                                </td>
 
-                            <td class="py-5 px-4 text-black dark:text-white">
-                                {{ r.suspendedAt ? (r.suspendedAt | date : 'short') : '-' }}
-                            </td>
+                                <!-- Details -->
+                                <td>
+                                    <div class="aa-json" [title]="log.details">
+                                        {{ log.details }}
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        } @else {
+            <div class="p-20 text-center">
+                <i class="bi bi-clipboard-x text-5xl text-slate-200 block mb-4"></i>
+                <h4 class="text-lg font-black text-slate-800 dark:text-white mb-1">No audit trails found</h4>
+                <p class="text-sm text-slate-400">Try adjusting your filters to find specific operations.</p>
+            </div>
+        }
+    }
 
-                            <td class="py-5 px-4 text-black dark:text-white">
-                                <app-badge variant="light" size="sm" [color]="reasonColor(r.suspensionReason)">
-                                    {{ r.suspensionReason || '-' }}
-                                </app-badge>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="mt-4 text-xs text-gray-500 dark:text-gray-300">
-                    Showing {{ filteredRows.length }} / {{ rows.length }} entries.
-                </div>
-            </ng-container>
-
-            <ng-template #empty>
-                <div class="rounded border border-stroke p-6 dark:border-strokedark">
-                    <p class="text-sm text-gray-600 dark:text-gray-300">No suspended treatments found.</p>
-                </div>
-            </ng-template>
-        </ng-container>
-    </div>
 </div>

@@ -155,6 +155,9 @@
                 </div>
 
                 <div class="d-flex align-items-center gap-2">
+                  <button class="btn btn-sm btn-outline-primary rounded-pill me-2" (click)="togglePreference()">
+                     <i class="fa fa-cogs"></i> Logistics Settings
+                  </button>
                   <span class="status-badge status-active" *ngIf="summary.activeTreatment">● Active</span>
                   <span class="status-badge status-archived" *ngIf="!summary.activeTreatment">— None</span>
                 </div>
@@ -322,15 +325,408 @@
                   </div>
                 </div>
 
+                <!-- PATIENT READINESS VIEW -->
+                <div class="divider my-4"></div>
+                <div class="readiness-section">
+                   <h6 class="mb-3 text-secondary"><i class="fa fa-heartbeat text-muted me-2"></i> Readiness Evaluation</h6>
+                   
+                   <div *ngIf="readinessLoading" class="text-center py-3">
+                     <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+                     <span class="text-muted ms-2 small">Evaluating session readiness...</span>
+                   </div>
+                   
+                   <div *ngIf="!readinessLoading && selectedSessionReadiness" class="p-3 rounded border shadow-sm"
+                        [ngClass]="{
+                          'border-success': selectedSessionReadiness.readinessStatus === 'READY',
+                          'border-warning': selectedSessionReadiness.readinessStatus === 'READY_WITH_WARNING',
+                          'border-danger': selectedSessionReadiness.readinessStatus === 'NOT_READY'
+                        }"
+                        [style.background-color]="selectedSessionReadiness.readinessStatus === 'READY' ? '#f0fdf4' : (selectedSessionReadiness.readinessStatus === 'READY_WITH_WARNING' ? '#fffbeb' : '#fef2f2')">
+                      
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                           <span class="badge" 
+                                 [ngClass]="{
+                                   'bg-success': selectedSessionReadiness.readinessStatus === 'READY',
+                                   'bg-warning text-dark': selectedSessionReadiness.readinessStatus === 'READY_WITH_WARNING',
+                                   'bg-danger': selectedSessionReadiness.readinessStatus === 'NOT_READY'
+                                 }">
+                                 {{ selectedSessionReadiness.readinessStatus | titlecase }}
+                           </span>
+                           <span class="fw-bold fs-5" [ngClass]="{
+                                   'text-success': selectedSessionReadiness.readinessStatus === 'READY',
+                                   'text-warning': selectedSessionReadiness.readinessStatus === 'READY_WITH_WARNING',
+                                   'text-danger': selectedSessionReadiness.readinessStatus === 'NOT_READY'
+                           }">{{ selectedSessionReadiness.globalScore }} / 100</span>
+                        </div>
+                      </div>
+                      
+                      <div *ngIf="selectedSessionReadiness.blockingReason" class="text-danger small mt-2 d-flex align-items-start gap-1">
+                         <i class="fa fa-ban mt-1"></i> <span><strong>Blocked:</strong> {{ selectedSessionReadiness.blockingReason }}</span>
+                      </div>
+                      <div *ngIf="selectedSessionReadiness.warningReason" class="text-warning text-dark small mt-2 d-flex align-items-start gap-1">
+                         <i class="fa fa-exclamation-triangle mt-1"></i> <span><strong>Warning:</strong> {{ selectedSessionReadiness.warningReason }}</span>
+                      </div>
+                   </div>
+
+                   <div *ngIf="!readinessLoading && !selectedSessionReadiness" class="text-muted small p-3 bg-light rounded text-center">
+                     <i class="fa fa-info-circle me-1"></i> Readiness evaluation not generated for this session.
+                   </div>
+                </div>
+
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- AVAILABILITY DETAILS (transport & logistics integration) -->
+        <div id="availability-details" *ngIf="availabilityOpen && selectedAvailabilitySession" class="row g-4 mb-4">
+          <div class="col-12">
+            <div class="dial-card" style="border-left: 4px solid #10b981;">
+              <div class="dial-session-header d-flex align-items-center justify-content-between px-4 py-3" style="background:#ecfdf5;">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="dial-icon-badge" style="background: #10b981; color: white;">
+                    <i class="fa fa-car"></i>
+                  </div>
+                  <div>
+                    <div class="dial-title text-success">Plan Attendance & Transport</div>
+                    <div class="dial-subtitle">
+                      {{ selectedAvailabilitySession.sessionDate ? (selectedAvailabilitySession.sessionDate | date:'MMM d, y · HH:mm') : '—' }}
+                    </div>
+                  </div>
+                </div>
+
+                <button class="btn btn-sm btn-outline-success rounded-pill bg-white" type="button" (click)="closeAvailability()">
+                  Close
+                </button>
+              </div>
+
+              <div class="dial-body px-4 py-4 relative">
+                <div *ngIf="availabilityLoading" class="text-center py-4">
+                  <div class="spinner-border text-success" role="status"></div>
+                  <div class="text-muted mt-2">Loading saved preferences...</div>
+                </div>
+
+                <div *ngIf="!availabilityLoading && availabilityForm">
+                  <div class="row g-4">
+                    <!-- Column 1: Attendance & Mood -->
+                    <div class="col-12 col-md-6 border-end">
+                      <h6 class="mb-3 text-secondary"><i class="fa fa-calendar-check text-muted me-2"></i> Attendance Status</h6>
+                      <div class="btn-group w-100 mb-4" role="group">
+                        <input type="radio" class="btn-check" name="statusOptions" id="stConfirmed" [(ngModel)]="availabilityForm.availabilityStatus" value="CONFIRMED">
+                        <label class="btn btn-outline-success" for="stConfirmed">I will attend</label>
+
+                        <input type="radio" class="btn-check" name="statusOptions" id="stUnavailable" [(ngModel)]="availabilityForm.availabilityStatus" value="UNAVAILABLE">
+                        <label class="btn btn-outline-danger" for="stUnavailable">I cannot attend</label>
+                      </div>
+
+                      <h6 class="mb-3 text-secondary"><i class="fa fa-smile text-muted me-2"></i> Child Mood </h6>
+                      <div class="d-flex gap-2 flex-wrap">
+                        <button type="button" class="btn btn-sm rounded-pill px-3" [class.btn-primary]="availabilityForm.childMood === 'CALM'" [class.btn-outline-secondary]="availabilityForm.childMood !== 'CALM'" (click)="availabilityForm.childMood = 'CALM'">😊 Calm</button>
+                        <button type="button" class="btn btn-sm rounded-pill px-3" [class.btn-warning]="availabilityForm.childMood === 'ANXIOUS'" [class.btn-outline-secondary]="availabilityForm.childMood !== 'ANXIOUS'" (click)="availabilityForm.childMood = 'ANXIOUS'">😟 Anxious</button>
+                        <button type="button" class="btn btn-sm rounded-pill px-3" [class.btn-danger]="availabilityForm.childMood === 'REFUSING'" [class.btn-outline-secondary]="availabilityForm.childMood !== 'REFUSING'" (click)="availabilityForm.childMood = 'REFUSING'">😫 Refusing</button>
+                      </div>
+                    </div>
+
+                    <!-- Column 2: Transport & Comments -->
+                    <div class="col-12 col-md-6">
+                      <h6 class="mb-3 text-secondary"><i class="fa fa-ambulance text-muted me-2"></i> Transport Needs</h6>
+                      
+                      <div class="form-check form-switch mb-3">
+                        <input class="form-check-input flex-shrink-0" type="checkbox" id="transportNeeded" [(ngModel)]="availabilityForm.transportNeeded" style="cursor: pointer; width: 2.5em; height: 1.25em;">
+                        <label class="form-check-label ms-2" for="transportNeeded" style="padding-top: 2px;">
+                          I need transport for this session
+                        </label>
+                      </div>
+
+                      <div class="form-check form-switch mb-4">
+                        <input class="form-check-input flex-shrink-0" type="checkbox" id="hasAlt" [(ngModel)]="availabilityForm.hasTransportAlternative" style="cursor: pointer; width: 2.5em; height: 1.25em;">
+                        <label class="form-check-label ms-2" for="hasAlt" style="padding-top: 2px;">
+                          I have an alternative transport mapped out
+                        </label>
+                      </div>
+
+                      <div class="mb-3">
+                        <label class="form-label text-muted small mb-1">Additional comment (optional)</label>
+                        <textarea class="form-control" rows="2" placeholder="e.g. Will be dropping off late..." [(ngModel)]="availabilityForm.comment"></textarea>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="divider my-4"></div>
+
+                  <div class="d-flex justify-content-end gap-3 align-items-center">
+                    <span class="text-success small" *ngIf="availabilityData?.responseTime">
+                      Last edited: <i class="fa fa-clock"></i> {{ availabilityData?.responseTime | date:'short' }}
+                    </span>
+                    <button class="btn btn-light" (click)="closeAvailability()" [disabled]="availabilitySaving">Cancel</button>
+                    <button class="btn btn-success px-4" (click)="submitAvailability()" [disabled]="availabilitySaving">
+                      <i class="fa fa-spinner fa-spin me-2" *ngIf="availabilitySaving"></i> Save Reponse
+                    </button>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+        <!-- TRANSPORT PREFERENCES DRAWER -->
+        <div id="transport-preference-drawer" *ngIf="preferenceOpen" class="row g-4 mb-4">
+          <div class="col-12">
+            <div class="dial-card" style="border-left: 4px solid #3b82f6;">
+               <div class="dial-session-header d-flex align-items-center justify-content-between px-4 py-3" style="background:#eff6ff;">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="dial-icon-badge" style="background: #3b82f6; color: white;">
+                    <i class="fa fa-cogs"></i>
+                  </div>
+                  <div>
+                    <div class="dial-title text-primary">Global Transport Settings</div>
+                    <div class="dial-subtitle">Configure your default logistics requirements for upcoming sessions.</div>
+                  </div>
+                </div>
+
+                <button class="btn btn-sm btn-outline-primary rounded-pill bg-white" type="button" (click)="togglePreference()">
+                  Close
+                </button>
+              </div>
+
+              <div class="dial-body px-4 py-4 relative">
+                <div *ngIf="preferenceLoading" class="text-center py-4">
+                  <div class="spinner-border text-primary" role="status"></div>
+                  <div class="text-muted mt-2">Loading saved settings...</div>
+                </div>
+
+                <div *ngIf="!preferenceLoading" class="row g-4">
+                   <!-- COLUMN 1 -->
+                   <div class="col-12 col-md-6 border-end">
+                      <h6 class="mb-3 text-secondary"><i class="fa fa-info-circle text-muted me-2"></i> Default Requirements</h6>
+                      <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="prefDefault" [(ngModel)]="preferenceForm.defaultTransportNeeded" style="cursor: pointer; width: 2.5em; height: 1.25em;">
+                        <label class="form-check-label ms-2" for="prefDefault" style="padding-top: 2px;">I require clinic transportation by default</label>
+                      </div>
+                      <div class="form-check form-switch mb-4">
+                        <input class="form-check-input" type="checkbox" id="prefAlt" [(ngModel)]="preferenceForm.hasTransportAlternative" style="cursor: pointer; width: 2.5em; height: 1.25em;">
+                        <label class="form-check-label ms-2" for="prefAlt" style="padding-top: 2px;">I regularly have alternative transport if needed</label>
+                      </div>
+                      <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="prefWheelchair" [(ngModel)]="preferenceForm.wheelchairRequired" style="cursor: pointer; width: 2.5em; height: 1.25em;">
+                        <label class="form-check-label ms-2" for="prefWheelchair" style="padding-top: 2px;">I require a wheelchair equipped vehicle</label>
+                      </div>
+                   </div>
+
+                   <!-- COLUMN 2: Map and Pickup -->
+                   <div class="col-12 col-md-6">
+                      <h6 class="mb-3 text-secondary"><i class="fa fa-map-marker-alt text-muted me-2"></i> Real Pickup Location</h6>
+                      
+                      <!-- Pickup Map -->
+                      <p class="small text-muted mb-2">Click on the map to drop a pin at your exact residential pickup point.</p>
+                      <div id="pickup-map" style="height: 220px; border-radius: 8px; border: 1px solid #d1d5db; margin-bottom: 8px; z-index: 1;"></div>
+                      
+                      <!-- Geocoded Address Box -->
+                      <div class="bg-light p-2 rounded mb-3 border">
+                        <span class="text-secondary small fw-bold d-block mb-1">Detected Address:</span>
+                        <div class="small fw-semibold text-dark">
+                          {{ preferenceForm.pickupAddress || 'No location pinned yet' }}
+                        </div>
+                        <div class="text-muted" style="font-size: 0.75rem;" *ngIf="preferenceForm.pickupLat">
+                          {{ preferenceForm.pickupLat | number:'1.5-5' }}, {{ preferenceForm.pickupLng | number:'1.5-5' }}
+                        </div>
+                      </div>
+
+                      <div class="row g-2 mb-3">
+                         <div class="col-12 col-md-6">
+                            <label class="form-label text-muted small mb-1">Location Context (Optional)</label>
+                            <select class="form-select form-select-sm" [(ngModel)]="preferenceForm.preferredPickupZone">
+                               <option value="Home">Home</option>
+                               <option value="Work">Work</option>
+                               <option value="Relative">Relative's House</option>
+                               <option value="Other">Other</option>
+                            </select>
+                         </div>
+                         <div class="col-12 col-md-6">
+                            <label class="form-label text-muted small mb-1">Driver Note</label>
+                            <textarea class="form-control form-control-sm" rows="1" placeholder="e.g. Ring doorbell..." [(ngModel)]="preferenceForm.notes"></textarea>
+                         </div>
+                      </div>
+                   </div>
+                   
+                   <div class="col-12">
+                     <div class="divider my-2"></div>
+                     <div class="d-flex justify-content-end gap-3 align-items-center mt-3">
+                       <button class="btn btn-light" (click)="togglePreference()">Cancel</button>
+                       <button class="btn btn-primary px-4" (click)="savePreference()" [disabled]="preferenceSaving">
+                         <i class="fa fa-spinner fa-spin me-2" *ngIf="preferenceSaving"></i> Save Profile Settings
+                       </button>
+                     </div>
+                   </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- UPCOMING SCHEDULED SESSIONS (logistics anchor) -->
+        <div class="row g-4 mb-4" id="upcoming-schedule">
+          <div class="col-12">
+
+            <!-- Loading state -->
+            <div *ngIf="upcomingLoading" class="text-center py-4">
+              <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+              <span class="text-muted ms-2 small">Loading upcoming sessions...</span>
+            </div>
+
+            <!-- Upcoming sessions list -->
+            <div *ngIf="!upcomingLoading && upcomingSchedule.length > 0">
+              <div class="mb-3 d-flex align-items-center gap-2">
+                <span class="badge bg-primary rounded-pill">{{ upcomingSchedule.length }}</span>
+                <span class="text-muted small fw-semibold">Upcoming Scheduled Sessions</span>
+              </div>
+
+              <div *ngFor="let sched of upcomingSchedule" class="dial-card mb-3" style="border-left: 4px solid #6366f1;">
+
+                <!-- Session header row -->
+                <div class="dial-session-header d-flex align-items-center justify-content-between px-4 py-3" style="background:#f5f3ff;">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="dial-icon-badge" style="background:#6366f1; color:white;">
+                      <i class="fa fa-calendar"></i>
+                    </div>
+                    <div>
+                      <div class="dial-title" style="color:#4f46e5;">{{ sched.day | date:'EEE, MMM d y' }}</div>
+                      <div class="dial-subtitle">{{ shiftLabel(sched.shift) }} &nbsp;•&nbsp; <span class="text-muted">{{ sched.status }}</span></div>
+                    </div>
+                  </div>
+                  <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-indigo rounded-pill" (click)="toggleLogistics(sched.id)"
+                            style="border-color:#6366f1; color:#6366f1;">
+                      <i class="fa fa-clipboard-list me-1"></i>
+                      {{ logisticsExpanded[sched.id] ? 'Hide summary' : 'View logistics' }}
+                    </button>
+                    <button type="button" class="btn btn-sm btn-primary rounded-pill" (click)="openAvailability(sched)">
+                      <i class="fa fa-calendar-check me-1"></i> Plan Attendance
+                    </button>
+                  </div>
+                </div>
+
+                <!-- ── LOGISTICS SUMMARY PANEL ── -->
+                <div *ngIf="logisticsExpanded[sched.id]" class="dial-body px-4 py-4"
+                     style="border-top: 1px solid #ede9fe; background:#faf9ff;">
+
+                  <!-- Loading spinner -->
+                  <div *ngIf="sessionLogisticsLoading[sched.id]" class="text-center py-3">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <span class="text-muted ms-2 small">Loading logistics summary…</span>
+                  </div>
+
+                  <div *ngIf="!sessionLogisticsLoading[sched.id]" class="row g-3">
+
+                    <!-- ── READINESS ── -->
+                    <div class="col-12 col-md-4">
+                      <div class="logistics-tile">
+                        <div class="logistics-tile-label">
+                          <i class="fa fa-heartbeat me-1 text-muted"></i> Readiness
+                        </div>
+
+                        <ng-container *ngIf="sessionReadinessMap[sched.id] as rdns; else noReadiness">
+                          <span class="logistics-badge" [ngClass]="readinessBadgeClass(rdns.readinessStatus)">
+                            {{ readinessBadgeLabel(rdns.readinessStatus) }}
+                          </span>
+                          <div class="logistics-score mt-1">
+                            Score: <strong>{{ rdns.globalScore }} / 100</strong>
+                          </div>
+                          <div *ngIf="rdns.blockingReason" class="logistics-reason reason-danger mt-1">
+                            <i class="fa fa-ban me-1"></i>{{ rdns.blockingReason }}
+                          </div>
+                          <div *ngIf="rdns.warningReason" class="logistics-reason reason-warn mt-1">
+                            <i class="fa fa-exclamation-triangle me-1"></i>{{ rdns.warningReason }}
+                          </div>
+                        </ng-container>
+                        <ng-template #noReadiness>
+                          <span class="logistics-badge badge-logistics-muted">Not evaluated</span>
+                        </ng-template>
+                      </div>
+                    </div>
+
+                    <!-- ── TRANSPORT STATUS ── -->
+                    <div class="col-12 col-md-4">
+                      <div class="logistics-tile">
+                        <div class="logistics-tile-label">
+                          <i class="fa fa-ambulance me-1 text-muted"></i> Transport
+                        </div>
+
+                        <ng-container *ngIf="sessionTransportMap[sched.id] as tr; else noTransport">
+                          <span class="logistics-badge" [ngClass]="transportBadgeClass(tr.status)">
+                            {{ transportBadgeLabel(tr.status) }}
+                          </span>
+                          <div *ngIf="tr.pickupZone" class="logistics-score mt-1">
+                            Pick-up: <strong>{{ tr.pickupZone }}</strong>
+                          </div>
+                          <div *ngIf="tr.rejectionReason" class="logistics-reason reason-danger mt-1">
+                            <i class="fa fa-times-circle me-1"></i>{{ tr.rejectionReason }}
+                          </div>
+                        </ng-container>
+                        <ng-template #noTransport>
+                          <span class="logistics-badge badge-logistics-muted">No request</span>
+                          <div class="logistics-score mt-1 text-muted" style="font-size:.78rem;">
+                            Indicate transport need via Plan Attendance
+                          </div>
+                        </ng-template>
+                      </div>
+                    </div>
+
+                    <!-- ── VEHICLE ASSIGNMENT ── -->
+                    <div class="col-12 col-md-4">
+                      <div class="logistics-tile">
+                        <div class="logistics-tile-label">
+                          <i class="fa fa-car me-1 text-muted"></i> Assignment
+                        </div>
+
+                        <ng-container *ngIf="sessionTransportMap[sched.id] as tr; else noAssignment">
+                          <ng-container *ngIf="tr.assignedVehicleCode; else noVehicle">
+                            <span class="logistics-badge badge-logistics-ok">
+                              <i class="fa fa-check-circle me-1"></i> Assigned
+                            </span>
+                            <div class="logistics-score mt-1">
+                              Vehicle: <strong>{{ tr.assignedVehicleCode }}</strong>
+                            </div>
+                          </ng-container>
+                          <ng-template #noVehicle>
+                            <ng-container *ngIf="tr.assignedGroupStatus === 'VALIDATED'">
+                              <span class="logistics-badge badge-logistics-pending">Grouped — Awaiting vehicle</span>
+                            </ng-container>
+                            <ng-container *ngIf="tr.assignedGroupStatus === 'PROPOSED'">
+                              <span class="logistics-badge badge-logistics-pending">Ride group proposed</span>
+                            </ng-container>
+                            <ng-container *ngIf="!tr.assignedGroupStatus">
+                              <span class="logistics-badge badge-logistics-muted">Not yet assigned</span>
+                            </ng-container>
+                          </ng-template>
+                        </ng-container>
+                        <ng-template #noAssignment>
+                          <span class="logistics-badge badge-logistics-muted">N/A</span>
+                        </ng-template>
+                      </div>
+                    </div>
+
+                  </div><!-- /row -->
+                </div><!-- /logistics panel -->
+
+              </div><!-- /ngFor -->
+            </div>
+
+            <!-- Empty state -->
+            <div *ngIf="!upcomingLoading && upcomingSchedule.length === 0" class="text-muted small text-center py-3 bg-light rounded">
+              <i class="fa fa-calendar-times me-1"></i> No upcoming scheduled sessions found.
+            </div>
+
           </div>
         </div>
 
         <!-- SESSIONS -->
         <div class="mb-3" id="sessions">
           <span class="text-muted small">
-            Showing <strong>{{ filteredSessions.length }}</strong> of <strong>{{ sessions.length }}</strong> sessions
+            Showing <strong>{{ filteredSessions.length }}</strong> of <strong>{{ sessions.length }}</strong> sessions — Clinical History
           </span>
         </div>
 

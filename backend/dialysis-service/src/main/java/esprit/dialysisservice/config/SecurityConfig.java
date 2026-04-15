@@ -60,6 +60,10 @@ public class SecurityConfig {
                         // also safe to permit all OPTIONS
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                        // Internal service-to-service endpoints (no JWT required)
+                        .requestMatchers("/api/schedule/internal/**").permitAll()
+                        .requestMatchers("/api/alerts/internal/**").permitAll()
+
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll()
                 )

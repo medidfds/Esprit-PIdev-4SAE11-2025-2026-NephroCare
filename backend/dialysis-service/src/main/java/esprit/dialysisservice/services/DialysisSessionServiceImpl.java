@@ -237,11 +237,20 @@ public class DialysisSessionServiceImpl implements IDialysisSessionService {
             scheduledSessionRepository.save(sch);
         });
 
-        SystemConfig cfg = systemConfigService.getOrCreate();
-        sessionReportService.generateAndSave(saved.getId(), nurseId, cfg);
+        // Report generation: non-critical side effect — must NOT crash the session-end flow
+        try {
+            SystemConfig cfg = systemConfigService.getOrCreate();
+            sessionReportService.generateAndSave(saved.getId(), nurseId, cfg);
+        } catch (Exception reportEx) {
+            log.warn("[endSession] Session {} report generation failed (non-fatal): {}", sessionId, reportEx.getMessage());
+        }
 
-        // NEW: create alerts after report/session finalization
-        alertService.createAlertsForCompletedSession(saved.getId());
+        // Alert creation: non-critical side effect — must NOT crash the session-end flow
+        try {
+            alertService.createAlertsForCompletedSession(saved.getId());
+        } catch (Exception alertEx) {
+            log.warn("[endSession] Session {} alert creation failed (non-fatal): {}", sessionId, alertEx.getMessage());
+        }
 
         return mapper.toSessionResponse(saved);
     }

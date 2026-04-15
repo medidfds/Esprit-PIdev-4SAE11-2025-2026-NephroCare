@@ -1,5 +1,6 @@
 package esprit.dialysisservice.services;
 
+import esprit.dialysisservice.dtos.event.ScheduledSessionConfirmedEvent;
 import esprit.dialysisservice.dtos.response.NurseResponseDTO;
 import esprit.dialysisservice.dtos.response.ScheduledSessionResponseDTO;
 import esprit.dialysisservice.dtos.schedule.ConfirmScheduleRequestDTO;
@@ -13,6 +14,7 @@ import esprit.dialysisservice.mapper.ScheduledSessionMapper;
 import esprit.dialysisservice.repositories.DialysisTreatmentRepository;
 import esprit.dialysisservice.repositories.ScheduledSessionRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +28,7 @@ import static org.springframework.http.HttpStatus.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SchedulingService {
 
     private final DialysisTreatmentRepository treatmentRepository;
@@ -33,6 +36,7 @@ public class SchedulingService {
     private final NotificationService notificationService;
     private final UserService userService;
     private final ScheduledSessionMapper mapper;
+    private final SessionEventPublisher sessionEventPublisher;
 
     @Transactional
     public List<ScheduledSessionResponseDTO> confirm(ConfirmScheduleRequestDTO req, UUID createdBySub) {
@@ -113,6 +117,21 @@ public class SchedulingService {
         return created;
     }
 
+    public List<ScheduledSessionResponseDTO> getPatientUpcoming(UUID patientId) {
+        return scheduledRepo
+                .findByPatientIdAndDayGreaterThanEqualOrderByDayAsc(patientId, LocalDate.now())
+                .stream()
+                .map(mapper::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ScheduledSessionResponseDTO getById(UUID scheduledSessionId) {
+        ScheduledSession s = scheduledRepo.findById(scheduledSessionId)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Scheduled session not found: " + scheduledSessionId));
+        return mapper.toResponse(s);
+    }
+
     public List<ScheduledSessionResponseDTO> getMyToday(UUID nurseId) {
         LocalDate today = LocalDate.now();
         return scheduledRepo.findAllByNurseIdAndDayBetweenOrderByDayAscShiftAsc(nurseId, today, today).stream()
@@ -169,6 +188,20 @@ public class SchedulingService {
                 NotificationType.SCHEDULE_ACCEPTED,
                 "Assignment accepted",
                 "Nurse accepted assignment on " + saved.getDay() + " (" + saved.getShift() + ").");
+
+        // Publish event so dialysis-readiness-transport-service initializes PatientAvailability
+        try {
+            ScheduledSessionConfirmedEvent event = ScheduledSessionConfirmedEvent.builder()
+                    .scheduledSessionId(saved.getId())
+                    .patientId(saved.getPatientId())
+                    .day(saved.getDay())
+                    .shift(saved.getShift() != null ? saved.getShift().name() : null)
+                    .build();
+            sessionEventPublisher.publishSessionConfirmed(event);
+            log.info("Published ScheduledSessionConfirmedEvent for session {}", saved.getId());
+        } catch (Exception e) {
+            log.error("Failed to publish ScheduledSessionConfirmedEvent for session {}: {}", saved.getId(), e.getMessage());
+        }
 
         return mapper.toResponse(saved);
     }

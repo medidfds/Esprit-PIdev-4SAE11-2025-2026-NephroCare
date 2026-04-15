@@ -1,8 +1,9 @@
 package esprit.dialysisservice.entities.enums;
 
-public enum ScheduledStatus {
+public enum     ScheduledStatus {
     SCHEDULED,
     STARTED,
     COMPLETED,
-    CANCELLED
+    CANCELLED,
+    MISSED
 }

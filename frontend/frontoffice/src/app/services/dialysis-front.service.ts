@@ -41,6 +41,17 @@ export type DialysisSessionDto = {
   complications: string | null;
 };
 
+export type ScheduledSessionDto = {
+  id: string;
+  treatmentId: string;
+  patientId: string;
+  nurseId: string | null;
+  day: string;          // yyyy-MM-dd
+  shift: 'MORNING' | 'AFTERNOON' | 'EVENING' | string;
+  status: string;
+  sessionId: string | null;
+};
+
 @Injectable({ providedIn: 'root' })
 export class DialysisFrontService {
   // Replace with environment.apiUrl if you have it.
@@ -52,6 +63,11 @@ export class DialysisFrontService {
   // PATIENT: all my treatments
   getMyTreatments(): Observable<DialysisTreatmentDto[]> {
     return this.http.get<DialysisTreatmentDto[]>(`${this.baseUrl}/treatments/patient/my`);
+  }
+
+  // PATIENT: upcoming scheduled sessions (pre-session logistics)
+  getMyUpcomingSchedule(): Observable<ScheduledSessionDto[]> {
+    return this.http.get<ScheduledSessionDto[]>(`${this.baseUrl}/schedule/patient/upcoming`);
   }
 
   // PATIENT: all my sessions

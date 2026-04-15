@@ -1,0 +1,113 @@
+/* ─── Variables & Tokens ─── */
+:host {
+    display: block;
+}
+
+.sr-content {
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+/* ─── Report Section ─── */
+.sr-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.sr-section-title {
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #64748b;
+    letter-spacing: 0.1em;
+    padding-bottom: 0.5rem;
+    border-bottom: 1.5px solid #f1f5f9;
+}
+
+/* ─── Detailed Grid ─── */
+.sr-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.25rem;
+}
+
+.sr-metric-box {
+    padding: 1rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
+}
+
+.sr-metric-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #94a3b8;
+    margin-bottom: 0.25rem;
+}
+
+.sr-metric-val {
+    font-size: 1.125rem;
+    font-weight: 800;
+    color: #1e293b;
+}
+
+/* ─── Conclusion Card ─── */
+.sr-conclusion {
+    padding: 1.5rem;
+    border-radius: 1.25rem;
+    background: #0f172a;
+    color: white;
+}
+
+.sr-conclusion-head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.sr-conclusion-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.sr-conclusion-text {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: #cbd5e1;
+}
+
+/* ─── Footer / Print ─── */
+.sr-footer {
+    padding: 1.25rem 2rem;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    border-radius: 0 0 1.25rem 1.25rem;
+}
+
+.sr-btn {
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.sr-btn--primary { background: #3b82f6; color: white; }
+.sr-btn--outline { border-color: #e2e8f0; color: #1e293b; background: white; }
+.sr-btn--outline:hover { background: #f1f5f9; }

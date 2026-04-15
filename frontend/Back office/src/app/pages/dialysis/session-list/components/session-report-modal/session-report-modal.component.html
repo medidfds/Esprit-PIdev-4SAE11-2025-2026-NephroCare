@@ -1,148 +1,132 @@
-<app-modal
-        [open]="open"
-        title="Session Report"
-        width="lg"
-        [busy]="busy"
-        (closed)="closed.emit()"
->
-    <div *ngIf="error" class="mb-4 rounded border border-red-300 bg-red-50 px-4 py-3 text-red-700">
-        <strong>Error!</strong> {{ error }}
+<app-modal [open]="open" title="Clinical Performance Report" width="lg" (closed)="closed.emit()">
+    
+    @if (busy) {
+        <div class="p-12 text-center">
+            <div class="w-10 h-10 border-4 border-blue-100 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+            <p class="text-sm font-bold text-gray-400 font-mono tracking-widest uppercase">Compiling records...</p>
+        </div>
+    } @else if (report) {
+        <div class="sr-content">
+            
+            <!-- Summary Card -->
+            <div class="p-6 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl text-white shadow-xl relative overflow-hidden">
+                <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+                <div class="relative z-10">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex flex-col">
+                            <span class="text-[10px] uppercase font-bold text-blue-100 tracking-[0.2em] mb-1">Clinic Reference</span>
+                            <span class="text-xl font-black">#{{ report.sessionId.toString().substring(0, 12) }}</span>
+                        </div>
+                        <app-badge [color]="ktvOk() ? 'success' : 'warning'" variant="light" size="sm">
+                             {{ ktvOk() ? 'ADEQUATE PERFORMANCE' : 'INSUFFICIENT CLEARANCE' }}
+                        </app-badge>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-6">
+                        <div>
+                            <div class="text-[10px] text-blue-200 uppercase font-extrabold mb-1">Mean URR</div>
+                            <div class="text-2xl font-black">{{ urrValue() }}%</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-blue-200 uppercase font-extrabold mb-1">spKt/V Score</div>
+                            <div class="text-2xl font-black">{{ spKtvValue() }}</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-blue-200 uppercase font-extrabold mb-1">eKt/V (Est.)</div>
+                            <div class="text-2xl font-black">{{ eKtvValue() }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pre-Post Comparison -->
+            <div class="sr-section">
+                <h6 class="sr-section-title">Clinical Comparison</h6>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Weight -->
+                    <div class="p-5 border border-stroke dark:border-strokedark rounded-2xl bg-gray-50/50 dark:bg-meta-4">
+                        <div class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Weight Volatilty</div>
+                        <div class="flex items-center justify-between">
+                            <div class="text-center">
+                                <div class="text-xs text-gray-500 mb-1">Pre</div>
+                                <div class="text-lg font-black">{{ weightBeforeValue() }}kg</div>
+                            </div>
+                            <div class="px-3 py-1 bg-white dark:bg-boxdark rounded-lg border border-stroke dark:border-strokedark text-[10px] font-bold text-blue-600 shadow-sm">
+                                Δ {{ (weightBeforeValue() - weightAfterValue()) | number:'1.1-1' }}kg
+                            </div>
+                            <div class="text-center">
+                                <div class="text-xs text-gray-500 mb-1">Post</div>
+                                <div class="text-lg font-black">{{ weightAfterValue() }}kg</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Urea -->
+                    <div class="p-5 border border-stroke dark:border-strokedark rounded-2xl bg-gray-50/50 dark:bg-meta-4">
+                        <div class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Urea Clearance</div>
+                        <div class="flex items-center justify-between">
+                            <div class="text-center">
+                                <div class="text-xs text-gray-500 mb-1">Pre</div>
+                                <div class="text-lg font-black">{{ preUreaValue() }}</div>
+                            </div>
+                            <div class="px-3 py-1 bg-white dark:bg-boxdark rounded-lg border border-stroke dark:border-strokedark text-[10px] font-bold text-green-600 shadow-sm">
+                                {{ (((preUreaValue() - postUreaValue())/preUreaValue())*100) | number:'1.1-1' }}% Reduc.
+                            </div>
+                            <div class="text-center">
+                                <div class="text-xs text-gray-500 mb-1">Post</div>
+                                <div class="text-lg font-black">{{ postUreaValue() }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Observations -->
+            <div class="sr-section">
+                <h6 class="sr-section-title">Nurse Observations & Vitals</h6>
+                <div class="p-5 border border-stroke dark:border-strokedark rounded-2xl">
+                    <div class="flex items-center gap-4 mb-4 pb-4 border-b border-stroke dark:border-strokedark">
+                        <div class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Pre-session BP:</div>
+                        <div class="text-sm font-black text-blue-600">{{ json('medical.preBloodPressure') || 'Not Recorded' }}</div>
+                    </div>
+                    <div class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Complications / Clinical Notes:</div>
+                    <div class="p-4 bg-gray-50 dark:bg-meta-4 rounded-xl text-sm italic text-gray-600 dark:text-gray-300 leading-relaxed">
+                        "{{ json('medical.complications') || 'No significant complications or notes were logged for this session.' }}"
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conclusion -->
+            <div class="sr-conclusion">
+                <div class="sr-conclusion-head">
+                    <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                        <i class="bi bi-robot"></i>
+                    </div>
+                    <span class="text-xs font-bold uppercase tracking-widest">System Conclusion</span>
+                    <span class="sr-conclusion-badge">AI ANALYZED</span>
+                </div>
+                <p class="sr-conclusion-text italic">
+                    Based on the clearance metrics (spKt/V: {{ spKtvValue() }}), this session has 
+                    {{ ktvOk() ? 'successfully met the clinical adequacy threshold.' : 'fallen below the recommended clearance target.' }}
+                    Additional review of the {{ (weightBeforeValue() - weightAfterValue() > 3.5) ? 'elevated ultrafiltration' : 'vascular access stability' }} may be warranted.
+                </p>
+            </div>
+
+        </div>
+    } @else if (error) {
+        <div class="p-12 text-center">
+            <i class="bi bi-shield-slash text-4xl text-red-400 block mb-4"></i>
+            <p class="text-red-600 font-bold mb-2">Data Retrieval Failed</p>
+            <p class="text-xs text-gray-500">{{ error }}</p>
+        </div>
+    }
+
+    <div class="sr-footer">
+        <button class="sr-btn sr-btn--outline" (click)="closed.emit()">Close Report</button>
+        <button class="sr-btn sr-btn--primary" (click)="report && generatePDF(report)">
+            <i class="bi bi-printer-fill"></i>
+            Generate Clinical PDF
+        </button>
     </div>
 
-    <ng-container *ngIf="report">
-        <!-- Top summary -->
-        <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <div class="text-sm text-gray-500 dark:text-gray-300">
-                    Patient:
-                    <span class="font-medium text-black dark:text-white">
-        {{ json('summary.patientName') || '-' }}
-      </span>
-                </div>
-
-                <div class="text-sm text-gray-500 dark:text-gray-300">
-                    Nurse:
-                    <span class="font-medium text-black dark:text-white">
-        {{ json('summary.nurseName') || '-' }}
-      </span>
-                </div>
-
-                <div class="text-xs text-gray-500 dark:text-gray-300 mt-1">
-                    {{ json('summary.sessionDate') | date:'medium' }} • {{ json('summary.shift') || '-' }}
-                </div>
-            </div>
-
-            <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-500 dark:text-gray-300">Adequacy</span>
-                <span
-                        class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold"
-                        [ngClass]="isAdequate() ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
-                >
-      {{ isAdequate() ? 'ADEQUATE' : 'INADEQUATE' }}
-    </span>
-            </div>
-        </div>
-
-        <!-- KPI cards -->
-        <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
-            <div class="rounded border border-stroke p-3 dark:border-strokedark">
-                <div class="text-xs text-gray-500 dark:text-gray-300">URR</div>
-                <div class="mt-1 flex items-baseline gap-2">
-                    <div class="text-xl font-semibold text-black dark:text-white">{{ urrValue() }}</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-300">%</div>
-                </div>
-                <div class="mt-1 text-xs" [ngClass]="urrOk() ? 'text-green-600' : 'text-red-600'">
-                    {{ urrOk() ? 'PASS' : 'FAIL' }} (≥ {{ report.urrThreshold ?? 65 }})
-                </div>
-            </div>
-
-            <div class="rounded border border-stroke p-3 dark:border-strokedark">
-                <div class="text-xs text-gray-500 dark:text-gray-300">spKt/V</div>
-                <div class="mt-1 text-xl font-semibold text-black dark:text-white">{{ spKtvValue() }}</div>
-                <div class="mt-1 text-xs" [ngClass]="ktvOk() ? 'text-green-600' : 'text-red-600'">
-                    {{ ktvOk() ? 'PASS' : 'FAIL' }} (≥ {{ report.ktvThreshold ?? 1.2 }})
-                </div>
-            </div>
-
-            <div class="rounded border border-stroke p-3 dark:border-strokedark">
-                <div class="text-xs text-gray-500 dark:text-gray-300">eKt/V</div>
-                <div class="mt-1 text-xl font-semibold text-black dark:text-white">{{ eKtvValue() }}</div>
-                <div class="mt-1 text-xs text-gray-500 dark:text-gray-300">Rebound-adjusted</div>
-            </div>
-
-            <div class="rounded border border-stroke p-3 dark:border-strokedark">
-                <div class="text-xs text-gray-500 dark:text-gray-300">UF (calc)</div>
-                <div class="mt-1 flex items-baseline gap-2">
-                    <div class="text-xl font-semibold text-black dark:text-white">{{ ufValue() }}</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-300">L</div>
-                </div>
-                <div class="mt-1 text-xs text-gray-500 dark:text-gray-300">
-                    Flag: <span class="font-medium text-black dark:text-white">{{ ufFlag() }}</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sections -->
-        <div class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-            <!-- Treatment -->
-            <div class="rounded border border-stroke p-4 dark:border-strokedark">
-                <div class="mb-2 text-sm font-semibold text-black dark:text-white">Treatment</div>
-                <div class="space-y-1 text-sm text-gray-700 dark:text-gray-200">
-                    <div>Type: <span class="font-medium">{{ json('treatment.dialysisType') }}</span></div>
-                    <div>Access: <span class="font-medium">{{ json('treatment.accessType') }}</span></div>
-                    <div>Frequency/week: <span class="font-medium">{{ json('treatment.frequencyPerWeek') }}</span></div>
-                    <div>Prescribed duration: <span class="font-medium">{{ json('treatment.prescribedDurationMinutes') }}</span> min</div>
-                    <div>Target dry weight: <span class="font-medium">{{ json('treatment.targetDryWeight') }}</span> kg</div>
-                </div>
-            </div>
-
-            <!-- Hemodynamics -->
-            <div class="rounded border border-stroke p-4 dark:border-strokedark">
-                <div class="mb-2 text-sm font-semibold text-black dark:text-white">Hemodynamics / Notes</div>
-                <div class="space-y-1 text-sm text-gray-700 dark:text-gray-200">
-                    <div>BP: <span class="font-medium">{{ json('hemodynamics.bloodPressure') || '-' }}</span></div>
-                    <div>Complications: <span class="font-medium">{{ json('hemodynamics.complications') || '-' }}</span></div>
-                </div>
-                <div class="text-sm text-gray-500 dark:text-gray-300">
-                    Risk score: <span class="font-semibold text-black dark:text-white">{{ riskScore() ?? '-' }}</span>/100
-                    • Stability: <span class="font-semibold text-black dark:text-white">{{ stabilityIndex() ?? '-' }}</span>/100
-                </div>            </div>
-        </div>
-
-        <!-- Recommendations -->
-        <div class="mt-4 rounded border border-stroke p-4 dark:border-strokedark">
-            <div class="mb-2 text-sm font-semibold text-black dark:text-white">Recommendations</div>
-            <div class="space-y-3">
-                <div *ngFor="let r of recommendationsList()" class="rounded border border-stroke p-3 dark:border-strokedark">
-                    <div class="flex items-center justify-between">
-                        <div class="font-semibold">{{ r.title }}</div>
-                        <span class="text-xs px-2 py-1 rounded"
-                              [ngClass]="r.severity === 'HIGH' ? 'bg-red-100 text-red-700'
-                    : r.severity === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-blue-100 text-blue-800'">
-        {{ r.severity }}
-      </span>
-                    </div>
-                    <div class="mt-1 text-xs text-gray-500">Evidence: {{ r.evidence }}</div>
-                    <ul class="mt-2 list-disc pl-5 text-sm">
-                        <li *ngFor="let a of r.actions">{{ a }}</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <!-- Raw text (optional) -->
-        <details class="mt-4 rounded border border-stroke p-4 dark:border-strokedark">
-            <summary class="cursor-pointer text-sm font-medium text-black dark:text-white">Raw report</summary>
-            <pre class="mt-3 whitespace-pre-wrap text-xs text-gray-700 dark:text-gray-200">{{ report.reportText }}</pre>
-        </details>
-
-        <div class="mt-4 flex gap-2">
-            <app-button size="sm" variant="outline" (btnClick)="copy()">Copy</app-button>
-            <app-button size="sm" variant="outline" (btnClick)="closed.emit()">Close</app-button>
-            <app-button size="sm" variant="primary" (btnClick)="downloadPdf()">
-                Download PDF
-            </app-button>
-        </div>
-    </ng-container>
 </app-modal>

@@ -1,101 +1,159 @@
-<div class="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
-    <div class="border-b border-stroke py-4 px-6.5 dark:border-strokedark flex items-center justify-between">
-        <h3 class="font-medium text-black dark:text-white">My Schedule (Today)</h3>
+<div class="ms-wrapper">
 
-        <div class="flex flex-wrap gap-3 items-end mb-4">
-            <div>
-                <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1">From</label>
-                <input type="date" [(ngModel)]="fromStr" class="rounded border border-stroke px-3 py-2 text-sm dark:border-strokedark dark:bg-form-input"/>
+    <!-- Header -->
+    <div class="ms-header">
+        <div class="ms-header-left">
+            <div class="ms-icon-box">
+                <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
             </div>
-
             <div>
-                <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1">To</label>
-                <input type="date" [(ngModel)]="toStr" class="rounded border border-stroke px-3 py-2 text-sm dark:border-strokedark dark:bg-form-input"/>
+                <h2 class="ms-title">My Schedule</h2>
+                <p class="ms-subtitle">Your dialysis sessions for the selected period</p>
             </div>
+        </div>
 
-            <app-button size="sm" variant="primary" (btnClick)="load()" [disabled]="loading">Apply</app-button>
+        <!-- Date Filters -->
+        <div class="ms-filters">
+            <div class="ms-filter-field">
+                <label class="ms-filter-label">From</label>
+                <input type="date" [(ngModel)]="fromStr" class="ms-date-input" />
+            </div>
+            <div class="ms-filter-field">
+                <label class="ms-filter-label">To</label>
+                <input type="date" [(ngModel)]="toStr" class="ms-date-input" />
+            </div>
+            <app-button size="sm" variant="primary" (btnClick)="load()" [disabled]="loading">
+                Apply
+            </app-button>
         </div>
     </div>
 
-    <div *ngIf="errorMessage" class="p-6">
-        <div class="rounded border border-red-300 bg-red-50 px-4 py-3 text-red-700">
-            <strong>Error!</strong> {{ errorMessage }}
-        </div>
-    </div>
+    <!-- Body -->
+    <div class="ms-body">
 
-    <div class="p-6">
-        <div *ngIf="loading" class="text-sm text-gray-500 dark:text-gray-300">Loading...</div>
+        <!-- Error -->
+        <div *ngIf="errorMessage" class="ms-alert">
+            <div class="ms-alert-icon">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <span><strong>Error!</strong> {{ errorMessage }}</span>
+        </div>
+
+        <!-- Loading -->
+        <div *ngIf="loading" class="ms-loading">
+            <div class="ms-spinner"></div>
+            <p>Loading schedule...</p>
+        </div>
 
         <ng-container *ngIf="!loading">
-            <div *ngIf="rows.length === 0" class="rounded border border-stroke p-6 dark:border-strokedark">
-                <p class="text-sm text-gray-600 dark:text-gray-300">No scheduled sessions for today.</p>
+
+            <!-- Empty State -->
+            <div *ngIf="rows.length === 0" class="ms-empty">
+                <div class="ms-empty-icon">
+                    <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <p class="ms-empty-title">No sessions found</p>
+                <p class="ms-empty-sub">No scheduled sessions for the selected date range.</p>
             </div>
 
-            <div *ngIf="rows.length > 0" class="max-w-full overflow-x-auto">
-                <table class="w-full table-auto">
-                    <thead>
-                    <tr class="bg-gray-2 text-left dark:bg-meta-4">
-                        <th class="py-4 px-4 font-medium text-black dark:text-white">Patient</th>
-                        <th class="py-4 px-4 font-medium text-black dark:text-white">Date</th>
-                        <th class="py-4 px-4 font-medium text-black dark:text-white">Shift</th>
-                        <th class="py-4 px-4 font-medium text-black dark:text-white">Access</th>
-                        <th class="py-4 px-4 font-medium text-black dark:text-white">Treatment</th>
-                        <th class="py-4 px-4 font-medium text-black dark:text-white">Status</th>
-                        <th class="py-4 px-4 font-medium text-black dark:text-white">Actions</th>
-                    </tr>
-                    </thead>
+            <!-- Table -->
+            <div *ngIf="rows.length > 0" class="ms-table-card">
+                <div class="ms-table-wrapper">
+                    <table class="ms-table">
+                        <thead>
+                        <tr>
+                            <th>Patient</th>
+                            <th>Date</th>
+                            <th>Shift</th>
+                            <th>Access</th>
+                            <th>Treatment</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr *ngFor="let r of rows" class="ms-row">
 
-                    <tbody>
-                    <tr *ngFor="let r of rows" class="border-b border-[#eee] dark:border-strokedark">
-                        <td class="py-5 px-4">
-                            <p class="text-black dark:text-white">{{ r.patientName }}</p>
-                        </td>
-                        <td class="py-5 px-4">
-                            <p class="text-black dark:text-white">{{ r.sched.day }}</p>
-                            <p class="text-xs text-gray-500" *ngIf="r.sched.day === todayStr">Today</p>
-                        </td>
+                            <!-- Patient -->
+                            <td>
+                                <div class="ms-patient-cell">
+                                    <div class="ms-patient-avatar">
+                                        {{ r.patientName.charAt(0) }}
+                                    </div>
+                                    <span class="ms-patient-name">{{ r.patientName }}</span>
+                                </div>
+                            </td>
 
-                        <td class="py-5 px-4">
-                            <p class="text-black dark:text-white">{{ r.sched.shift }}</p>
-                        </td>
+                            <!-- Date -->
+                            <td>
+                                <div class="ms-date-cell">
+                                    <span class="ms-date-value">{{ r.sched.day }}</span>
+                                    <span *ngIf="r.sched.day === todayStr" class="ms-today-tag">Today</span>
+                                </div>
+                            </td>
 
-                        <td class="py-5 px-4">
-                            <p class="text-black dark:text-white">{{ r.accessType }}</p>
-                        </td>
+                            <!-- Shift -->
+                            <td>
+                                <span class="ms-shift-badge">{{ r.sched.shift }}</span>
+                            </td>
 
-                        <td class="py-5 px-4">
-                            <p class="text-black dark:text-white">{{ r.treatmentStatus }}</p>
-                            <p class="text-xs text-gray-500" *ngIf="r.freqPerWeek != null">Freq: {{ r.freqPerWeek }}/wk</p>
-                        </td>
+                            <!-- Access -->
+                            <td>
+                                <span class="ms-access-text">{{ r.accessType }}</span>
+                            </td>
 
-                        <td class="py-5 px-4">
-                            <app-badge variant="light" size="sm" [color]="statusColor(r.sched.status)">
-                                {{ r.sched.status }}
-                            </app-badge>
-                        </td>
+                            <!-- Treatment -->
+                            <td>
+                                <div class="ms-treatment-cell">
+                                    <span class="ms-treatment-status">{{ r.treatmentStatus }}</span>
+                                    <span *ngIf="r.freqPerWeek != null" class="ms-freq-tag">
+                      {{ r.freqPerWeek }}/wk
+                    </span>
+                                </div>
+                            </td>
 
-                        <td class="py-5 px-4">
-                            <div class="flex gap-2 flex-wrap">
-                                <app-button size="sm" variant="outline" (btnClick)="view(r)">Open</app-button>
+                            <!-- Status -->
+                            <td>
+                                <app-badge variant="light" size="sm" [color]="statusColor(r.sched.status)">
+                                    {{ r.sched.status }}
+                                </app-badge>
+                            </td>
 
-                                <app-button
-                                        size="sm"
-                                        variant="primary"
-                                        (btnClick)="start(r)"
-                                        [disabled]="!canStart(r)">
-                                    Start
-                                </app-button>
+                            <!-- Actions -->
+                            <td>
+                                <div class="ms-actions-cell">
+                                    <app-button size="sm" variant="outline" (btnClick)="view(r)">
+                                        Open
+                                    </app-button>
+                                    <app-button
+                                            size="sm"
+                                            variant="primary"
+                                            (btnClick)="start(r)"
+                                            [disabled]="!canStart(r)">
+                                        Start
+                                    </app-button>
+                                    <p *ngIf="r.sched.status === 'SCHEDULED' && !isToday(r.sched.day)"
+                                       class="ms-start-hint">
+                                        Only available on scheduled day
+                                    </p>
+                                </div>
+                            </td>
 
-                                <p class="text-xs text-gray-500 mt-1" *ngIf="r.sched.status === 'SCHEDULED' && !isToday(r.sched.day)">
-                                    Start is only allowed on the scheduled day (today).
-                                </p>
-                            </div>
-                        </td>
-                    </tr>
-                    </tbody>
-
-                </table>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
+
         </ng-container>
     </div>
 </div>

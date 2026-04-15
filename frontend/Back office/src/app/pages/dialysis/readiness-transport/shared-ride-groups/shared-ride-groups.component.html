@@ -1,0 +1,165 @@
+<div class="srg-wrapper">
+
+    <!-- Header -->
+    <div class="srg-header">
+        <div class="srg-header-left">
+            <div class="srg-icon-box">
+                <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </div>
+            <div>
+                <h2 class="srg-title">Shared Ride Logistics</h2>
+                <p class="srg-subtitle">Review aggregated transport requests and assign fleet vehicles</p>
+            </div>
+        </div>
+        <button (click)="proposeGroups()" [disabled]="isLoading" class="srg-auto-btn">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Auto-Group Pending
+        </button>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="isLoading" class="srg-loading">
+        <div class="srg-spinner"></div>
+        <p>Loading ride groups...</p>
+    </div>
+
+    <!-- Grid -->
+    <div class="srg-grid" *ngIf="!isLoading">
+
+        <!-- Group Card -->
+        <div class="srg-card" *ngFor="let group of groups">
+
+            <!-- Card Header -->
+            <div class="srg-card-top">
+                <div class="srg-card-info">
+          <span class="srg-zone-badge" [title]="group.pickupAddress || group.pickupZone">
+            <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            </svg>
+              {{ group.pickupAddress ? (group.pickupAddress | slice:0:30) + '...' : group.pickupZone }} · {{ group.day }}
+          </span>
+                    <h4 class="srg-group-id">
+                        {{ group.decisionType === 'INDIVIDUAL' ? 'Individual Ride' : 'Shared Ride' }}
+                    </h4>
+                    <p class="srg-shift-info">
+                        {{ group.shift | titlecase }} Shift &nbsp;·&nbsp; Score:
+                        <span [ngClass]="group.compatibilityScore >= 90 ? 'score-high' : 'score-low'">
+              {{ group.compatibilityScore }}%
+            </span>
+                    </p>
+                </div>
+
+                <div class="srg-card-meta">
+          <span class="srg-patient-count">
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" />
+            </svg>
+              {{ group.memberCount || 0 }} Patient{{ group.memberCount === 1 ? '' : 's' }}
+          </span>
+                    <span class="srg-status-badge"
+                          [ngClass]="{
+              'status-proposed': group.status === 'PROPOSED',
+              'status-validated': group.status === 'VALIDATED',
+              'status-dispatched': group.status === 'DISPATCHED'
+            }">
+            <span class="badge-dot"></span>
+                        {{ formatStatus(group.status) }}
+
+          </span>
+                </div>
+            </div>
+
+            <!-- Patients List -->
+            <div class="srg-patients">
+                <div class="srg-patient-row" *ngFor="let req of group.transportRequests; let i = index">
+                    <div class="srg-patient-avatar">P{{ i + 1 }}</div>
+                    <div class="srg-patient-info">
+                        <p class="srg-patient-name" title="Full ID: {{ req.patientId }} | Session: {{ req.scheduledSessionId }}">
+                            {{ patientNames[req.patientId] || 'Loading...' }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card Footer Actions -->
+            <div class="srg-card-footer">
+
+                <!-- PROPOSED actions -->
+                <div *ngIf="group.status === 'PROPOSED'" class="srg-action-row">
+                    <button (click)="validateGroup(group.id!)" class="srg-btn srg-btn-validate">
+                        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Validate
+                    </button>
+                    <button (click)="rejectGroup(group.id!)" class="srg-btn srg-btn-reject">
+                        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Reject
+                    </button>
+                </div>
+
+                <!-- Vehicle already assigned -->
+                <div *ngIf="group.vehicleCode" class="srg-assigned-vehicle">
+                    <div class="srg-assigned-left">
+                        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M8 17h8M3 11l2-6h14l2 6M3 11h18M5 17l-1 3h16l-1-3" />
+                        </svg>
+                        <span>Assigned Vehicle</span>
+                    </div>
+                    <span class="srg-vehicle-code">{{ group.vehicleCode }}</span>
+                </div>
+
+                <!-- Assign vehicle dropdown -->
+                <div *ngIf="!group.vehicleCode && group.status === 'VALIDATED'" class="srg-assign-wrapper">
+                    <!-- Error message banner -->
+                    <div *ngIf="errorMessage[group.id!]" class="srg-error-banner" style="color: #dc2626; font-size: 0.8rem; background: #fef2f2; padding: 6px; border-radius: 4px; margin-bottom: 8px; border: 1px solid #fecaca;">
+                        <svg width="14" height="14" style="display:inline; margin-bottom:-2px;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {{ errorMessage[group.id!] }}
+                    </div>
+                    
+                    <div class="srg-assign-row">
+                        <select [(ngModel)]="selectedVehicleId[group.id!]" class="srg-select">
+                            <option value="" disabled selected>Select vehicle</option>
+                            <option *ngFor="let v of vehicles" 
+                                    [value]="v.id" 
+                                    [disabled]="!isVehicleValid(v, group)">
+                                {{ v.code }} ({{ v.capacity }} seats){{ getVehicleDisabledReason(v, group) }}
+                            </option>
+                        </select>
+                        <button (click)="assignVehicle(group.id!)" [disabled]="!selectedVehicleId[group.id!]" class="srg-assign-btn">
+                            Assign
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div class="srg-empty" *ngIf="groups.length === 0">
+            <div class="srg-empty-icon">
+                <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                          d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+            </div>
+            <p class="srg-empty-title">No active groups</p>
+            <p class="srg-empty-sub">Pending requests are waiting to be grouped by the logistics engine.</p>
+            <button (click)="proposeGroups()" class="srg-empty-btn">Auto-Group Now</button>
+        </div>
+
+    </div>
+</div>

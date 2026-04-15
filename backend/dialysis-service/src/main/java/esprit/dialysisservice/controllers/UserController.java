@@ -28,4 +28,10 @@ public class UserController {
     public List<NurseResponseDTO> getNurses() {
         return userService.getNurses();
     }
+
+    @GetMapping("/{userId}")
+    @PreAuthorize("hasAnyRole('doctor','nurse','admin')")
+    public PatientResponseDTO getUserById(@PathVariable String userId) {
+        return userService.getUserById(userId);
+    }
 }

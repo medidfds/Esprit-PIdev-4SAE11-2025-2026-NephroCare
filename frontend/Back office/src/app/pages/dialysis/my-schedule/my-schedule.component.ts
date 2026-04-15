@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import {Component, OnInit, ViewEncapsulation} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
@@ -21,6 +21,8 @@ type RowVM = {
     standalone: true,
     imports: [CommonModule, ButtonComponent, BadgeComponent, FormsModule],
     templateUrl: './my-schedule.component.html',
+    styleUrls: ['./my-schedule.component.css'],   // ← add
+    encapsulation: ViewEncapsulation.None
 })
 export class MyScheduleComponent implements OnInit {
     loading = true;
