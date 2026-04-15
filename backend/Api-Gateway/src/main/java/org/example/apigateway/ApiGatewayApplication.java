@@ -15,6 +15,7 @@ public class ApiGatewayApplication {
 		SpringApplication.run(ApiGatewayApplication.class, args);
 	}
 
+
 	@Bean
 	public RouteLocator gatewayRoutes(RouteLocatorBuilder builder) {
 		return builder.routes()
@@ -39,6 +40,15 @@ public class ApiGatewayApplication {
 						.filters(f -> f.stripPrefix(1))
 						.uri("lb://pharmacy-service")
 				)
+				// ── Order Service ─────────────────────────────────────────
+				.route("order-service", r -> r
+						.path("/orders/**")
+						.filters(f -> f.stripPrefix(1))
+						.uri("lb://order-service")
+				)
+
+
+
 
 				// Diagnostic Service ✅
 				.route("diagnostic-service", r -> r
