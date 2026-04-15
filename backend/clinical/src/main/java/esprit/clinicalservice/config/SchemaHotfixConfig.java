@@ -52,5 +52,15 @@ public class SchemaHotfixConfig {
         } catch (Exception ex) {
             logger.warn("Hotfix skipped for triage_queue_items.sepsis_alert: {}", ex.getMessage());
         }
+
+        try {
+            jdbcTemplate.execute(
+                    "ALTER TABLE consultations " +
+                    "MODIFY COLUMN doctor_id BIGINT NULL"
+            );
+            logger.info("Applied hotfix: consultations.doctor_id -> BIGINT NULL");
+        } catch (Exception ex) {
+            logger.warn("Hotfix skipped for consultations.doctor_id: {}", ex.getMessage());
+        }
     }
 }

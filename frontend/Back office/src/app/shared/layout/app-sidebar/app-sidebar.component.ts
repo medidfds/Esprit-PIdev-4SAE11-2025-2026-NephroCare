@@ -26,21 +26,46 @@ type NavItem = {
 export class AppSidebarComponent {
   navItems: NavItem[] = [
     {
-      name: 'Modules',
-      icon: `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5v-13Z" stroke="currentColor" stroke-width="1.5"/><path d="M4 9.5h16M9.5 20v-16" stroke="currentColor" stroke-width="1.5"/></svg>`,
+      name: 'Clinical Module',
+      icon: `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none"><path d="M12 4v16M4 12h16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" stroke-width="1.5"/></svg>`,
+      subItems: [
+        { name: 'Clinical', path: '/clinical' },
+        { name: 'Consultations Calendar', path: '/consultations-calendar' },
+        { name: 'Transplant Candidacy', path: '/transplant' },
+      ],
+    },
+    {
+      name: 'Hospitalization Module',
+      icon: `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none"><path d="M6 3v18M18 3v18M6 12h12M9 7h.01M9 17h.01M15 7h.01M15 17h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
       subItems: [
         { name: 'Hospitalization', path: '/hospitalization' },
-        { name: 'Clinical', path: '/clinical' },
-        { name: 'pharmacy', path: '/pharmacy' },
-        { name: 'Consultations Calendar', path: '/consultations-calendar' },
-        { name: 'Diagnostic', path: '/diagnostic' },
-
-        // Dialysis
-        // Dialysis
-        { name: "Dialysis Management", path: "/dialysis/treatments" },
-        { name: "Dialysis Settings", path: "/dialysis/admin/settings" },
-        { name: "alerts", path: "/dialysis/alerts" },
-         // nurse/admin
+        { name: 'Hospitalization Stats', path: '/statistique-hospitalization' },
+      ],
+    },
+    {
+      name: 'Pharmacy Module',
+      icon: `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none"><path d="M8 3h8l1 5H7l1-5Z" stroke="currentColor" stroke-width="1.5"/><path d="M5 8h14v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8Z" stroke="currentColor" stroke-width="1.5"/><path d="M12 11v6M9 14h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+      subItems: [
+        { name: 'Pharmacy', path: '/pharmacy' },
+        { name: 'Stock Stats', path: '/statistique-pharmacy' },
+      ],
+    },
+    {
+      name: 'Diagnostic Module',
+      icon: `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none"><path d="M10 3v5l-4 7a4 4 0 0 0 3.5 6h5a4 4 0 0 0 3.5-6l-4-7V3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8 12h8" stroke="currentColor" stroke-width="1.5"/></svg>`,
+      subItems: [
+        { name: 'Diagnostic Orders', path: '/diagnostic' },
+        { name: 'Diagnostic Results', path: '/diagnostic-result' },
+      ],
+    },
+    {
+      name: 'Dialysis Module',
+      icon: `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none"><path d="M12 3c3.5 0 6 2.5 6 5.5 0 4.5-6 12.5-6 12.5S6 13 6 8.5C6 5.5 8.5 3 12 3Z" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="8.5" r="2" stroke="currentColor" stroke-width="1.5"/></svg>`,
+      subItems: [
+        { name: 'Dialysis Management', path: '/dialysis/treatments' },
+        { name: 'My Dialysis Schedule', path: '/dialysis/my-schedule' },
+        { name: 'Dialysis Settings', path: '/dialysis/admin/settings' },
+        { name: 'Dialysis Audit Logs', path: '/dialysis/admin/audit' },
       ],
     },
     {

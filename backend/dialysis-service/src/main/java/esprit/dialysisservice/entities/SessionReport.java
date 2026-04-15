@@ -44,6 +44,6 @@ public class SessionReport {
     private String reportJson; // store serialized JSON string
 
     @Lob
-    @Column(name = "report_text", nullable = false)
+    @Column(name = "report_text", columnDefinition = "LONGTEXT", nullable = false)
     private String reportText;
 }

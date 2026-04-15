@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ClinicalService, DoctorEfficiencyMetric } from '../../../services/clinical.service';
+import { KeycloakAdminService, KeycloakUser } from '../../../services/keycloak-admin.service';
 
 type DashboardModule = {
   name: string;
@@ -28,6 +29,7 @@ export class EcommerceComponent implements OnInit {
   doctorEfficiency: DoctorEfficiencyMetric[] = [];
   loadingDoctorEfficiency = true;
   doctorEfficiencyError: string | null = null;
+  doctorNameById: Record<number, string> = {};
 
   readonly projectModules: DashboardModule[] = [
     {
@@ -106,9 +108,13 @@ export class EcommerceComponent implements OnInit {
     { role: 'Admin', responsibilities: 'System governance, account lifecycle, and module supervision.' }
   ];
 
-  constructor(private clinicalService: ClinicalService) {}
+  constructor(
+    private clinicalService: ClinicalService,
+    private keycloakAdminService: KeycloakAdminService
+  ) {}
 
   ngOnInit(): void {
+    this.loadKeycloakDoctorNames();
     this.loadDoctorEfficiency();
   }
 
@@ -158,6 +164,15 @@ export class EcommerceComponent implements OnInit {
     return 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300';
   }
 
+  getDoctorLabel(doctorId: number | null | undefined): string {
+    if (doctorId == null) {
+      return 'Unknown doctor';
+    }
+
+    const name = this.doctorNameById[doctorId];
+    return name ? `Dr ${name}` : 'Unknown doctor';
+  }
+
   private loadDoctorEfficiency(): void {
     this.loadingDoctorEfficiency = true;
     this.doctorEfficiencyError = null;
@@ -171,5 +186,86 @@ export class EcommerceComponent implements OnInit {
         this.doctorEfficiencyError = err.message || 'Failed to load doctor efficiency metrics';
       }
     });
+  }
+
+  private loadKeycloakDoctorNames(): void {
+    this.keycloakAdminService.getUsersByRole('doctor').subscribe({
+      next: (users) => {
+        users.forEach((user) => {
+          const doctorId = this.resolveNumericIdFromUser(user, ['doctorId', 'userId', 'id']);
+          if (doctorId != null) {
+            this.doctorNameById[doctorId] = KeycloakAdminService.displayName(user);
+          }
+        });
+      }
+    });
+  }
+
+  private resolveNumericIdFromUser(user: KeycloakUser, keys: string[]): number | null {
+    for (const key of keys) {
+      const candidate = user.attributes?.[key]?.[0] ?? (user as any)[key];
+      const parsed = this.parsePositiveId(candidate);
+      if (parsed != null) {
+        return parsed;
+      }
+    }
+
+    const fallbackCandidates = [user.username, user.email, user.id, user.attributes];
+    for (const candidate of fallbackCandidates) {
+      const parsed = this.parsePositiveId(candidate);
+      if (parsed != null) {
+        return parsed;
+      }
+    }
+
+    return null;
+  }
+
+  private parsePositiveId(value: unknown): number | null {
+    if (typeof value === 'number') {
+      return Number.isInteger(value) && value > 0 ? value : null;
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const parsed = this.parsePositiveId(item);
+        if (parsed != null) {
+          return parsed;
+        }
+      }
+      return null;
+    }
+
+    if (value && typeof value === 'object') {
+      for (const nestedValue of Object.values(value as Record<string, unknown>)) {
+        const parsed = this.parsePositiveId(nestedValue);
+        if (parsed != null) {
+          return parsed;
+        }
+      }
+      return null;
+    }
+
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const direct = Number(trimmed);
+    if (Number.isInteger(direct) && direct > 0) {
+      return direct;
+    }
+
+    const match = trimmed.match(/\d+/);
+    if (!match) {
+      return null;
+    }
+
+    const extracted = Number(match[0]);
+    return Number.isInteger(extracted) && extracted > 0 ? extracted : null;
   }
 }

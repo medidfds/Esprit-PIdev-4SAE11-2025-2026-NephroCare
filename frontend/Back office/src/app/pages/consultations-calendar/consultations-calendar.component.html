@@ -60,7 +60,7 @@
         <input
           type="text"
           [(ngModel)]="searchQuery"
-          placeholder="Search by diagnosis, patient ID, doctor ID, status..."
+          placeholder="Search by diagnosis, patient ID, doctor, status..."
           class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-primary dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         />
       </div>
@@ -98,7 +98,7 @@
 
           <tr *ngFor="let consultation of filteredConsultations" class="border-t border-gray-200 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/40">
             <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{{ consultation.patientId }}</td>
-            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{{ consultation.doctorId }}</td>
+            <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{{ getDoctorLabel(consultation.doctorId) }}</td>
             <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">{{ consultation.consultationDate | date: 'yyyy-MM-dd HH:mm' }}</td>
             <td class="px-4 py-3 text-sm text-gray-700 dark:text-gray-200">
               {{ consultation.followUpDate ? (consultation.followUpDate | date: 'yyyy-MM-dd HH:mm') : 'N/A' }}
@@ -113,6 +113,15 @@
             </td>
             <td class="px-4 py-3">
               <div class="flex items-center gap-2">
+                <select
+                  class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-primary dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                  [ngModel]="consultation.id ? editableDoctorIds[consultation.id] : null"
+                  (ngModelChange)="consultation.id && (editableDoctorIds[consultation.id] = $event)"
+                  [ngModelOptions]="{ standalone: true }"
+                >
+                  <option [ngValue]="null">Unassigned</option>
+                  <option *ngFor="let doctor of availableDoctors" [ngValue]="doctor.id">{{ doctor.name }}</option>
+                </select>
                 <input
                   type="datetime-local"
                   class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-primary dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
@@ -128,7 +137,7 @@
                 </select>
                 <button
                   type="button"
-                  (click)="updateConsultationStatus(consultation, statusSelect.value, consultation.id ? editableFollowUpDates[consultation.id] : '')"
+                  (click)="updateConsultationStatus(consultation, statusSelect.value, consultation.id ? editableFollowUpDates[consultation.id] : '', consultation.id ? editableDoctorIds[consultation.id] : null)"
                   [disabled]="updatingStatusId === consultation.id"
                   class="rounded-lg bg-sky-500 px-3 py-2 text-sm font-medium text-white hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60"
                 >
@@ -201,8 +210,8 @@
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">Doctor ID</label>
-          <p class="text-gray-800 dark:text-white">{{ selectedConsultation.doctorId }}</p>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">Doctor</label>
+          <p class="text-gray-800 dark:text-white">{{ getDoctorLabel(selectedConsultation.doctorId) }}</p>
         </div>
       </div>
 

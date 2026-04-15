@@ -229,6 +229,11 @@ textarea.form-control {
   padding: 0.9rem;
 }
 
+.invalid-feedback {
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
 /* Table Styles */
 .table {
   margin-bottom: 0;

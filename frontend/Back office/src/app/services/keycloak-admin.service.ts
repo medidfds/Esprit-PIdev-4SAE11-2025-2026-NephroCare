@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, from, switchMap, catchError, of } from 'rxjs';
+import { Observable, from, switchMap, catchError, of, forkJoin } from 'rxjs';
 import { KeycloakService } from 'keycloak-angular';
 import keycloakConfig from '../keycloak.config';
 
@@ -11,6 +11,7 @@ export interface KeycloakUser {
   lastName?: string;
   email?: string;
   enabled: boolean;
+  attributes?: Record<string, string[]>; // from File 1
 }
 
 @Injectable({ providedIn: 'root' })
@@ -23,11 +24,6 @@ export class KeycloakAdminService {
     private keycloakService: KeycloakService
   ) {}
 
-  /**
-   * Get users that have a specific realm role.
-   * Uses the current user's Bearer token — make sure the logged-in user
-   * has the "view-users" role in realm-management, or use a dedicated service account.
-   */
   getUsersByRole(roleName: string): Observable<KeycloakUser[]> {
     return from(this.keycloakService.getToken()).pipe(
       switchMap(token => {
@@ -38,16 +34,90 @@ export class KeycloakAdminService {
         return this.http.get<KeycloakUser[]>(
           `${this.adminBaseUrl}/roles/${roleName}/users?max=200`,
           { headers }
+        ).pipe(
+          switchMap(users => this.hydrateUsers(users, headers)) // from File 1
         );
       }),
       catchError(err => {
-        console.error(`Failed to load users with role "${roleName}"`, err);
-        return of([]);
+        console.error(`Keycloak error status: ${err.status}`, err.error);
+        return this.getAllUsersWithRole(roleName); // from File 1
       })
     );
   }
 
-  /** Helper: returns display name for a KeycloakUser */
+  // from File 2
+  getUserById(userId: string): Observable<KeycloakUser> {
+    return from(this.keycloakService.getToken()).pipe(
+      switchMap(token => {
+        const headers = new HttpHeaders({
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        });
+        return this.http.get<KeycloakUser>(
+          `${this.adminBaseUrl}/users/${userId}`,
+          { headers }
+        );
+      }),
+      catchError(() => of({ id: userId, username: userId, enabled: true }))
+    );
+  }
+
+  // from File 1
+  private getAllUsersWithRole(roleName: string): Observable<KeycloakUser[]> {
+    return from(this.keycloakService.getToken()).pipe(
+      switchMap(token => {
+        const headers = new HttpHeaders({ 'Authorization': `Bearer ${token}` });
+
+        return this.http.get<KeycloakUser[]>(
+          `${this.adminBaseUrl}/users?max=200`,
+          { headers }
+        ).pipe(
+          switchMap((users: KeycloakUser[]) => {
+            if (!users.length) return of([]);
+
+            const checks$ = users.map((user: KeycloakUser) =>
+              this.http.get<{ name: string }[]>(
+                `${this.adminBaseUrl}/users/${user.id}/role-mappings/realm`,
+                { headers }
+              ).pipe(
+                switchMap(roles =>
+                  roles.some(r => r.name === roleName) ? of(user) : of(null)
+                ),
+                catchError(() => of(null))
+              )
+            );
+
+            return forkJoin(checks$).pipe(
+              switchMap(results =>
+                this.hydrateUsers(
+                  results.filter((u): u is KeycloakUser => u !== null),
+                  headers
+                )
+              )
+            );
+          })
+        );
+      }),
+      catchError(() => of([]))
+    );
+  }
+
+  // from File 1
+  private hydrateUsers(users: KeycloakUser[], headers: HttpHeaders): Observable<KeycloakUser[]> {
+    if (!users.length) return of([]);
+
+    const detailedUsers$ = users.map(user =>
+      this.http.get<KeycloakUser>(
+        `${this.adminBaseUrl}/users/${user.id}`,
+        { headers }
+      ).pipe(
+        catchError(() => of(user))
+      )
+    );
+
+    return forkJoin(detailedUsers$);
+  }
+
   static displayName(user: KeycloakUser): string {
     const full = `${user.firstName || ''} ${user.lastName || ''}`.trim();
     return full || user.username;

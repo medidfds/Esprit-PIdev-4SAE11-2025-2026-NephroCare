@@ -93,7 +93,7 @@
           </tr>
           <tr *ngFor="let metric of topDoctorEfficiency; let i = index" class="border-t border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/40">
             <td class="px-3 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200">#{{ i + 1 }}</td>
-            <td class="px-3 py-2 text-sm font-semibold text-gray-900 dark:text-white">Dr #{{ metric.doctorId }}</td>
+            <td class="px-3 py-2 text-sm font-semibold text-gray-900 dark:text-white">{{ getDoctorLabel(metric.doctorId) }}</td>
             <td class="px-3 py-2 text-sm text-gray-700 dark:text-gray-200">
               <div class="min-w-[180px]">
                 <div class="mb-1 flex items-center justify-between">

@@ -72,7 +72,7 @@ export interface TriageQueueItem {
 }
 
 export interface TriageQueueAction {
-  doctorId: number;
+  doctorId?: number;
 }
 
 export interface TriageOverride {

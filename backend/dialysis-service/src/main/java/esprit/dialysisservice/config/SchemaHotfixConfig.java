@@ -32,5 +32,18 @@ public class SchemaHotfixConfig {
                     ex.getMessage()
             );
         }
+
+        try {
+            jdbcTemplate.execute(
+                    "ALTER TABLE session_report " +
+                    "MODIFY COLUMN report_text LONGTEXT NOT NULL"
+            );
+            logger.info("Applied hotfix: session_report.report_text -> LONGTEXT");
+        } catch (Exception ex) {
+            logger.warn(
+                    "Hotfix skipped for session_report.report_text: {}",
+                    ex.getMessage()
+            );
+        }
     }
 }

@@ -11,6 +11,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { KeycloakService } from 'keycloak-angular';
 
+// ── Cross-field validator: discharge must be after admission ──────────────────
 function dischargeDateValidator(group: AbstractControl): ValidationErrors | null {
   const admission = group.get('admissionDate')?.value;
   const discharge = group.get('dischargeDate')?.value;
@@ -20,6 +21,7 @@ function dischargeDateValidator(group: AbstractControl): ValidationErrors | null
   return null;
 }
 
+// ── Custom blood-pressure format validator ────────────────────────────────────
 function bloodPressureValidator(control: AbstractControl): ValidationErrors | null {
   const val = control.value;
   if (!val) return null;
@@ -35,6 +37,7 @@ function bloodPressureValidator(control: AbstractControl): ValidationErrors | nu
 })
 export class HospitalizationComponent implements OnInit {
 
+  // ── Hospitalizations state ─────────────────────────────────────────────
   hospitalizations: any[]         = [];
   filteredHospitalizations: any[] = [];
   form!: FormGroup;
@@ -60,7 +63,7 @@ export class HospitalizationComponent implements OnInit {
     return true;
   }
 
-  // ── Rooms ──────────────────────────────────────────────────────────────
+  // ── Rooms (shared by hospitalization picker AND rooms CRUD) ───────────
   availableRooms: Room[] = [];
   allRooms:       Room[] = [];
   loadingRooms    = false;
@@ -82,6 +85,14 @@ export class HospitalizationComponent implements OnInit {
     maternity: 'bg-purple-100 text-purple-700',
   };
 
+  // ── Rooms CRUD state ───────────────────────────────────────────────────
+  roomForm!:        FormGroup;
+  editingRoomId:    number | null = null;
+  roomFormVisible:  boolean       = false;
+  filteredRooms:    Room[]        = [];
+  roomSearchTerm:   string        = '';
+  roomTypeFilter:   string        = '';
+
   // ── Patients ───────────────────────────────────────────────────────────
   patientUsers:    KeycloakUser[] = [];
   patientsLoading  = false;
@@ -100,6 +111,7 @@ export class HospitalizationComponent implements OnInit {
   }
 
   private patientNameCache: Map<string, string> = new Map();
+  private doctorNameCache = new Map<string, string>();
 
   private readonly NURSE_LOCKED_FIELDS = [
     'admissionDate', 'dischargeDate', 'roomId',
@@ -117,6 +129,7 @@ export class HospitalizationComponent implements OnInit {
   ngOnInit(): void {
     this.loadKeycloakUser();
     this.initForm();
+    this.initRoomForm();
     this.loadAll();
     this.loadPatients();
     this.loadRooms();
@@ -145,7 +158,7 @@ export class HospitalizationComponent implements OnInit {
   }
 
   // ══════════════════════════════════════════════
-  //  ROOMS
+  //  ROOMS – SHARED LOADER
   // ══════════════════════════════════════════════
   loadRooms(): void {
     this.loadingRooms = true;
@@ -154,6 +167,7 @@ export class HospitalizationComponent implements OnInit {
         this.allRooms       = rooms;
         this.availableRooms = rooms.filter(r => r.available);
         this.loadingRooms   = false;
+        this.filterRooms();            // sync the rooms table view
       },
       error: () => { this.loadingRooms = false; }
     });
@@ -166,6 +180,105 @@ export class HospitalizationComponent implements OnInit {
 
   occupancyPercent(room: Room): number {
     return Math.round((room.currentOccupancy / room.capacity) * 100);
+  }
+
+  // ══════════════════════════════════════════════
+  //  ROOMS CRUD
+  // ══════════════════════════════════════════════
+
+  /** Initialise (or reset) the room reactive form. */
+  private initRoomForm(room?: Room): void {
+    this.roomForm = this.fb.group({
+      roomNumber:  [room?.roomNumber  || '', [Validators.required, Validators.maxLength(20)]],
+      type:        [room?.type        || '', Validators.required],
+      capacity:    [room?.capacity    ?? null, [Validators.required, Validators.min(1), Validators.max(10)]],
+      description: [room?.description || '', Validators.maxLength(255)],
+    });
+  }
+
+  /** Open the add-room form (blank). */
+  showRoomForm(): void {
+    this.editingRoomId  = null;
+    this.roomFormVisible = true;
+    this.initRoomForm();
+    // Scroll the form into view smoothly
+    setTimeout(() => {
+      document.querySelector('[formGroup="roomForm"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  }
+
+  /** Open the edit-room form pre-filled. */
+  editRoom(room: Room): void {
+    this.editingRoomId   = room.id;
+    this.roomFormVisible = true;
+    this.initRoomForm(room);
+    // Scroll to the form
+    setTimeout(() => {
+      const el = document.getElementById('room-form-card');
+      el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  }
+
+  /** Submit the room form (create or update). */
+  saveRoom(): void {
+    this.roomForm.markAllAsTouched();
+    if (this.roomForm.invalid) return;
+
+    const payload: Partial<Room> = this.roomForm.getRawValue();
+
+    const obs = this.editingRoomId
+      ? this.roomService.update(this.editingRoomId, payload)
+      : this.roomService.create(payload);
+
+    obs.subscribe({
+      next: () => {
+        this.loadRooms();    // refresh both the picker and the table
+        this.cancelRoom();
+      },
+      error: (err: any) => {
+        console.error('Room save error:', err?.error ?? err);
+        // Surface the backend duplicate-number message if present
+        const msg: string = err?.error?.message || err?.error?.error || '';
+        if (msg.toLowerCase().includes('already exists')) {
+          this.roomForm.get('roomNumber')?.setErrors({ duplicate: true });
+        }
+      }
+    });
+  }
+
+  /** Delete a room (backend guards against occupied rooms). */
+  deleteRoom(id: number): void {
+    if (!confirm('Delete this room? This cannot be undone.')) return;
+    this.roomService.delete(id).subscribe({
+      next: () => this.loadRooms(),
+      error: (err: any) => {
+        const msg: string = err?.error?.message || err?.error?.error || 'Cannot delete this room.';
+        alert(msg);
+      }
+    });
+  }
+
+  /** Cancel / close the room form. */
+  cancelRoom(): void {
+    this.roomFormVisible = false;
+    this.editingRoomId   = null;
+    this.roomForm.reset();
+  }
+
+  /** Filter the displayed rooms by search term and/or type. */
+  filterRooms(): void {
+    const term = this.roomSearchTerm?.toLowerCase() || '';
+    const type = this.roomTypeFilter || '';
+    this.filteredRooms = this.allRooms.filter(r =>
+      (!term || r.roomNumber.toLowerCase().includes(term) || (r.description || '').toLowerCase().includes(term)) &&
+      (!type || r.type === type)
+    );
+  }
+
+  /** Helper: was a room-form field touched with a specific error? */
+  roomFieldError(field: string, error: string): boolean {
+    const ctrl = this.roomForm.get(field);
+    return !!(ctrl?.hasError(error) && (ctrl.dirty || ctrl.touched));
   }
 
   // ══════════════════════════════════════════════
@@ -197,6 +310,26 @@ export class HospitalizationComponent implements OnInit {
     });
   }
 
+  private resolveDoctorNames(): void {
+  const uniqueIds = [...new Set(
+    this.hospitalizations
+      .map(h => h.attendingDoctorId)
+      .filter(Boolean)
+  )];
+  uniqueIds.forEach(id => {
+    if (this.doctorNameCache.has(id)) return; // already resolved
+    this.adminService.getUserById(id).subscribe(user => {
+      this.doctorNameCache.set(id, KeycloakAdminService.displayName(user));
+    });
+  });
+}
+
+getDoctorDisplayName(id: string): string {
+  if (!id) return '—';
+  if (id === this.currentUserId) return this.currentUserName; // self — no API call needed
+  return this.doctorNameCache.get(id) ?? `Dr. ${id.slice(0, 8)}…`; // fallback while loading
+}
+
   openDropdown(): void {
     if (this.isNurse) return;
     this.dropdownOpen  = true;
@@ -227,14 +360,14 @@ export class HospitalizationComponent implements OnInit {
   }
 
   // ══════════════════════════════════════════════
-  //  FORM
+  //  HOSPITALIZATION FORM
   // ══════════════════════════════════════════════
   private initForm(): void {
     this.form = this.fb.group(
       {
         admissionDate:     ['', Validators.required],
         dischargeDate:     [''],
-        roomId:            [null, Validators.required],  // ← replaces roomNumber
+        roomId:            [null, Validators.required],
         admissionReason:   ['', [Validators.required, Validators.maxLength(255)]],
         status:            ['', Validators.required],
         userId:            ['', Validators.required],
@@ -285,7 +418,7 @@ export class HospitalizationComponent implements OnInit {
   }
 
   // ══════════════════════════════════════════════
-  //  CRUD
+  //  HOSPITALIZATION CRUD
   // ══════════════════════════════════════════════
   loadAll(): void {
     this.service.getAll().subscribe({
@@ -293,6 +426,7 @@ export class HospitalizationComponent implements OnInit {
         this.hospitalizations = data || [];
         this.filterHospitalizations();
         this.buildPatientCacheFromHospitalizations();
+        this.resolveDoctorNames(); // ← add this
       },
       error: err => console.error('Error loading hospitalizations', err)
     });
@@ -304,7 +438,6 @@ export class HospitalizationComponent implements OnInit {
 
     const raw = this.form.getRawValue();
 
-    // ── Build payload: send room as { id } not as a plain string ──────────
     const payload: HospitalizationPayload = {
       admissionDate:     raw.admissionDate ? raw.admissionDate + ':00' : '',
       dischargeDate:     raw.dischargeDate ? raw.dischargeDate + ':00' : null,
@@ -329,7 +462,6 @@ export class HospitalizationComponent implements OnInit {
   edit(h: any): void {
     this.editingId = h.id;
 
-    // ── Restore room selection from the embedded room object ──────────────
     const roomId = h.room?.id ?? null;
     this.selectedRoom    = roomId ? (this.allRooms.find(r => r.id === roomId) ?? null) : null;
     this.selectedPatient = this.patientUsers.find(u => u.id === h.userId) || null;
@@ -371,16 +503,16 @@ export class HospitalizationComponent implements OnInit {
   }
 
   filterHospitalizations(): void {
-  const term = this.searchTerm?.toLowerCase() || '';
-  this.filteredHospitalizations = this.hospitalizations.filter(h =>
-    !term ||
-    (h.room?.roomNumber     || '').toLowerCase().includes(term) ||  // ← removed || h.roomNumber
-    (h.admissionReason      || '').toLowerCase().includes(term) ||
-    (h.status               || '').toLowerCase().includes(term) ||
-    String(h.userId         || '').toLowerCase().includes(term) ||
-    String(h.attendingDoctorId || '').includes(term)
-  );
-}
+    const term = this.searchTerm?.toLowerCase() || '';
+    this.filteredHospitalizations = this.hospitalizations.filter(h =>
+      !term ||
+      (h.room?.roomNumber     || '').toLowerCase().includes(term) ||
+      (h.admissionReason      || '').toLowerCase().includes(term) ||
+      (h.status               || '').toLowerCase().includes(term) ||
+      String(h.userId         || '').toLowerCase().includes(term) ||
+      String(h.attendingDoctorId || '').includes(term)
+    );
+  }
 
   // ── Display helpers ────────────────────────────────────────────────────
   getPatientDisplayName(userId: string): string {

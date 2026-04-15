@@ -16,11 +16,13 @@ public interface TriageService {
 
     TriageQueueItem startCare(Long queueItemId, Long doctorId);
 
-    TriageQueueItem closeQueueItem(Long queueItemId);
+    TriageQueueItem closeQueueItem(Long queueItemId, Long doctorId);
 
-    TriageQueueItem overridePriority(Long queueItemId, TriageLevel triageLevel, Integer maxWaitMinutes, String reason);
+    TriageQueueItem overridePriority(Long queueItemId, Long doctorId, TriageLevel triageLevel, Integer maxWaitMinutes, String reason);
 
     List<DoctorEfficiencyDTO> getDoctorEfficiency(LocalDateTime from, LocalDateTime to);
 
     void processOverdueEscalations();
+
+    void processStalledInProgressItems();
 }

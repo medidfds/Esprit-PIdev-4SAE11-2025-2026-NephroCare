@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { ClinicalService, Consultation, MedicalHistory } from '../services/clinical.service';
 import { KeycloakService } from 'keycloak-angular';
 
@@ -14,9 +14,9 @@ export class ClinicalComponent implements OnInit {
   medicalHistoryForm: FormGroup;
   error: string | null = null;
   success: string | null = null;
+  isPatient = false;
   currentPatientId: number | null = null;
   currentPatientName: string | null = null;
-  currentDoctorId: number | null = null;
   loadingProfile = false;
   showMedicalHistoryModal = false;
   savingMedicalHistory = false;
@@ -28,18 +28,21 @@ export class ClinicalComponent implements OnInit {
   ) {
     this.form = this.fb.group({
       patientId: [{ value: null, disabled: true }],
-      consultationDate: ['', Validators.required],
-      diagnosis: ['', Validators.required],
-      treatmentPlan: ['', Validators.required]
+      consultationDate: ['', [Validators.required, this.notPastDateValidator]],
+      diagnosis: ['', [Validators.required, this.noWhitespaceValidator, Validators.minLength(3), Validators.maxLength(120)]],
+      treatmentPlan: ['', [Validators.required, this.noWhitespaceValidator, Validators.minLength(10), Validators.maxLength(1000)]]
     });
 
-    this.medicalHistoryForm = this.fb.group({
-      allergies: [''],
-      diagnosis: [''],
-      chronicConditions: [''],
-      familyHistory: [''],
-      notes: ['']
-    });
+    this.medicalHistoryForm = this.fb.group(
+      {
+        allergies: ['', [Validators.maxLength(250)]],
+        diagnosis: ['', [Validators.maxLength(120)]],
+        chronicConditions: ['', [Validators.maxLength(1000)]],
+        familyHistory: ['', [Validators.maxLength(1000)]],
+        notes: ['', [Validators.maxLength(1000)]]
+      },
+      { validators: this.atLeastOneFilledValidator }
+    );
   }
 
   ngOnInit(): void {
@@ -63,15 +66,9 @@ export class ClinicalComponent implements OnInit {
 
   saveConsultation(): void {
     const effectivePatientId = this.currentPatientId;
-    const effectiveDoctorId = this.currentDoctorId;
 
     if (effectivePatientId == null) {
       this.error = 'Unable to determine patient ID from your account.';
-      return;
-    }
-
-    if (effectiveDoctorId == null) {
-      this.error = 'Unable to determine doctor ID from your account.';
       return;
     }
 
@@ -84,13 +81,13 @@ export class ClinicalComponent implements OnInit {
     this.error = null;
     this.success = null;
 
-    const formValue = this.form.value;
+    const formValue = this.form.getRawValue();
     const consultation: Consultation = {
       patientId: effectivePatientId,
-      doctorId: effectiveDoctorId,
+      doctorId: null,
       consultationDate: formValue.consultationDate,
-      diagnosis: formValue.diagnosis,
-      treatmentPlan: formValue.treatmentPlan,
+      diagnosis: this.cleanText(formValue.diagnosis),
+      treatmentPlan: this.cleanText(formValue.treatmentPlan),
       followUpDate: null,
       status: 'SCHEDULED'
     };
@@ -130,14 +127,20 @@ export class ClinicalComponent implements OnInit {
       return;
     }
 
+    if (this.medicalHistoryForm.invalid) {
+      this.medicalHistoryForm.markAllAsTouched();
+      this.error = 'Please fill at least one field and fix invalid values.';
+      return;
+    }
+
     const formValue = this.medicalHistoryForm.value;
     const medicalHistory: MedicalHistory = {
       userId: effectivePatientId,
-      diagnosis: formValue.diagnosis || '',
-      allergies: formValue.allergies || '',
-      chronicConditions: formValue.chronicConditions || '',
-      familyHistory: formValue.familyHistory || '',
-      notes: formValue.notes || ''
+      diagnosis: this.cleanText(formValue.diagnosis),
+      allergies: this.cleanText(formValue.allergies),
+      chronicConditions: this.cleanText(formValue.chronicConditions),
+      familyHistory: this.cleanText(formValue.familyHistory),
+      notes: this.cleanText(formValue.notes)
     };
 
     this.error = null;
@@ -161,11 +164,11 @@ export class ClinicalComponent implements OnInit {
 
   private async loadCurrentUserContext(): Promise<void> {
     this.loadingProfile = true;
-    this.currentPatientId = this.extractTokenUserId();
-    this.currentPatientName = this.extractTokenPatientName();
-    this.currentDoctorId = this.extractTokenDoctorId();
+    this.isPatient = this.keycloakService.isUserInRole('patient');
+    this.currentPatientId = this.isPatient ? this.extractTokenUserId() : null;
+    this.currentPatientName = this.isPatient ? this.extractTokenPatientName() : null;
 
-    if (this.currentPatientId == null || !this.currentPatientName) {
+    if (this.isPatient && (this.currentPatientId == null || !this.currentPatientName)) {
       try {
         const profile = await this.keycloakService.loadUserProfile();
         if (this.currentPatientId == null) {
@@ -180,7 +183,7 @@ export class ClinicalComponent implements OnInit {
     }
 
     this.form.patchValue({
-      patientId: this.currentPatientName
+      patientId: this.isPatient ? this.currentPatientName : ''
     });
 
     this.loadingProfile = false;
@@ -236,34 +239,6 @@ export class ClinicalComponent implements OnInit {
     for (const value of candidates) {
       if (typeof value === 'string' && value.trim().length > 0) {
         return value.trim();
-      }
-    }
-
-    return null;
-  }
-
-  private extractTokenDoctorId(): number | null {
-    const tokenParsed: any = this.keycloakService.getKeycloakInstance()?.tokenParsed;
-    if (!tokenParsed) {
-      return null;
-    }
-
-    const candidates = [
-      tokenParsed?.doctorId,
-      tokenParsed?.doctor_id,
-      tokenParsed?.doctor?.id,
-      tokenParsed?.attributes?.doctorId,
-      tokenParsed?.attributes?.doctor_id,
-      tokenParsed?.userId,
-      tokenParsed?.user_id,
-      tokenParsed?.uid,
-      tokenParsed?.sub
-    ];
-
-    for (const value of candidates) {
-      const parsed = this.parsePositiveId(value);
-      if (parsed != null) {
-        return parsed;
       }
     }
 
@@ -339,5 +314,85 @@ export class ClinicalComponent implements OnInit {
 
     const extracted = Number(match[0]);
     return Number.isInteger(extracted) && extracted > 0 ? extracted : null;
+  }
+
+
+  hasError(controlName: string, formGroup: FormGroup = this.form): boolean {
+    const control = formGroup.get(controlName);
+    return !!control && control.invalid && (control.dirty || control.touched);
+  }
+
+  fieldError(controlName: string, formGroup: FormGroup = this.form): string | null {
+    const control = formGroup.get(controlName);
+    if (!control || !this.hasError(controlName, formGroup)) {
+      return null;
+    }
+
+    if (control.hasError('required')) {
+      return 'This field is required.';
+    }
+    if (control.hasError('whitespace')) {
+      return 'Only spaces are not allowed.';
+    }
+    if (control.hasError('minlength')) {
+      const requiredLength = control.getError('minlength')?.requiredLength;
+      return `Minimum ${requiredLength} characters required.`;
+    }
+    if (control.hasError('maxlength')) {
+      const requiredLength = control.getError('maxlength')?.requiredLength;
+      return `Maximum ${requiredLength} characters allowed.`;
+    }
+    if (control.hasError('pastDate')) {
+      return 'Consultation date cannot be in the past.';
+    }
+
+    return 'Invalid value.';
+  }
+
+  medicalHistoryGroupError(): string | null {
+    if (
+      this.medicalHistoryForm.hasError('atLeastOneRequired') &&
+      (this.medicalHistoryForm.dirty || this.medicalHistoryForm.touched)
+    ) {
+      return 'Please fill at least one medical history field.';
+    }
+    return null;
+  }
+
+  private cleanText(value: unknown): string {
+    if (typeof value !== 'string') {
+      return '';
+    }
+    return value.trim();
+  }
+
+  private noWhitespaceValidator(control: AbstractControl): ValidationErrors | null {
+    if (typeof control.value !== 'string') {
+      return null;
+    }
+    return control.value.trim().length > 0 ? null : { whitespace: true };
+  }
+
+  private notPastDateValidator(control: AbstractControl): ValidationErrors | null {
+    if (!control.value) {
+      return null;
+    }
+
+    const selectedDate = new Date(control.value);
+    if (Number.isNaN(selectedDate.getTime())) {
+      return { pastDate: true };
+    }
+
+    return selectedDate.getTime() < Date.now() ? { pastDate: true } : null;
+  }
+
+  private atLeastOneFilledValidator(control: AbstractControl): ValidationErrors | null {
+    const formGroup = control as FormGroup;
+    const hasAnyValue = Object.values(formGroup.controls).some((childControl) => {
+      const value = childControl.value;
+      return typeof value === 'string' ? value.trim().length > 0 : !!value;
+    });
+
+    return hasAnyValue ? null : { atLeastOneRequired: true };
   }
 }

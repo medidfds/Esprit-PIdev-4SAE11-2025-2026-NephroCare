@@ -36,11 +36,13 @@
         <div class="form-section">
           <div class="section-header">
             <h6 class="section-title mb-1">Patient Profile</h6>
-            <p class="section-subtitle mb-0">Consultation will be created for the signed-in patient.</p>
+            <p class="section-subtitle mb-0">
+              {{ isPatient ? 'Consultation will be created for the signed-in patient.' : 'This area is auto-filled only for users logged in with the patient role.' }}
+            </p>
           </div>
           <div class="mb-0">
             <label class="form-label">Patient</label>
-            <div class="patient-profile-card">
+            <div *ngIf="isPatient; else nonPatientInfo" class="patient-profile-card">
               <div class="patient-avatar">{{ patientInitials }}</div>
               <div class="patient-profile-content">
                 <p class="patient-name mb-1">{{ patientDisplayName }}</p>
@@ -50,6 +52,11 @@
                 </div>
               </div>
             </div>
+            <ng-template #nonPatientInfo>
+              <div class="alert alert-secondary mb-0">
+                Log in with a `patient` account to auto-fill the patient area.
+              </div>
+            </ng-template>
           </div>
         </div>
 
@@ -65,8 +72,12 @@
                 id="consultationDate"
                 type="datetime-local"
                 class="form-control"
+                [class.is-invalid]="hasError('consultationDate')"
                 formControlName="consultationDate"
               />
+              <div *ngIf="fieldError('consultationDate')" class="invalid-feedback d-block">
+                {{ fieldError('consultationDate') }}
+              </div>
             </div>
             <div class="col-md-6">
               <label for="diagnosis" class="form-label">Diagnosis</label>
@@ -74,9 +85,13 @@
                 id="diagnosis"
                 type="text"
                 class="form-control"
+                [class.is-invalid]="hasError('diagnosis')"
                 placeholder="Enter diagnosis"
                 formControlName="diagnosis"
               />
+              <div *ngIf="fieldError('diagnosis')" class="invalid-feedback d-block">
+                {{ fieldError('diagnosis') }}
+              </div>
             </div>
           </div>
         </div>
@@ -91,19 +106,23 @@
             <textarea
               id="treatmentPlan"
               class="form-control"
+              [class.is-invalid]="hasError('treatmentPlan')"
               placeholder="Enter treatment plan"
               formControlName="treatmentPlan"
               rows="3"
             ></textarea>
+            <div *ngIf="fieldError('treatmentPlan')" class="invalid-feedback d-block">
+              {{ fieldError('treatmentPlan') }}
+            </div>
           </div>
         </div>
 
         <div class="form-actions mt-4 d-flex gap-2">
-          <button type="submit" class="btn btn-primary" [disabled]="loadingProfile || currentPatientId == null || currentDoctorId == null">
+          <button type="submit" class="btn btn-primary" [disabled]="loadingProfile || !isPatient || currentPatientId == null">
             <i class="bi bi-check-circle me-2"></i>
             Create
           </button>
-          <button type="button" class="btn btn-outline-secondary" (click)="openMedicalHistoryModal()">
+          <button type="button" class="btn btn-outline-secondary" (click)="openMedicalHistoryModal()" [disabled]="!isPatient">
             <i class="bi bi-file-medical me-2"></i>
             Add Medical History
           </button>
@@ -128,33 +147,51 @@
               <div class="col-md-6">
                 <div class="medical-field-card">
                   <label for="mh-allergies" class="form-label">Allergies</label>
-                  <input id="mh-allergies" type="text" class="form-control" formControlName="allergies" placeholder="Drug, food, or environmental allergies" />
+                  <input id="mh-allergies" type="text" class="form-control" [class.is-invalid]="hasError('allergies', medicalHistoryForm)" formControlName="allergies" placeholder="Drug, food, or environmental allergies" />
+                  <div *ngIf="fieldError('allergies', medicalHistoryForm)" class="invalid-feedback d-block">
+                    {{ fieldError('allergies', medicalHistoryForm) }}
+                  </div>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="medical-field-card">
                   <label for="mh-diagnosis" class="form-label">Diagnosis</label>
-                  <input id="mh-diagnosis" type="text" class="form-control" formControlName="diagnosis" placeholder="Primary diagnosis or condition" />
+                  <input id="mh-diagnosis" type="text" class="form-control" [class.is-invalid]="hasError('diagnosis', medicalHistoryForm)" formControlName="diagnosis" placeholder="Primary diagnosis or condition" />
+                  <div *ngIf="fieldError('diagnosis', medicalHistoryForm)" class="invalid-feedback d-block">
+                    {{ fieldError('diagnosis', medicalHistoryForm) }}
+                  </div>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="medical-field-card h-100">
                   <label for="mh-chronic" class="form-label">Chronic Conditions</label>
-                  <textarea id="mh-chronic" rows="4" class="form-control" formControlName="chronicConditions" placeholder="Long-term conditions and relevant history"></textarea>
+                  <textarea id="mh-chronic" rows="4" class="form-control" [class.is-invalid]="hasError('chronicConditions', medicalHistoryForm)" formControlName="chronicConditions" placeholder="Long-term conditions and relevant history"></textarea>
+                  <div *ngIf="fieldError('chronicConditions', medicalHistoryForm)" class="invalid-feedback d-block">
+                    {{ fieldError('chronicConditions', medicalHistoryForm) }}
+                  </div>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="medical-field-card h-100">
                   <label for="mh-family" class="form-label">Family History</label>
-                  <textarea id="mh-family" rows="4" class="form-control" formControlName="familyHistory" placeholder="Relevant hereditary factors"></textarea>
+                  <textarea id="mh-family" rows="4" class="form-control" [class.is-invalid]="hasError('familyHistory', medicalHistoryForm)" formControlName="familyHistory" placeholder="Relevant hereditary factors"></textarea>
+                  <div *ngIf="fieldError('familyHistory', medicalHistoryForm)" class="invalid-feedback d-block">
+                    {{ fieldError('familyHistory', medicalHistoryForm) }}
+                  </div>
                 </div>
               </div>
               <div class="col-12">
                 <div class="medical-field-card">
                   <label for="mh-notes" class="form-label">Notes</label>
-                  <textarea id="mh-notes" rows="4" class="form-control" formControlName="notes" placeholder="Additional observations"></textarea>
+                  <textarea id="mh-notes" rows="4" class="form-control" [class.is-invalid]="hasError('notes', medicalHistoryForm)" formControlName="notes" placeholder="Additional observations"></textarea>
+                  <div *ngIf="fieldError('notes', medicalHistoryForm)" class="invalid-feedback d-block">
+                    {{ fieldError('notes', medicalHistoryForm) }}
+                  </div>
                 </div>
               </div>
+            </div>
+            <div *ngIf="medicalHistoryGroupError()" class="invalid-feedback d-block mt-3">
+              {{ medicalHistoryGroupError() }}
             </div>
           </div>
           <div class="modal-footer">

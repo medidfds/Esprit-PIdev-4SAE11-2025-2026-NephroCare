@@ -12,6 +12,7 @@ import esprit.clinicalservice.repositories.EscalationEventRepository;
 import esprit.clinicalservice.repositories.TriageAssessmentRepository;
 import esprit.clinicalservice.repositories.TriageQueueItemRepository;
 import esprit.clinicalservice.services.TriageService;
+import esprit.clinicalservice.services.UserDirectoryClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -30,19 +31,23 @@ public class TriageServiceImpl implements TriageService {
 
     private static final Logger logger = LoggerFactory.getLogger(TriageServiceImpl.class);
     private static final int ESCALATION_STEP_MINUTES = 10;
+    private static final int STALLED_IN_PROGRESS_WARNING_MINUTES = 120;
 
     private final TriageAssessmentRepository assessmentRepository;
     private final TriageQueueItemRepository queueItemRepository;
     private final EscalationEventRepository escalationEventRepository;
+    private final UserDirectoryClient userDirectoryClient;
 
     public TriageServiceImpl(
             TriageAssessmentRepository assessmentRepository,
             TriageQueueItemRepository queueItemRepository,
-            EscalationEventRepository escalationEventRepository
+            EscalationEventRepository escalationEventRepository,
+            UserDirectoryClient userDirectoryClient
     ) {
         this.assessmentRepository = assessmentRepository;
         this.queueItemRepository = queueItemRepository;
         this.escalationEventRepository = escalationEventRepository;
+        this.userDirectoryClient = userDirectoryClient;
     }
 
     @Override
@@ -97,8 +102,13 @@ public class TriageServiceImpl implements TriageService {
             throw new IllegalStateException("Cannot start care for a closed queue item");
         }
 
+        Long assignedDoctorId = (doctorId != null && doctorId > 0) ? doctorId : selectLeastLoadedDoctorId();
+        if (assignedDoctorId == null) {
+            throw new IllegalStateException("No available doctor found for automatic triage assignment");
+        }
+
         queueItem.setStatus(QueueStatus.IN_PROGRESS);
-        queueItem.setAssignedDoctorId(doctorId);
+        queueItem.setAssignedDoctorId(assignedDoctorId);
         if (queueItem.getStartedAt() == null) {
             queueItem.setStartedAt(LocalDateTime.now());
         }
@@ -240,6 +250,27 @@ public class TriageServiceImpl implements TriageService {
         }
     }
 
+    @Override
+    @Transactional
+    public void processStalledInProgressItems() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime threshold = now.minusMinutes(STALLED_IN_PROGRESS_WARNING_MINUTES);
+        List<TriageQueueItem> stalledItems = queueItemRepository.findByStatusAndStartedAtBefore(QueueStatus.IN_PROGRESS, threshold);
+
+        for (TriageQueueItem queueItem : stalledItems) {
+            if (queueItem.getLastEscalationType() != EscalationType.LEVEL_3) {
+                emitEscalation(queueItem, EscalationType.LEVEL_3, now);
+            } else {
+                logger.warn(
+                        "Stalled in-progress triage item {} for patient {} has been in progress since {}",
+                        queueItem.getId(),
+                        queueItem.getAssessment().getPatientId(),
+                        queueItem.getStartedAt()
+                );
+            }
+        }
+    }
+
     private EscalationType determineNextEscalation(TriageQueueItem queueItem, LocalDateTime now) {
         if (queueItem.getTriageLevel() == TriageLevel.RED) {
             return queueItem.getLastEscalationType() == EscalationType.LEVEL_3 ? null : EscalationType.LEVEL_3;
@@ -306,6 +337,33 @@ public class TriageServiceImpl implements TriageService {
     private TriageQueueItem getQueueItemOrThrow(Long queueItemId) {
         return queueItemRepository.findById(queueItemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Triage queue item not found with id: " + queueItemId));
+    }
+
+    private Long selectLeastLoadedDoctorId() {
+        List<Long> candidateDoctorIds = userDirectoryClient.getDoctorIds();
+        if (candidateDoctorIds == null || candidateDoctorIds.isEmpty()) {
+            return null;
+        }
+
+        List<QueueStatus> activeStatuses = List.of(QueueStatus.WAITING, QueueStatus.IN_PROGRESS);
+        Long selectedDoctorId = null;
+        long lowestActiveCases = Long.MAX_VALUE;
+
+        for (Long candidateDoctorId : candidateDoctorIds) {
+            if (candidateDoctorId == null || candidateDoctorId <= 0) {
+                continue;
+            }
+
+            long activeCases = queueItemRepository.countByAssignedDoctorIdAndStatusIn(candidateDoctorId, activeStatuses);
+            if (selectedDoctorId == null
+                    || activeCases < lowestActiveCases
+                    || (activeCases == lowestActiveCases && candidateDoctorId < selectedDoctorId)) {
+                selectedDoctorId = candidateDoctorId;
+                lowestActiveCases = activeCases;
+            }
+        }
+
+        return selectedDoctorId;
     }
 
     private ScoreResult computeScoreResult(TriageAssessment assessment) {

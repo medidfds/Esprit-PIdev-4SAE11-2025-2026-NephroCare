@@ -1,4 +1,5 @@
 package esprit.pharmacy_service.service;
+
 import esprit.pharmacy_service.dto.StockStatsResponse;
 import esprit.pharmacy_service.dto.StockUpdateRequest;
 import esprit.pharmacy_service.entity.Enumerations.MovementReason;
@@ -10,9 +11,11 @@ import esprit.pharmacy_service.repository.MedicationRepository;
 import esprit.pharmacy_service.repository.StockMovementRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -23,38 +26,141 @@ import java.util.Optional;
 @Transactional
 public class StockServiceImpl implements IStockService {
 
-    private final MedicationRepository  medicationRepository;
+    private final MedicationRepository    medicationRepository;
     private final StockMovementRepository movementRepository;
 
-    // ════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════════
+    // ✅ SERVICE SCHEDULÉ 1 — Suppression automatique des médicaments
+    //    expirés (endDate < aujourd'hui)
+    //    → Utilise findExpiredWithStock() : 1 seule requête SQL filtrée
+    //      au lieu de findAll() + stream().filter() en mémoire
+    // ════════════════════════════════════════════════════════════════
+    @Scheduled(cron = "0 0 0 * * *")   // chaque jour à 00:00:00
+    @Transactional
+    public void removeExpiredMedications() {
+
+        log.info("⏰ [SCHEDULER 1] Démarrage : suppression des médicaments expirés...");
+
+        LocalDate today = LocalDate.now();
+
+        // ✅ 1 seule requête SQL ciblée (plus de findAll + filter en mémoire)
+        List<Medication> expired = medicationRepository.findExpiredWithStock(today);
+
+        if (expired.isEmpty()) {
+            log.info("✅ [SCHEDULER 1] Aucun médicament expiré à traiter.");
+            return;
+        }
+
+        int count = 0;
+
+        for (Medication med : expired) {
+
+            int qtyBefore = med.getQuantity();
+
+            med.setQuantity(0);
+            medicationRepository.save(med);
+
+            StockMovement movement = StockMovement.builder()
+                    .medicationId(med.getId())
+                    .medicationName(med.getMedicationName())
+                    .type(MovementType.OUT)
+                    .quantity(qtyBefore)
+                    .stockBefore(qtyBefore)
+                    .stockAfter(0)
+                    .reason(MovementReason.EXPIRED)
+                    .notes("Suppression automatique — médicament expiré le " + med.getEndDate())
+                    .performedBy("Scheduler")
+                    .build();
+
+            movementRepository.save(movement);
+            count++;
+
+            log.warn("🗑️ [SCHEDULER 1] Expiré : {} | date: {} | qté retirée: {}",
+                    med.getMedicationName(), med.getEndDate(), qtyBefore);
+        }
+
+        log.info("✅ [SCHEDULER 1] Terminé — {} médicament(s) expiré(s) traité(s).", count);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // ✅ SERVICE SCHEDULÉ 2 — Réapprovisionnement automatique
+    //    des médicaments en stock faible (quantité <= 10)
+    //    → Utilise findLowStockNotExpired() : 1 seule requête SQL filtrée
+    // ════════════════════════════════════════════════════════════════
+    @Scheduled(cron = "0 0 6 * * MON")   // chaque lundi à 06:00:00
+    @Transactional
+    public void autoRestockLowMedications() {
+
+        log.info("⏰ [SCHEDULER 2] Démarrage : réapprovisionnement des stocks faibles...");
+
+        final int ALERT_THRESHOLD  = 10;
+        final int RESTOCK_QUANTITY = 50;
+
+        // ✅ 1 seule requête SQL ciblée (plus de findAll + filter en mémoire)
+        List<Medication> lowStock = medicationRepository
+                .findLowStockNotExpired(ALERT_THRESHOLD, LocalDate.now());
+
+        if (lowStock.isEmpty()) {
+            log.info("✅ [SCHEDULER 2] Aucun médicament en stock faible.");
+            return;
+        }
+
+        int count = 0;
+
+        for (Medication med : lowStock) {
+
+            int stockBefore = med.getQuantity();
+            int stockAfter  = stockBefore + RESTOCK_QUANTITY;
+
+            med.setQuantity(stockAfter);
+            medicationRepository.save(med);
+
+            StockMovement movement = StockMovement.builder()
+                    .medicationId(med.getId())
+                    .medicationName(med.getMedicationName())
+                    .type(MovementType.IN)
+                    .quantity(RESTOCK_QUANTITY)
+                    .stockBefore(stockBefore)
+                    .stockAfter(stockAfter)
+                    .reason(MovementReason.MANUAL_RESTOCK)
+                    .notes("Réapprovisionnement automatique — stock faible (" +
+                            stockBefore + " unités restantes)")
+                    .performedBy("Scheduler")
+                    .build();
+
+            movementRepository.save(movement);
+            count++;
+
+            log.info("📦 [SCHEDULER 2] Réappro : {} | {}→{} (+{} unités)",
+                    med.getMedicationName(), stockBefore, stockAfter, RESTOCK_QUANTITY);
+        }
+
+        log.info("✅ [SCHEDULER 2] Terminé — {} médicament(s) réapprovisionné(s).", count);
+    }
+
+    // ════════════════════════════════════════════════════════════════
     // Mise à jour manuelle du stock
-    // ════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════════
     @Override
     public Medication updateStock(String medicationId, StockUpdateRequest request) {
 
-        // 1. Récupérer le médicament
         Medication med = medicationRepository.findById(medicationId)
                 .orElseThrow(() -> new RuntimeException(
                         "Medication not found: " + medicationId));
 
-        // 2. Calculer nouveau stock
         int stockBefore = med.getQuantity() != null ? med.getQuantity() : 0;
         int stockAfter  = stockBefore + request.getQuantityChange();
 
-        // 3. Vérifier stock suffisant pour les sorties
         if (stockAfter < 0) {
             throw new RuntimeException(
                     "Insufficient stock for '" + med.getMedicationName() + "'. " +
                             "Available: " + stockBefore + ", " +
-                            "Required: " + Math.abs(request.getQuantityChange())
-            );
+                            "Required: "  + Math.abs(request.getQuantityChange()));
         }
 
-        // 4. Mettre à jour la quantité
         med.setQuantity(stockAfter);
         medicationRepository.save(med);
 
-        // 5. Enregistrer le mouvement
         StockMovement movement = StockMovement.builder()
                 .medicationId(medicationId)
                 .medicationName(med.getMedicationName())
@@ -78,11 +184,12 @@ public class StockServiceImpl implements IStockService {
         return med;
     }
 
-    // ════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════════
     // Décrémentation automatique quand DISPENSED
-    // ════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════════
     @Override
     public void decrementStockForPrescription(Prescription prescription) {
+
         if (prescription.getMedications() == null
                 || prescription.getMedications().isEmpty()) {
             log.warn("⚠️ Prescription {} has no medications", prescription.getId());
@@ -93,7 +200,6 @@ public class StockServiceImpl implements IStockService {
 
         for (Medication prescMed : prescription.getMedications()) {
 
-            // Chercher le médicament dans le stock global par nom
             Optional<Medication> stockMedOpt = medicationRepository
                     .findByMedicationNameIgnoreCase(prescMed.getMedicationName());
 
@@ -103,10 +209,8 @@ public class StockServiceImpl implements IStockService {
                 continue;
             }
 
-            Medication stockMed = stockMedOpt.get();
-
-            // Quantité à déduire
-            int qtyToDecrement = prescMed.getQuantity() != null
+            Medication stockMed       = stockMedOpt.get();
+            int        qtyToDecrement = prescMed.getQuantity() != null
                     ? prescMed.getQuantity() : 0;
 
             if (qtyToDecrement <= 0) continue;
@@ -122,12 +226,9 @@ public class StockServiceImpl implements IStockService {
                 updateStock(stockMed.getId(), req);
 
                 log.info("📦 Auto-decrement: {} -{} (prescription {})",
-                        prescMed.getMedicationName(),
-                        qtyToDecrement,
-                        prescription.getId());
+                        prescMed.getMedicationName(), qtyToDecrement, prescription.getId());
 
             } catch (RuntimeException e) {
-                // Stock insuffisant → log mais on continue pour les autres méds
                 log.error("❌ Stock error for {}: {}", prescMed.getMedicationName(), e.getMessage());
                 errors.add(prescMed.getMedicationName() + ": " + e.getMessage());
             }
@@ -135,13 +236,12 @@ public class StockServiceImpl implements IStockService {
 
         if (!errors.isEmpty()) {
             log.error("⚠️ Some medications had insufficient stock: {}", errors);
-            // On ne lève pas d'exception pour ne pas bloquer le changement de statut
         }
     }
 
-    // ════════════════════════════════════════════════
-    // Historique
-    // ════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════════
+    // Historique des mouvements
+    // ════════════════════════════════════════════════════════════════
     @Override
     @Transactional(readOnly = true)
     public List<StockMovement> getMovementsByMedication(String medicationId) {
@@ -154,13 +254,14 @@ public class StockServiceImpl implements IStockService {
         return movementRepository.findAllByOrderByCreatedAtDesc();
     }
 
-    // ════════════════════════════════════════════════
-    // Stats
-    // ════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════════
+    // Statistiques globales du stock
+    // ════════════════════════════════════════════════════════════════
     @Override
     @Transactional(readOnly = true)
     public StockStatsResponse getStats() {
-        List<Medication> all = medicationRepository.findAll();
+
+        List<Medication>    all   = medicationRepository.findAll();
         List<StockMovement> moves = movementRepository.findAll();
 
         return StockStatsResponse.builder()

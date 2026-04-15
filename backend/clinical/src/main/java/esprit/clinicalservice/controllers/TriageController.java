@@ -58,9 +58,21 @@ public class TriageController {
         return ResponseEntity.ok(MapperUtil.toTriageQueueItemDTO(queueItem));
     }
 
+    @PostMapping("/queue/{id}/assign-doctor")
+    public ResponseEntity<TriageQueueItemDTO> assignDoctor(
+            @PathVariable Long id,
+            @Valid @RequestBody TriageQueueActionDTO actionDTO
+    ) {
+        var queueItem = triageService.assignDoctor(id, actionDTO.getDoctorId());
+        return ResponseEntity.ok(MapperUtil.toTriageQueueItemDTO(queueItem));
+    }
+
     @PostMapping("/queue/{id}/close")
-    public ResponseEntity<TriageQueueItemDTO> closeQueueItem(@PathVariable Long id) {
-        var queueItem = triageService.closeQueueItem(id);
+    public ResponseEntity<TriageQueueItemDTO> closeQueueItem(
+            @PathVariable Long id,
+            @Valid @RequestBody TriageQueueActionDTO actionDTO
+    ) {
+        var queueItem = triageService.closeQueueItem(id, actionDTO.getDoctorId());
         return ResponseEntity.ok(MapperUtil.toTriageQueueItemDTO(queueItem));
     }
 
@@ -71,6 +83,7 @@ public class TriageController {
     ) {
         var queueItem = triageService.overridePriority(
                 id,
+                overrideDTO.getDoctorId(),
                 overrideDTO.getTriageLevel(),
                 overrideDTO.getMaxWaitMinutes(),
                 overrideDTO.getOverrideReason()

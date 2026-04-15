@@ -13,5 +13,9 @@ public interface TriageQueueItemRepository extends JpaRepository<TriageQueueItem
 
     List<TriageQueueItem> findByStatusAndDeadlineAtBefore(QueueStatus status, LocalDateTime now);
 
+    List<TriageQueueItem> findByStatusAndStartedAtBefore(QueueStatus status, LocalDateTime before);
+
     List<TriageQueueItem> findByAssignedDoctorIdIsNotNullAndStartedAtBetween(LocalDateTime from, LocalDateTime to);
+
+    long countByAssignedDoctorIdAndStatusIn(Long assignedDoctorId, List<QueueStatus> statuses);
 }

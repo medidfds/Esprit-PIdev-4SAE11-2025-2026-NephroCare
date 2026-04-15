@@ -1,7 +1,8 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, ChangeDetectorRef, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { KeycloakService } from 'keycloak-angular';
+import { KeycloakAdminService, KeycloakUser } from '../../services/keycloak-admin.service';
 import { FullCalendarModule } from '@fullcalendar/angular';
 import { CalendarOptions, EventClickArg, EventInput } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -15,11 +16,12 @@ import {
   TriageLevel,
   TriageQueueItem
 } from '../../services/clinical.service';
+import { TriagePopupComponent } from '../../shared/components/ui/triage-popup/triage-popup.component';
 
 @Component({
   selector: 'app-clinical',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, FullCalendarModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, FullCalendarModule, TriagePopupComponent],
   templateUrl: './clinical.component.html',
   styleUrls: ['./clinical.component.css']
 })
@@ -45,16 +47,37 @@ export class ClinicalComponent implements OnInit, OnDestroy {
   loggedInPatientId: number | null = null;
   availableDoctorIds: number[] = [];
   selectedDoctorByQueueId: Record<number, number | null> = {};
+  doctorUsers: KeycloakUser[] = [];
+  patientUsers: KeycloakUser[] = [];
+  patientSelectionItems: Array<{ id: number; displayName: string; email?: string; username?: string; user?: KeycloakUser }> = [];
+  patientsLoading = false;
+  patientSearch = '';
+  dropdownOpen = false;
+  selectedPatient: KeycloakUser | null = null;
+  patientNameById: Record<number, string> = {};
+  doctorNameById: Record<number, string> = {};
   private latestConsultationByPatientId: Record<number, string> = {};
 
   editingId: number | null = null;
   error: string | null = null;
   success: string | null = null;
 
+  // Popup properties
+  isPopupOpen = false;
+  popupType: 'confirm' | 'prompt' | 'triageOverride' = 'confirm';
+  popupTitle = '';
+  popupMessage = '';
+  popupPlaceholder = '';
+  popupDefaultValue = '';
+  currentTriageItem: TriageQueueItem | null = null;
+  defaultTriageLevel: TriageLevel = 'GREEN';
+
   constructor(
     private fb: FormBuilder,
     private clinicalService: ClinicalService,
-    private keycloakService: KeycloakService
+    private keycloakService: KeycloakService,
+    private keycloakAdminService: KeycloakAdminService,
+    private cdRef: ChangeDetectorRef
   ) {
     this.form = this.fb.group({
       userId: [null],
@@ -68,11 +91,11 @@ export class ClinicalComponent implements OnInit, OnDestroy {
     this.triageForm = this.fb.group({
       patientId: [null, [Validators.required, Validators.min(1)]],
       arrivalTime: [this.defaultArrivalTime(), Validators.required],
-      heartRate: [null, [Validators.min(20), Validators.max(250)]],
-      systolicBp: [null, [Validators.min(40), Validators.max(300)]],
-      spo2: [null, [Validators.min(50), Validators.max(100)]],
+      heartRate: [null, [Validators.min(60), Validators.max(220)]],
+      systolicBp: [null, [Validators.min(70), Validators.max(140)]],
+      spo2: [null, [Validators.min(70), Validators.max(100)]],
       painScore: [null, [Validators.min(0), Validators.max(10)]],
-      age: [null, [Validators.min(0), Validators.max(130)]],
+      age: [null, [Validators.min(0), Validators.max(15)]],
       severeComorbidity: [false],
       respiratoryDistress: [false]
     });
@@ -81,6 +104,7 @@ export class ClinicalComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.resolveLoggedInPatientFromToken();
     this.loadPatientsFromConsultations();
+    this.loadKeycloakNames();
     this.loadAvailableDoctorIds();
     this.loadMedicalHistories();
     this.loadQueue();
@@ -113,7 +137,7 @@ export class ClinicalComponent implements OnInit, OnDestroy {
   submitTriageAssessment(): void {
     if (this.triageForm.invalid) {
       this.triageForm.markAllAsTouched();
-      this.triageError = 'Please fill triage required fields correctly.';
+      this.triageError = 'Please fill triage required fields correctly using pediatric ranges.';
       return;
     }
 
@@ -187,12 +211,242 @@ export class ClinicalComponent implements OnInit, OnDestroy {
 
         this.triagePatients = Array.from(ids)
           .sort((a, b) => a - b)
-          .map((id) => ({ id, label: `Patient #${id}` }));
+          .map((id) => ({ id, label: this.getPatientLabel(id) }));
         this.latestConsultationByPatientId = latestByPatient;
+        this.updatePatientSelectionItems();
 
         this.applyArrivalTimeFromSelectedPatient(this.triageForm.get('patientId')?.value);
       }
     });
+  }
+
+  private loadKeycloakNames(): void {
+    this.loadKeycloakPatientNames();
+    this.loadKeycloakDoctorNames();
+  }
+
+  private loadKeycloakPatientNames(): void {
+    this.patientsLoading = true;
+    this.keycloakAdminService.getUsersByRole('patient').subscribe({
+      next: (users) => {
+        this.patientUsers = users;
+        users.forEach((user) => {
+          const patientId = this.resolveNumericIdFromUser(user, ['patientId', 'userId', 'id']);
+          if (patientId) {
+            this.patientNameById[patientId] = KeycloakAdminService.displayName(user);
+          }
+        });
+        this.updatePatientLabels();
+        this.patientsLoading = false;
+      },
+      error: (err) => {
+        console.warn('Unable to load Keycloak patient names', err);
+        this.patientsLoading = false;
+      }
+    });
+  }
+
+  get filteredPatients(): Array<{ id: number; displayName: string; email?: string; username?: string; user?: KeycloakUser }> {
+    const term = this.patientSearch.toLowerCase().trim();
+    if (!term) return this.patientSelectionItems;
+    return this.patientSelectionItems.filter((item) =>
+      item.displayName.toLowerCase().includes(term) ||
+      (item.email || '').toLowerCase().includes(term) ||
+      (item.username || '').toLowerCase().includes(term)
+    );
+  }
+
+  private loadKeycloakDoctorNames(): void {
+    this.keycloakAdminService.getUsersByRole('doctor').subscribe({
+      next: (users) => {
+        this.doctorUsers = users;
+        const keycloakDoctorIds = new Set<number>();
+        users.forEach((user) => {
+          const doctorId = this.resolveNumericIdFromUser(user, ['doctorId', 'userId', 'id']);
+          if (doctorId) {
+            this.doctorNameById[doctorId] = KeycloakAdminService.displayName(user);
+            keycloakDoctorIds.add(doctorId);
+          }
+        });
+        this.mergeAvailableDoctorIds(keycloakDoctorIds);
+      },
+      error: (err) => {
+        console.warn('Unable to load Keycloak doctor names', err);
+      }
+    });
+  }
+
+  private updatePatientLabels(): void {
+    this.triagePatients = this.triagePatients.map((patient) => ({
+      id: patient.id,
+      label: this.getPatientLabel(patient.id)
+    }));
+    this.updatePatientSelectionItems();
+  }
+
+  private updatePatientSelectionItems(): void {
+    const patientById = new Map<number, KeycloakUser>();
+    this.patientUsers.forEach((user) => {
+      const patientId = this.resolveNumericIdFromUser(user, ['patientId', 'userId', 'id']);
+      if (patientId) {
+        patientById.set(patientId, user);
+      }
+    });
+
+    const items = this.triagePatients.map((patient) => {
+      const user = patientById.get(patient.id);
+      return {
+        id: patient.id,
+        displayName: this.patientNameById[patient.id] || patient.label,
+        email: user?.email,
+        username: user?.username || '',
+        user
+      };
+    });
+
+    patientById.forEach((user, id) => {
+      if (!items.some((item) => item.id === id)) {
+        items.push({
+          id,
+          displayName: KeycloakAdminService.displayName(user),
+          email: user.email,
+          username: user.username,
+          user
+        });
+      }
+    });
+
+    this.patientSelectionItems = items;
+  }
+
+  public resolveNumericIdFromUser(user: KeycloakUser, keys: string[]): number | null {
+    for (const key of keys) {
+      const candidate = this.getUserAttributeValue(user, key) ?? (user as any)[key];
+      const parsed = this.parsePositiveId(candidate);
+      if (parsed != null) {
+        return parsed;
+      }
+    }
+
+    const fallbackCandidates = [
+      user.username,
+      user.email,
+      user.id,
+      user.attributes
+    ];
+
+    for (const candidate of fallbackCandidates) {
+      const parsed = this.parsePositiveId(candidate);
+      if (parsed != null) {
+        return parsed;
+      }
+    }
+
+    return null;
+  }
+
+  private getUserAttributeValue(user: KeycloakUser, attributeName: string): string | undefined {
+    return user.attributes?.[attributeName]?.[0];
+  }
+
+  private parsePositiveId(value: unknown): number | null {
+    if (typeof value === 'number') {
+      return Number.isInteger(value) && value > 0 ? value : null;
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const parsed = this.parsePositiveId(item);
+        if (parsed != null) {
+          return parsed;
+        }
+      }
+      return null;
+    }
+
+    if (value && typeof value === 'object') {
+      for (const nestedValue of Object.values(value as Record<string, unknown>)) {
+        const parsed = this.parsePositiveId(nestedValue);
+        if (parsed != null) {
+          return parsed;
+        }
+      }
+      return null;
+    }
+
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const direct = Number(trimmed);
+    if (Number.isInteger(direct) && direct > 0) {
+      return direct;
+    }
+
+    const match = trimmed.match(/\d+/);
+    if (!match) {
+      return null;
+    }
+
+    const extracted = Number(match[0]);
+    return Number.isInteger(extracted) && extracted > 0 ? extracted : null;
+  }
+
+  public getUserLabel(user: KeycloakUser): string {
+    return KeycloakAdminService.displayName(user);
+  }
+
+  public onPatientSelected(item: { id: number; displayName: string; email?: string; username?: string; user?: KeycloakUser }): void {
+    this.selectedPatient = item.user ?? null;
+    this.patientSearch = item.displayName;
+    this.dropdownOpen = false;
+    this.triageForm.patchValue({ patientId: item.id });
+  }
+
+  public getPatientInitials(item: { displayName: string } | KeycloakUser): string {
+    const full = 'displayName' in item ? item.displayName : KeycloakAdminService.displayName(item);
+    const parts = full.split(' ').filter(Boolean);
+    if (!parts.length) {
+      const fallback = 'displayName' in item ? item.displayName : item.username;
+      return fallback.slice(0, 2).toUpperCase();
+    }
+    return parts.map((part) => part[0]).slice(0, 2).join('').toUpperCase();
+  }
+
+  public getUserInitials(user: KeycloakUser): string {
+    const full = KeycloakAdminService.displayName(user);
+    const parts = full.split(' ').filter(Boolean);
+    if (!parts.length) {
+      return user.username.slice(0, 2).toUpperCase();
+    }
+    return parts.map((part) => part[0]).slice(0, 2).join('').toUpperCase();
+  }
+
+  public onPatientSearchBlur(): void {
+    setTimeout(() => {
+      this.dropdownOpen = false;
+    }, 150);
+  }
+
+  public getPatientLabel(patientId: number | null | undefined): string {
+    if (patientId == null) {
+      return 'Unknown patient';
+    }
+    const name = this.patientNameById[patientId];
+    return name || 'Unknown patient';
+  }
+
+  public getDoctorLabel(doctorId: number | null | undefined): string {
+    if (doctorId == null) {
+      return 'Unknown doctor';
+    }
+    const name = this.doctorNameById[doctorId];
+    return name ? `Dr ${name}` : 'Unknown doctor';
   }
 
   onDateClick(arg: any): void {
@@ -212,25 +466,37 @@ export class ClinicalComponent implements OnInit, OnDestroy {
   }
 
   onCalendarDatesSet(arg: any): void {
-    this.calendarMonthTitle = arg?.view?.title || '';
+    setTimeout(() => {
+      this.calendarMonthTitle = arg?.view?.title || '';
+      this.cdRef.markForCheck();
+    });
   }
 
   loadAvailableDoctorIds(): void {
     this.clinicalService.getAvailableDoctorIds().subscribe({
       next: (ids) => {
-        this.availableDoctorIds = (ids || [])
+        const backendDoctorIds = (ids || [])
           .map((id) => Number(id))
           .filter((id) => Number.isInteger(id) && id > 0)
           .sort((a, b) => a - b);
 
-        const firstDoctorId = this.availableDoctorIds.length > 0 ? this.availableDoctorIds[0] : null;
-        if (firstDoctorId != null) {
-          this.queueItems.forEach((item) => {
-            if (!this.selectedDoctorByQueueId[item.queueItemId]) {
-              this.selectedDoctorByQueueId[item.queueItemId] = firstDoctorId;
-            }
-          });
-        }
+        this.mergeAvailableDoctorIds(backendDoctorIds);
+      }
+    });
+  }
+
+  private mergeAvailableDoctorIds(ids: Iterable<number>): void {
+    const merged = new Set<number>(this.availableDoctorIds);
+    for (const id of ids) {
+      if (Number.isInteger(id) && id > 0) {
+        merged.add(id);
+      }
+    }
+
+    this.availableDoctorIds = Array.from(merged).sort((a, b) => a - b);
+    this.queueItems.forEach((item) => {
+      if (this.selectedDoctorByQueueId[item.queueItemId] == null) {
+        this.selectedDoctorByQueueId[item.queueItemId] = item.assignedDoctorId ?? this.availableDoctorIds[0] ?? null;
       }
     });
   }
@@ -243,11 +509,8 @@ export class ClinicalComponent implements OnInit, OnDestroy {
     this.clinicalService.getTriageQueue().subscribe({
       next: (items) => {
         this.queueItems = items;
-        this.queueItems.forEach((item) => {
-          if (!(item.queueItemId in this.selectedDoctorByQueueId)) {
-            this.selectedDoctorByQueueId[item.queueItemId] =
-              item.assignedDoctorId ?? (this.availableDoctorIds.length > 0 ? this.availableDoctorIds[0] : null);
-          }
+        items.forEach((item) => {
+          this.selectedDoctorByQueueId[item.queueItemId] = item.assignedDoctorId ?? this.selectedDoctorByQueueId[item.queueItemId] ?? this.availableDoctorIds[0] ?? null;
         });
         this.loadingQueue = false;
       },
@@ -259,78 +522,108 @@ export class ClinicalComponent implements OnInit, OnDestroy {
   }
 
   startCare(item: TriageQueueItem): void {
-    const doctorId = Number(this.selectedDoctorByQueueId[item.queueItemId]);
-    if (!Number.isFinite(doctorId) || doctorId <= 0) {
-      this.triageError = 'Please select a valid doctor ID before starting care.';
+    this.triageError = null;
+    const selectedDoctorId = Number(this.selectedDoctorByQueueId[item.queueItemId]);
+    const payload = Number.isInteger(selectedDoctorId) && selectedDoctorId > 0
+      ? { doctorId: selectedDoctorId }
+      : {};
+    const doctorLabel = payload.doctorId ? this.getDoctorLabel(payload.doctorId) : 'Auto-assign from available doctors';
+
+    this.currentTriageItem = item;
+    this.popupType = 'confirm';
+    this.popupTitle = 'Start Care';
+    this.popupMessage = `Start triage for ${this.getPatientLabel(item.patientId)}?\nDoctor: ${doctorLabel}\nQueue #${item.queueItemId}`;
+    this.isPopupOpen = true;
+  }
+
+  onStartCareConfirm(confirmed: boolean): void {
+    if (!confirmed || !this.currentTriageItem) {
+      this.currentTriageItem = null;
       return;
     }
 
-    this.triageError = null;
-    this.clinicalService.startCare(item.queueItemId, { doctorId }).subscribe({
-      next: () => {
-        this.triageSuccess = `Queue #${item.queueItemId} started by doctor ${doctorId}.`;
+    const item = this.currentTriageItem;
+    const selectedDoctorId = Number(this.selectedDoctorByQueueId[item.queueItemId]);
+    const payload = Number.isInteger(selectedDoctorId) && selectedDoctorId > 0
+      ? { doctorId: selectedDoctorId }
+      : {};
+
+    this.clinicalService.startCare(item.queueItemId, payload).subscribe({
+      next: (updatedItem) => {
+        this.triageSuccess = `Queue #${item.queueItemId} started by ${this.getDoctorLabel(updatedItem.assignedDoctorId)}.`;
         this.loadQueue(false);
+        this.currentTriageItem = null;
       },
       error: (err) => {
         this.triageError = `Start care failed: ${err.message}`;
+        this.currentTriageItem = null;
       }
     });
   }
 
   closeQueueItem(item: TriageQueueItem): void {
-    if (!confirm(`Close queue item #${item.queueItemId}?`)) {
+    this.currentTriageItem = item;
+    this.popupType = 'confirm';
+    this.popupTitle = 'Close Queue Item';
+    this.popupMessage = `Are you sure you want to close queue item #${item.queueItemId}?`;
+    this.isPopupOpen = true;
+  }
+
+  onCloseQueueItemConfirm(confirmed: boolean): void {
+    if (!confirmed || !this.currentTriageItem) {
+      this.currentTriageItem = null;
       return;
     }
 
+    const item = this.currentTriageItem;
     this.triageError = null;
     this.clinicalService.closeQueueItem(item.queueItemId).subscribe({
       next: () => {
         this.triageSuccess = `Queue #${item.queueItemId} marked as completed.`;
         this.loadQueue(false);
+        this.currentTriageItem = null;
       },
       error: (err) => {
         this.triageError = `Close queue item failed: ${err.message}`;
+        this.currentTriageItem = null;
       }
     });
   }
 
   overrideQueueItem(item: TriageQueueItem): void {
-    const triageLevelInput = prompt('New triage level (RED/ORANGE/YELLOW/GREEN):', item.triageLevel);
-    if (!triageLevelInput) {
+    this.currentTriageItem = item;
+    this.popupType = 'triageOverride';
+    this.popupTitle = `Override Triage Level for Queue #${item.queueItemId}`;
+    this.popupMessage = `Patient: ${this.getPatientLabel(item.patientId)}`;
+    this.defaultTriageLevel = item.triageLevel;
+    this.isPopupOpen = true;
+  }
+
+  onTriageOverride(overrideData: {
+    triageLevel: TriageLevel;
+    maxWaitMinutes: number | null;
+    overrideReason: string;
+  }): void {
+    if (!this.currentTriageItem) {
       return;
     }
 
-    const triageLevel = triageLevelInput.toUpperCase() as TriageLevel;
-    if (!this.triageLevels.includes(triageLevel)) {
-      this.triageError = 'Invalid triage level.';
-      return;
-    }
-
-    const reason = prompt('Override reason (required):');
-    if (!reason || !reason.trim()) {
-      this.triageError = 'Override reason is required.';
-      return;
-    }
-
-    const maxWaitInput = prompt('Max wait in minutes (optional):', String(item.maxWaitMinutes));
-    const maxWaitParsed = maxWaitInput && maxWaitInput.trim() !== '' ? Number(maxWaitInput) : null;
-    if (maxWaitParsed !== null && (!Number.isFinite(maxWaitParsed) || maxWaitParsed < 0 || maxWaitParsed > 360)) {
-      this.triageError = 'Max wait must be between 0 and 360.';
-      return;
-    }
-
+    const item = this.currentTriageItem;
     this.triageError = null;
+    
     this.clinicalService.overrideQueueItem(item.queueItemId, {
-      triageLevel,
-      maxWaitMinutes: maxWaitParsed,
-      overrideReason: reason.trim()
+      triageLevel: overrideData.triageLevel,
+      maxWaitMinutes: overrideData.maxWaitMinutes,
+      overrideReason: overrideData.overrideReason
     }).subscribe({
       next: () => {
-        this.triageSuccess = `Queue #${item.queueItemId} overridden to ${triageLevel}.`;
+        this.triageSuccess = `Queue #${item.queueItemId} overridden to ${overrideData.triageLevel}.`;
         this.loadQueue(false);
+        this.currentTriageItem = null;
       },
       error: (err) => {
         this.triageError = `Override failed: ${err.message}`;
+        this.currentTriageItem = null;
       }
     });
   }
@@ -358,6 +651,66 @@ export class ClinicalComponent implements OnInit, OnDestroy {
       case 'GREEN':
       default:
         return 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400';
+    }
+  }
+
+  getVitalLevel(
+    fieldName: 'heartRate' | 'systolicBp' | 'spo2' | 'painScore'
+  ): 'Low' | 'Medium' | 'High' | null {
+    const rawValue = this.triageForm.get(fieldName)?.value;
+    const value = this.normalizeNumber(rawValue);
+    if (value == null) {
+      return null;
+    }
+
+    switch (fieldName) {
+      case 'heartRate':
+        if (value < 80) {
+          return 'Low';
+        }
+        if (value <= 140) {
+          return 'Medium';
+        }
+        return 'High';
+      case 'systolicBp':
+        if (value < 90) {
+          return 'Low';
+        }
+        if (value <= 110) {
+          return 'Medium';
+        }
+        return 'High';
+      case 'spo2':
+        if (value < 95) {
+          return 'Low';
+        }
+        if (value <= 100) {
+          return 'Medium';
+        }
+        return 'High';
+      case 'painScore':
+        if (value <= 3) {
+          return 'Low';
+        }
+        if (value <= 6) {
+          return 'Medium';
+        }
+        return 'High';
+      default:
+        return null;
+    }
+  }
+
+  getVitalLevelClass(level: 'Low' | 'Medium' | 'High' | null): string {
+    switch (level) {
+      case 'Low':
+        return 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300';
+      case 'Medium':
+        return 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300';
+      case 'High':
+        return 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300';
+      default:
+        return 'bg-gray-100 text-gray-700 dark:bg-gray-500/15 dark:text-gray-300';
     }
   }
 
@@ -522,8 +875,8 @@ export class ClinicalComponent implements OnInit, OnDestroy {
     const fromConsultation = this.latestConsultationByPatientId[numericId];
     const arrivalTime = this.toDateTimeLocal(fromConsultation);
     if (!arrivalTime) {
-      this.triageError = `No consultation date found for patient #${numericId}.`;
-      this.triageForm.patchValue({ arrivalTime: '' }, { emitEvent: false });
+      this.triageError = null;
+      this.triageForm.patchValue({ arrivalTime: this.defaultArrivalTime() }, { emitEvent: false });
       return;
     }
 
@@ -574,7 +927,7 @@ export class ClinicalComponent implements OnInit, OnDestroy {
   private refreshCalendarData(): void {
     const events: EventInput[] = this.consultations.map((consultation) => ({
       id: consultation.id?.toString(),
-      title: `P#${consultation.patientId ?? '-'} • D#${consultation.doctorId ?? '-'}`,
+      title: `${this.getPatientLabel(consultation.patientId)} • ${this.getDoctorLabel(consultation.doctorId)}`,
       start: consultation.consultationDate,
       end: consultation.followUpDate || undefined,
       backgroundColor: this.getStatusColor(consultation.status),
@@ -645,5 +998,29 @@ export class ClinicalComponent implements OnInit, OnDestroy {
     const month = String(value.getMonth() + 1).padStart(2, '0');
     const day = String(value.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+  // Popup methods
+  handlePopupClose(): void {
+    this.isPopupOpen = false;
+    this.currentTriageItem = null;
+  }
+
+  handlePopupConfirm(confirmed: boolean): void {
+    if (this.popupType === 'confirm') {
+      if (this.popupTitle === 'Start Care') {
+        this.onStartCareConfirm(confirmed);
+      } else if (this.popupTitle === 'Close Queue Item') {
+        this.onCloseQueueItemConfirm(confirmed);
+      }
+    }
+  }
+
+  handleTriageOverride(overrideData: {
+    triageLevel: TriageLevel;
+    maxWaitMinutes: number | null;
+    overrideReason: string;
+  }): void {
+    this.onTriageOverride(overrideData);
   }
 }

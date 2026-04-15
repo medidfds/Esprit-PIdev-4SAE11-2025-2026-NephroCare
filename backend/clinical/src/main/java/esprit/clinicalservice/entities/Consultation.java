@@ -29,7 +29,7 @@ public class Consultation {
     private Long patientId;
 
     // Doctor conducting the consultation (no User entity, just the ID)
-    @Column(name = "doctor_id", nullable = false)
+    @Column(name = "doctor_id")
     private Long doctorId;
 
     @ManyToOne

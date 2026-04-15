@@ -6,6 +6,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { ClinicalService, Consultation } from '../../services/clinical.service';
+import { KeycloakAdminService, KeycloakUser } from '../../services/keycloak-admin.service';
 import { ModalComponent } from '../../shared/components/ui/modal/modal.component';
 import { FormsModule } from '@angular/forms';
 
@@ -27,15 +28,22 @@ export class ConsultationsCalendarComponent implements OnInit {
   success: string | null = null;
   updatingStatusId: number | null = null;
   editableFollowUpDates: Record<number, string> = {};
+  editableDoctorIds: Record<number, number | null> = {};
   calendarOptions!: CalendarOptions;
   selectedStatusFilter = 'ALL';
   searchQuery = '';
+  availableDoctors: Array<{ id: number; name: string; user: KeycloakUser }> = [];
+  doctorNameById: Record<number, string> = {};
 
   readonly statuses = ['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW'];
 
-  constructor(private clinicalService: ClinicalService) {}
+  constructor(
+    private clinicalService: ClinicalService,
+    private keycloakAdminService: KeycloakAdminService
+  ) {}
 
   ngOnInit(): void {
+    this.loadDoctorsFromKeycloak();
     this.loadConsultations();
   }
 
@@ -46,9 +54,11 @@ export class ConsultationsCalendarComponent implements OnInit {
           (a, b) => new Date(b.consultationDate).getTime() - new Date(a.consultationDate).getTime()
         );
         this.editableFollowUpDates = {};
+        this.editableDoctorIds = {};
         this.consultations.forEach((consultation) => {
           if (consultation.id != null) {
             this.editableFollowUpDates[consultation.id] = this.toDateTimeLocal(consultation.followUpDate);
+            this.editableDoctorIds[consultation.id] = consultation.doctorId ?? null;
           }
         });
         this.initializeCalendar();
@@ -72,6 +82,7 @@ export class ConsultationsCalendarComponent implements OnInit {
       borderColor: this.getColorByStatus(consultation.status),
       extendedProps: {
         doctorId: consultation.doctorId,
+        doctorLabel: this.getDoctorLabel(consultation.doctorId),
         patientId: consultation.patientId,
         diagnosis: consultation.diagnosis,
         treatmentPlan: consultation.treatmentPlan,
@@ -108,7 +119,7 @@ export class ConsultationsCalendarComponent implements OnInit {
     this.selectedConsultation = null;
   }
 
-  updateConsultationStatus(consultation: Consultation, newStatus: string, followUpDateInput: string): void {
+  updateConsultationStatus(consultation: Consultation, newStatus: string, followUpDateInput: string, doctorIdInput: number | null): void {
     if (!consultation.id) {
       return;
     }
@@ -116,8 +127,9 @@ export class ConsultationsCalendarComponent implements OnInit {
     const currentFollowUpLocal = this.toDateTimeLocal(consultation.followUpDate);
     const hasStatusChange = !!newStatus && consultation.status !== newStatus;
     const hasFollowUpChange = (followUpDateInput || '') !== currentFollowUpLocal;
+    const hasDoctorChange = (consultation.doctorId ?? null) !== (doctorIdInput ?? null);
 
-    if (!hasStatusChange && !hasFollowUpChange) {
+    if (!hasStatusChange && !hasFollowUpChange && !hasDoctorChange) {
       return;
     }
 
@@ -131,6 +143,7 @@ export class ConsultationsCalendarComponent implements OnInit {
 
     const updatedPayload: Consultation = {
       ...consultation,
+      doctorId: doctorIdInput,
       status: newStatus,
       followUpDate: normalizedFollowUpDate
     };
@@ -148,6 +161,7 @@ export class ConsultationsCalendarComponent implements OnInit {
 
         if (consultation.id != null) {
           this.editableFollowUpDates[consultation.id] = this.toDateTimeLocal(updatedConsultation.followUpDate);
+          this.editableDoctorIds[consultation.id] = updatedConsultation.doctorId ?? null;
         }
 
         this.initializeCalendar();
@@ -249,6 +263,7 @@ export class ConsultationsCalendarComponent implements OnInit {
 
       const searchable = [
         consultation.patientId?.toString() ?? '',
+        this.getDoctorLabel(consultation.doctorId),
         consultation.doctorId?.toString() ?? '',
         consultation.diagnosis ?? '',
         consultation.treatmentPlan ?? '',
@@ -258,6 +273,34 @@ export class ConsultationsCalendarComponent implements OnInit {
         .toLowerCase();
 
       return searchable.includes(normalizedQuery);
+    });
+  }
+
+  getDoctorLabel(doctorId: number | null | undefined): string {
+    if (doctorId == null) {
+      return 'Unassigned';
+    }
+    return this.doctorNameById[doctorId] || `Doctor #${doctorId}`;
+  }
+
+  private loadDoctorsFromKeycloak(): void {
+    this.keycloakAdminService.getUsersByRole('doctor').subscribe({
+      next: (users) => {
+        this.availableDoctors = users
+          .map((user) => {
+            const id = this.resolveNumericIdFromUser(user, ['doctorId', 'userId', 'id']);
+            if (id == null) {
+              return null;
+            }
+            const name = KeycloakAdminService.displayName(user);
+            this.doctorNameById[id] = name;
+            return { id, name, user };
+          })
+          .filter((doctor): doctor is { id: number; name: string; user: KeycloakUser } => doctor !== null)
+          .sort((a, b) => a.name.localeCompare(b.name));
+
+        this.initializeCalendar();
+      }
     });
   }
 
@@ -294,5 +337,63 @@ export class ConsultationsCalendarComponent implements OnInit {
 
     const pad = (n: number) => n.toString().padStart(2, '0');
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+  private resolveNumericIdFromUser(user: KeycloakUser, keys: string[]): number | null {
+    for (const key of keys) {
+      const candidate = (user as any)?.attributes?.[key]?.[0] ?? (user as any)[key];
+      const parsed = this.parsePositiveId(candidate);
+      if (parsed != null) {
+        return parsed;
+      }
+    }
+
+    const fallbackCandidates = [user.username, user.email, user.id];
+    for (const candidate of fallbackCandidates) {
+      const parsed = this.parsePositiveId(candidate);
+      if (parsed != null) {
+        return parsed;
+      }
+    }
+
+    return null;
+  }
+
+  private parsePositiveId(value: unknown): number | null {
+    if (typeof value === 'number') {
+      return Number.isInteger(value) && value > 0 ? value : null;
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const parsed = this.parsePositiveId(item);
+        if (parsed != null) {
+          return parsed;
+        }
+      }
+      return null;
+    }
+
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const direct = Number(trimmed);
+    if (Number.isInteger(direct) && direct > 0) {
+      return direct;
+    }
+
+    const match = trimmed.match(/\d+/);
+    if (!match) {
+      return null;
+    }
+
+    const extracted = Number(match[0]);
+    return Number.isInteger(extracted) && extracted > 0 ? extracted : null;
   }
 }

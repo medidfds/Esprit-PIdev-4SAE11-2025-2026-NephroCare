@@ -1,0 +1,44 @@
+# config-server/src/main/resources/configs/Api-Gateway.yml
+
+server:
+  port: 8070
+
+spring:
+  application:
+    name: Api-Gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: hospitalization-service
+          uri: lb://hospitalization-service
+          predicates:
+            - Path=/hospitalization/**
+
+        - id: diagnostic-service
+          uri: lb://diagnostic-service
+          predicates:
+            - Path=/diagnostic/**
+
+        - id: dialysis-service
+          uri: lb://dialysis-service
+          predicates:
+            - Path=/dialysis/**
+
+        - id: pharmacy-service
+          uri: lb://pharmacy-service
+          predicates:
+            - Path=/pharmacy/**
+
+        - id: clinical-service
+          uri: lb://clinical-service
+          predicates:
+            - Path=/clinical/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/

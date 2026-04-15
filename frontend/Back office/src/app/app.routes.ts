@@ -17,6 +17,7 @@ import { ImagesComponent } from './pages/ui-elements/images/images.component';
 import { VideosComponent } from './pages/ui-elements/videos/videos.component';
 import { CalenderComponent } from './pages/calender/calender.component';
 import { ClinicalComponent } from './pages/clinical/clinical.component';
+import { TransplantComponent } from './pages/transplant/transplant.component';
 import { TreatmentListComponent } from './pages/dialysis/treatment-list/treatment-list.component';
 import { SessionListComponent } from './pages/dialysis/session-list/session-list.component';
 import { ConsultationsCalendarComponent } from './pages/consultations-calendar/consultations-calendar.component';
@@ -68,6 +69,7 @@ export const routes: Routes = [
       { path: 'statistique-hospitalization', component: StatistiqueHospitalizationComponent },
       { path: 'architecture', component: HospitalArchitectureComponent }, // Placeholder for architecture overview
       { path: 'clinical', component: ClinicalComponent },
+      { path: 'transplant', component: TransplantComponent },
       { path: 'pharmacy', component: PharmacyComponent },
        { path: 'statistique-pharmacy', component: StatistiquePharmacyComponent },
       { path: 'consultations-calendar', component: ConsultationsCalendarComponent },
