@@ -161,7 +161,7 @@
   </div>
 
   <!-- ════════════════════════════════════════════ -->
-  <!-- MODAL: NEW ORDER                            -->
+  <!-- MODAL: NEW ORDER (avec carte interactive)   -->
   <!-- ════════════════════════════════════════════ -->
   <div class="modal-overlay" *ngIf="showOrderForm" (click)="closeOrderForm()">
     <div class="modal-box modal-xl" (click)="$event.stopPropagation()">
@@ -183,20 +183,24 @@
             <!-- ── Adresse avec carte ────────────────────── -->
             <div class="map-section-label">
               <i class="fas fa-map-marker-alt"></i> Delivery address
+             
             </div>
 
+            <!-- Champ adresse + suggestions autocomplete -->
             <div class="address-wrap">
               <div class="address-input-wrap">
                 <i class="fas fa-search address-icon"></i>
                 <input type="text"
-                       class="address-input"
-                       formControlName="deliveryAddress"
-                       (input)="onAddressInput($event)"
-                       (blur)="hideSuggestions()"
-                       placeholder="Search or click on the map..."
-                       autocomplete="off" />
+       class="address-input"
+       formControlName="deliveryAddress"
+       (input)="onAddressInput($event)"
+       (blur)="hideSuggestions()"
+       placeholder="Search or click on the map..."
+       autocomplete="off" />
                 <i class="fas fa-spinner fa-spin address-spinner" *ngIf="searchingAddress"></i>
               </div>
+
+              <!-- Suggestions autocomplete -->
               <div class="address-suggestions" *ngIf="showSuggestions && addressSuggestions.length > 0">
                 <div class="suggestion-item"
                      *ngFor="let s of addressSuggestions; let i = index"
@@ -207,6 +211,7 @@
               </div>
             </div>
 
+            <!-- Coordonnées sélectionnées -->
             <div class="coords-display" *ngIf="selectedLat && selectedLng">
               <i class="fas fa-crosshairs"></i>
               {{ selectedLat | number:'1.5-5' }}, {{ selectedLng | number:'1.5-5' }}
@@ -214,145 +219,60 @@
 
             <!-- ── Autres champs ──────────────────────── -->
             <div class="form-grid" style="margin-top: 1rem;">
-
               <div class="form-group">
-                <label><i class="fas fa-phone"></i> Phone <span class="req">*</span></label>
-                <input type="tel" formControlName="phoneNumber" placeholder="+21600000000" />
-                <div class="field-error"
-                     *ngIf="orderForm.get('phoneNumber')?.invalid && orderForm.get('phoneNumber')?.touched">
-                  <i class="fas fa-exclamation-circle"></i>
-                  Format : +216 suivi de 8 chiffres
-                </div>
-              </div>
-
-              <!-- ══ PRESCRIPTION — dropdown avec chargement auto des médicaments ══ -->
+  <label><i class="fas fa-phone"></i> Phone <span class="req">*</span></label>
+  <input type="tel" 
+         formControlName="phoneNumber" 
+         placeholder="+21600000000" />
+  <div class="field-error" 
+       *ngIf="orderForm.get('phoneNumber')?.invalid && orderForm.get('phoneNumber')?.touched">
+    <i class="fas fa-exclamation-circle"></i>
+    Le numéro doit commencer par +216 suivi de 8 chiffres (ex: +21612345678)
+  </div>
+</div>
               <div class="form-group">
                 <label><i class="fas fa-file-prescription"></i> Prescription (optional)</label>
-
-                <!-- Chargement -->
-                <div class="field-hint" *ngIf="loadingPrescriptions">
-                  <i class="fas fa-spinner fa-spin"></i> Loading prescriptions...
-                </div>
-
-                <!-- Aucune prescription → saisie manuelle -->
-                <input
-                  *ngIf="!loadingPrescriptions && prescriptions.length === 0"
-                  type="text"
-                  formControlName="prescriptionId"
-                  placeholder="No prescription found — enter UUID manually" />
-
-                <!-- Prescriptions disponibles → dropdown -->
-                <select
-                  *ngIf="!loadingPrescriptions && prescriptions.length > 0"
-                  formControlName="prescriptionId">
-                  <option value="">— Aucune prescription —</option>
-                  <option *ngFor="let p of prescriptions" [value]="p.id">
-                    {{ p.id | slice:0:8 }}…
-                    <ng-container *ngIf="p.prescribedBy"> — Dr {{ p.prescribedBy }}</ng-container>
-                    ({{ p.prescriptionDate | date:'dd/MM/yyyy' }})
-                    [{{ p.status }}]
-                  </option>
-                </select>
-
-                <!-- ✅ Badge confirmation prescription sélectionnée avec médicaments -->
-                <div class="presc-loaded-badge"
-                     *ngIf="selectedPrescription">
-                  <i class="fas fa-check-circle"></i>
-                  Prescription sélectionnée —
-                  <strong>{{ selectedPrescription.medications?.length || 0 }} médicament(s) importé(s)</strong>
-                  <button type="button" class="presc-clear-btn" (click)="clearPrescription()">
-                    <i class="fas fa-times"></i>
-                  </button>
-                </div>
-
-                <!-- Auto-sélection hint -->
-                <div class="field-hint field-hint--success"
-                     *ngIf="!loadingPrescriptions && prescriptions.length === 1 && orderForm.get('prescriptionId')?.value">
-                  <i class="fas fa-magic"></i> Prescription automatiquement sélectionnée
-                </div>
+                <input type="text" formControlName="prescriptionId" placeholder="UUID" />
               </div>
-              <!-- ══ FIN PRESCRIPTION ══ -->
-
               <div class="form-group full">
                 <label><i class="fas fa-comment"></i> Notes</label>
                 <textarea formControlName="notes" placeholder="Leave the package at the door..."></textarea>
               </div>
             </div>
 
-            <!-- ════════════════════════════════════════ -->
-            <!-- MÉDICAMENTS                             -->
-            <!-- ════════════════════════════════════════ -->
+            <!-- ── Médicaments ─────────────────────────── -->
             <div class="section-label">
               <i class="fas fa-pills"></i> Medications to order
-
-              <!-- Badge "depuis prescription" si items importés -->
-              <span class="presc-items-badge" *ngIf="selectedPrescription">
-                <i class="fas fa-file-prescription"></i>
-                Depuis prescription
-              </span>
-
               <button type="button" class="btn-add-med" (click)="addItem()">
                 <i class="fas fa-plus"></i> Add
               </button>
             </div>
 
             <div class="order-items">
-              <div class="order-item-row"
-                   *ngFor="let item of orderItems; let i=index; trackBy: trackByIndex"
-                   [class.item-from-presc]="item.fromPrescription">
-
-                <div class="item-num">
-                  {{ i + 1 }}
-                  <!-- Icône prescription si l'item vient d'une prescription -->
-                  <i class="fas fa-file-prescription item-presc-icon"
-                     *ngIf="item.fromPrescription"
-                     title="Médicament importé depuis la prescription"></i>
-                </div>
-
+              <div class="order-item-row" *ngFor="let item of orderItems; let i=index; trackBy: trackByIndex">
+                <div class="item-num">{{ i + 1 }}</div>
                 <div class="item-fields">
-                  <!-- ✅ Si médicament venu de la prescription → affichage lecture seule + possibilité de changer -->
-                  <ng-container *ngIf="item.fromPrescription && item.medicationName">
-                    <!-- Nom du médicament en lecture seule avec possibilité de changer via select -->
-                    <div class="presc-med-name">
-                      <i class="fas fa-capsules"></i>
-                      <strong>{{ item.medicationName }}</strong>
-                      <span class="presc-dosage" *ngIf="item.dosage">— {{ item.dosage }}</span>
-                    </div>
-                    <!-- Select caché pour pouvoir changer si besoin -->
-                    <select class="item-select item-select--secondary"
-                            (change)="onMedSelect(i, $event)"
-                            title="Changer le médicament">
-                      <option value="">↻ Changer...</option>
-                      <option *ngFor="let m of medications" [value]="m.id">
-                        {{ m.medicationName }}{{ m.dosage ? ' — ' + m.dosage : '' }}
-                      </option>
-                    </select>
-                  </ng-container>
-
-                  <!-- Médicament ajouté manuellement → select normal -->
-                  <ng-container *ngIf="!item.fromPrescription">
-                    <select class="item-select" (change)="onMedSelect(i, $event)">
-                      <option value="" disabled [selected]="!item.medicationId">Select a medication</option>
-                      <option *ngFor="let m of medications" [value]="m.id">
-                        {{ m.medicationName }}{{ m.dosage ? ' — ' + m.dosage : '' }} ({{ m.quantity }} available)
-                      </option>
-                    </select>
-                  </ng-container>
-
+                  <select class="item-select" (change)="onMedSelect(i, $event)">
+                    <option value="" disabled [selected]="!item.medicationId">Select a medication</option>
+                    <option *ngFor="let m of medications" [value]="m.id">
+                      {{ m.medicationName }}{{ m.dosage ? ' — ' + m.dosage : '' }} ({{ m.quantity }} available)
+                    </option>
+                  </select>
                   <div class="item-qty-wrap">
-                    <label>Qty</label>
-                    <input type="number"
-                           [(ngModel)]="item.quantity"
-                           [ngModelOptions]="{standalone:true}"
-                           min="1" max="10"
-                           class="item-qty"
-                           (change)="clampQty(i)" />
-                    <div class="field-error" *ngIf="item.quantity > 10 || item.quantity < 1">
-                      1–10
-                    </div>
-                  </div>
+  <label>Qty</label>
+  <input type="number" 
+         [(ngModel)]="item.quantity"
+         [ngModelOptions]="{standalone:true}" 
+         min="1" 
+         max="10"
+         class="item-qty"
+         (change)="clampQty(i)" />
+  <div class="field-error" *ngIf="item.quantity > 10 || item.quantity < 1">
+    Entre 1 et 10
+  </div>
+</div>
+                  <span class="item-dosage" *ngIf="item.dosage">{{ item.dosage }}</span>
                 </div>
-
                 <button type="button" class="btn btn-labeled delete"
                         (click)="removeItem(i)" *ngIf="orderItems.length > 1">
                   <i class="fas fa-trash-alt"></i>
@@ -378,8 +298,7 @@
         <button class="btn btn-labeled cancel" (click)="closeOrderForm()">
           <i class="fas fa-times"></i> Cancel
         </button>
-        <button class="btn btn-labeled primary" (click)="submitOrder()"
-                [disabled]="orderLoading || orderForm.invalid">
+        <button class="btn btn-labeled primary" (click)="submitOrder()" [disabled]="orderLoading || orderForm.invalid">
           <i class="fas fa-spinner fa-spin" *ngIf="orderLoading"></i>
           <i class="fas fa-check" *ngIf="!orderLoading"></i>
           {{ orderLoading ? 'Sending...' : 'Order' }}

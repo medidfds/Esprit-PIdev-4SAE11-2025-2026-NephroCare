@@ -51,6 +51,30 @@ export class AppSidebarComponent {
       ],
     },
     {
+  name: 'Orders Module',
+  icon: `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none">
+    <path d="M8 3h8l1 5H7l1-5Z" stroke="currentColor" stroke-width="1.5"/>
+    <path d="M5 8h14v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8Z" stroke="currentColor" stroke-width="1.5"/>
+    <path d="M12 11v6M9 14h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  </svg>`,
+  subItems: [
+    { name: 'Orders', path: '/orders-back' },
+    { name: 'Orders Stats', path: '/orders-stats' },
+  ],
+},
+ {
+  name: 'Mes Livraisons',
+  icon: `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none">
+    <path d="M1 3h15v13H1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M16 8h4l3 3v5h-7V8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+    <circle cx="5.5" cy="18.5" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+    <circle cx="18.5" cy="18.5" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+  </svg>`,
+  subItems: [
+    { name: 'Mes Livraisons', path: '/driver' },
+  ],
+},
+    {
       name: 'Diagnostic Module',
       icon: `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none"><path d="M10 3v5l-4 7a4 4 0 0 0 3.5 6h5a4 4 0 0 0 3.5-6l-4-7V3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8 12h8" stroke="currentColor" stroke-width="1.5"/></svg>`,
       subItems: [

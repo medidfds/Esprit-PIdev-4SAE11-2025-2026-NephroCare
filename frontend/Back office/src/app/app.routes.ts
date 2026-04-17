@@ -34,6 +34,9 @@ import { DiagnosticComponent } from './pages/dashboard/diagnostic/diagnostic.com
 import {SystemConfigComponent} from "./pages/dialysis/admin/system-config/system-config.component";
 import {AdminAuditComponent} from "./pages/dialysis/admin/audit/admin-audit.component";
 import {MyScheduleComponent} from "./pages/dialysis/my-schedule/my-schedule.component";
+import { OrdersBackComponent } from './pages/orders-back/orders-back.component';
+import{OrdersStatsComponent} from './pages/stats_orders/orders-stats.component';
+import { DriverDashboardComponent } from './pages/driver-dashboard/driver-dashboard.component';
 import { AlertsListComponent } from './pages/dialysis/alerts/alerts-list.component';
 export const routes: Routes = [
   {
@@ -81,6 +84,16 @@ export const routes: Routes = [
       { path: 'consultations-calendar', component: ConsultationsCalendarComponent },
       {path: 'diagnostic', component: DiagnosticComponent},
       { path: 'diagnostic-result', component: DiagnosticResultComponent },
+      { path: 'orders-back', component: OrdersBackComponent } ,
+      { path: 'orders-stats', component: OrdersStatsComponent },      
+      {
+        path:        'driver',
+       component:   DriverDashboardComponent,
+       canActivate: [RoleGuard],
+       data:        { roles: ['DRIVER'] }
+      },
+      
+
 
      // --- Dialysis Routes ---
       {

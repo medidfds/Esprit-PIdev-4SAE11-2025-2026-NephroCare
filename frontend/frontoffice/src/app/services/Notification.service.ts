@@ -4,6 +4,15 @@ import { KeycloakService } from 'keycloak-angular';
 import { HospitalizationService } from './hospitalization.service';
 import { RoomService, Room } from './Room.service';
 
+export interface Toast {
+  id: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+  title: string;
+  message: string;
+  timestamp: Date;
+  read: boolean;
+}
+
 export interface CriticalNotification {
   id:                string;
   hospitalizationId: number;
@@ -44,6 +53,37 @@ export class NotificationService implements OnDestroy {
 
   notifications = this.notifications$.asObservable();
   toasts        = this.toasts$.asObservable();
+
+  private toastsSubject = new BehaviorSubject<Toast[]>([]);
+  toastsList = this.toastsSubject.asObservable();
+
+  success(title: string, message: string): void {
+    this.addToast('success', title, message);
+  }
+
+  error(title: string, message: string): void {
+    this.addToast('error', title, message);
+  }
+
+  warning(title: string, message: string): void {
+    this.addToast('warning', title, message);
+  }
+
+  info(title: string, message: string): void {
+    this.addToast('info', title, message);
+  }
+
+  private addToast(type: Toast['type'], title: string, message: string): void {
+    const toast: Toast = {
+      id: Date.now().toString(),
+      type,
+      title,
+      message,
+      timestamp: new Date(),
+      read: false
+    };
+    this.toastsSubject.next([toast, ...this.toastsSubject.value]);
+  }
 
   get unreadCount(): number {
     return this.notifications$.value.filter(n => !n.read).length;

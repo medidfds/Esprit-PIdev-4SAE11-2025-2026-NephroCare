@@ -22,6 +22,8 @@ import { ProfileComponent } from './Profile/Profile.component';
 import { PharmacyComponent } from './pharmacy/pharmacy.component';
 import {DiagnosticCalendarComponent} from './diagnostic-calendar/diagnostic-calendar.component'
 import { DiagnosticResultComponent } from './diagnostic-result/diagnostic-result.component';
+import { OrdersFrontComponent } from './orders-front/orders-front.component';
+
 
 function initializeKeycloak(keycloak: KeycloakService) {
   return () =>

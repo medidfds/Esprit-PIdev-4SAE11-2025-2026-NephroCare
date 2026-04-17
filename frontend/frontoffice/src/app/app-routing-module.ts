@@ -12,6 +12,7 @@ import { PharmacyComponent } from './pharmacy/pharmacy.component';
 import { BadgeViewerComponent } from './pages/badge-viewer/badge-viewer.component';
 import { DiagnosticResultComponent } from './diagnostic-result/diagnostic-result.component';
 import { DialysisPortalComponent } from './dialysis/pages/dialysis-portal/dialysis-portal.component';
+import { OrdersFrontComponent } from './orders-front/orders-front.component';
 
 
 const routes: Routes = [
@@ -56,6 +57,12 @@ const routes: Routes = [
     path: 'pharmacy',
     component: PharmacyComponent
   },
+  {
+  path: 'order',
+  component: OrdersFrontComponent,
+  canActivate: [AuthGuard] 
+},
+
   { path: 'notifications',
     component: NotificationsComponent
   },
