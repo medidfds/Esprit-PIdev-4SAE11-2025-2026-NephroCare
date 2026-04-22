@@ -1,0 +1,179 @@
+<div class="fd-wrapper">
+
+    <!-- Header -->
+    <div class="fd-header">
+        <div class="fd-header-left">
+            <div class="fd-icon-box">
+                <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                </svg>
+            </div>
+            <div>
+                <h2 class="fd-title">Active Fleet Overview</h2>
+                <p class="fd-subtitle">Live tracking and vehicle status for transport coordination</p>
+            </div>
+        </div>
+
+        <!-- Connection Status -->
+        <div class="fd-status-pill" [ngClass]="{
+      'status-connected': connectionState === 'connected',
+      'status-connecting': connectionState === 'connecting',
+      'status-disconnected': connectionState === 'disconnected'
+    }">
+            <span class="fd-status-dot"></span>
+            <span *ngIf="connectionState === 'connected'">Live</span>
+            <span *ngIf="connectionState === 'connecting'">Connecting...</span>
+            <span *ngIf="connectionState === 'disconnected'">Disconnected</span>
+        </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="fd-stats">
+        <div class="fd-stat-card">
+            <div class="fd-stat-icon total">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M8 17h8M3 11l2-6h14l2 6M3 11h18M5 17l-1 3h16l-1-3" />
+                </svg>
+            </div>
+            <div>
+                <span class="fd-stat-number">{{ totalVehicles }}</span>
+                <span class="fd-stat-label">Total Vehicles</span>
+            </div>
+        </div>
+
+        <div class="fd-stat-card accent-green">
+            <div class="fd-stat-icon active">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+            </div>
+            <div>
+                <span class="fd-stat-number green">{{ activeVehiclesCount }}</span>
+                <span class="fd-stat-label">Active / Moving</span>
+            </div>
+        </div>
+
+        <div class="fd-stat-card accent-gray">
+            <div class="fd-stat-icon idle">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div>
+                <span class="fd-stat-number gray">{{ idleVehiclesCount }}</span>
+                <span class="fd-stat-label">Idle</span>
+            </div>
+        </div>
+
+        <div class="fd-stat-card accent-red">
+            <div class="fd-stat-icon maintenance">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                </svg>
+            </div>
+            <div>
+                <span class="fd-stat-number red">{{ maintenanceVehiclesCount }}</span>
+                <span class="fd-stat-label">In Maintenance</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Map -->
+    <div class="fd-map-card">
+        <div class="fd-map-label">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Real-time Map
+        </div>
+        <div #mapContainer class="fd-map"></div>
+    </div>
+
+    <!-- Table -->
+    <div class="fd-table-card">
+        <div class="fd-table-header">
+            <span class="fd-table-title">Vehicle Registry</span>
+            <span class="fd-vehicle-count">{{ vehicles.length }} vehicles</span>
+        </div>
+
+        <div class="fd-table-wrapper">
+            <table class="fd-table">
+                <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Capacity</th>
+                    <th>Status</th>
+                    <th class="text-right">Location</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr *ngFor="let vehicle of vehicles" class="fd-row">
+                    <td>
+                        <div class="fd-vehicle-code">
+                            <div class="fd-code-dot" [ngClass]="{
+                  'dot-green': vehicle.status === 'ON_ROUTE' || vehicle.status === 'ASSIGNED',
+                  'dot-gray': vehicle.status === 'IDLE',
+                  'dot-red': vehicle.status === 'MAINTENANCE'
+                }"></div>
+                            {{ vehicle.code }}
+                        </div>
+                    </td>
+                    <td>
+              <span class="fd-capacity-badge">
+                <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                  {{ vehicle.capacity }} Seats
+              </span>
+                    </td>
+                    <td>
+              <span class="fd-badge" [ngClass]="{
+                'badge-idle': vehicle.status === 'IDLE',
+                'badge-assigned': vehicle.status === 'ASSIGNED',
+                'badge-onroute': vehicle.status === 'ON_ROUTE',
+                'badge-maintenance': vehicle.status === 'MAINTENANCE'
+              }">
+                <span class="badge-dot"></span>
+                  {{ vehicle.status | titlecase }}
+              </span>
+                    </td>
+                    <td class="text-right">
+                        <button *ngIf="vehicle.currentLat && vehicle.currentLng"
+                                (click)="viewOnMap(vehicle.currentLat, vehicle.currentLng)"
+                                class="fd-locate-btn">
+                            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            View on Map
+                        </button>
+                        <span *ngIf="!vehicle.currentLat || !vehicle.currentLng" class="fd-no-location">No Location</span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Empty State -->
+        <div class="fd-empty" *ngIf="vehicles.length === 0">
+            <div class="fd-empty-icon">
+                <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                          d="M8 17h8M3 11l2-6h14l2 6M3 11h18M5 17l-1 3h16l-1-3" />
+                </svg>
+            </div>
+            <p class="fd-empty-title">No Active Vehicles</p>
+            <p class="fd-empty-sub">No active vehicles are currently reporting to the central system.</p>
+        </div>
+    </div>
+
+</div>

@@ -1,0 +1,140 @@
+<div class="dashboard-container">
+  <!-- Header -->
+  <div class="dash-header">
+    <div class="header-content">
+      <h1 class="dash-title">Dashboard Rendez-vous</h1>
+      <p class="dash-subtitle">Vue d'ensemble de votre activité clinique pour 2026</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-refresh" (click)="loadStats()" [class.spinning]="loading">
+        <span class="icon">↻</span> Actualiser
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid" *ngIf="!loading; else skeletonKPI">
+    <div class="kpi-card card-total">
+      <div class="kpi-icon">📅</div>
+      <div class="kpi-info">
+        <span class="kpi-label">Total RDV</span>
+        <h2 class="kpi-value">{{ stats.total || 0 }}</h2>
+      </div>
+    </div>
+    <div class="kpi-card card-confirmed">
+      <div class="kpi-icon">✅</div>
+      <div class="kpi-info">
+        <span class="kpi-label">Confirmés</span>
+        <h2 class="kpi-value">{{ stats.confirmed || 0 }}</h2>
+      </div>
+    </div>
+    <div class="kpi-card card-pending">
+      <div class="kpi-icon">⏳</div>
+      <div class="kpi-info">
+        <span class="kpi-label">En Attente</span>
+        <h2 class="kpi-value">{{ stats.scheduled || 0 }}</h2>
+      </div>
+    </div>
+    <div class="kpi-card card-cancelled">
+      <div class="kpi-icon">❌</div>
+      <div class="kpi-info">
+        <span class="kpi-label">Annulés</span>
+        <h2 class="kpi-value">{{ stats.cancelledCount || 0 }}</h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content Grid -->
+  <div class="content-grid">
+    <!-- Chart Section -->
+    <div class="grid-panel chart-panel">
+      <div class="panel-header">
+        <h3 class="panel-title">Répartition des Statuts</h3>
+      </div>
+      <div class="panel-body chart-container" *ngIf="chartData; else noData">
+        <canvas baseChart
+          [data]="chartData"
+          [options]="chartOptions"
+          [type]="'pie'">
+        </canvas>
+      </div>
+    </div>
+
+    <!-- Quick Stats Section -->
+    <div class="grid-panel info-panel">
+      <div class="panel-header">
+        <h3 class="panel-title">Efficacité & Planning</h3>
+      </div>
+      <div class="panel-body">
+        <div class="stat-row">
+          <span class="stat-label">Taux de présence</span>
+          <div class="stat-progress-bar">
+            <div class="progress" [style.width.%]="(stats.confirmed / stats.total) * 100 || 0"></div>
+          </div>
+          <span class="stat-percent">{{ (stats.confirmed / stats.total) * 100 | number:'1.0-0' }}%</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Reprogrammations</span>
+          <span class="stat-number">{{ stats.rescheduled || 0 }}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Durée totale (min)</span>
+          <span class="stat-number">{{ stats.totalDuration || 0 }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Appointments Table -->
+  <div class="grid-panel table-panel">
+    <div class="panel-header">
+      <h3 class="panel-title">Derniers Rendez-vous</h3>
+      <button class="btn-link" (click)="goToAppointments()">Voir tout →</button>
+    </div>
+    <div class="panel-body">
+      <table class="dash-table">
+        <thead>
+          <tr>
+            <th>Patient</th>
+            <th>Type</th>
+            <th>Date</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let apt of recentAppointments">
+            <td>
+              <div class="user-info">
+                <span class="user-name">{{ apt.userName || '—' }}</span>
+                <span class="user-id">#{{ apt.userId }}</span>
+              </div>
+            </td>
+            <td><span class="type-tag">{{ apt.appointmentType }}</span></td>
+            <td>{{ apt.appointmentDate | date:'dd/MM HH:mm' }}</td>
+            <td>
+              <span class="status-pill" [class]="apt.status.toLowerCase()">
+                {{ apt.status }}
+              </span>
+            </td>
+          </tr>
+          <tr *ngIf="recentAppointments.length === 0">
+            <td colspan="4" class="text-center">Aucun rendez-vous récent.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Skeletons & Fallbacks -->
+<ng-template #skeletonKPI>
+  <div class="kpi-grid">
+    <div class="kpi-card skeleton" *ngFor="let i of [1,2,3,4]"></div>
+  </div>
+</ng-template>
+
+<ng-template #noData>
+  <div class="no-data">
+    <p>Aucune donnée disponible pour cette période.</p>
+  </div>
+</ng-template>

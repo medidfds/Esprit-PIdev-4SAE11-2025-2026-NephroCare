@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  pdf-generator-service:
+    build: .
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=development
+      - PORT=4000
+      - HOSPITALIZATION_SERVICE_URL=http://host.docker.internal:8070/hospitalization/api
+      - MONITORING_SERVICE_URL=http://host.docker.internal:8799/api
+      - LOG_LEVEL=info
+    volumes:
+      - ./logs:/app/logs
+      - ./reports:/app/reports
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # For local development without Docker
+  pdf-generator-local:
+    build: .
+    ports:
+      - "4001:4000"
+    environment:
+      - NODE_ENV=development
+      - PORT=4000
+      - HOSPITALIZATION_SERVICE_URL=http://localhost:8070/hospitalization/api
+      - MONITORING_SERVICE_URL=http://localhost:8799/api
+      - LOG_LEVEL=debug
+    volumes:
+      - ./logs:/app/logs
+      - ./reports:/app/reports
+    profiles:
+      - local
+
+networks:
+  default:
+    external: true
+    name: nephrocare-network

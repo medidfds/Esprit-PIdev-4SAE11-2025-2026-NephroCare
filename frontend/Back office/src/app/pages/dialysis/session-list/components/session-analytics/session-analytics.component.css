@@ -1,0 +1,118 @@
+/* ─── Variables & Tokens ─── */
+:host {
+    --sa-bg-card: #ffffff;
+    --sa-border: #e2e8f0;
+    --sa-text-main: #1e293b;
+    --sa-text-muted: #64748b;
+    --sa-accent: #3b82f6;
+
+    display: block;
+    margin-bottom: 2rem;
+}
+
+:host-context(.dark) {
+    --sa-bg-card: #111827;
+    --sa-border: #1f2937;
+    --sa-text-main: #f1f5f9;
+    --sa-text-muted: #94a3b8;
+}
+
+.sa-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.sa-card {
+    background: var(--sa-bg-card);
+    border: 1px solid var(--sa-border);
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.sa-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--sa-text-muted);
+    letter-spacing: 0.05em;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ─── Metrics ─── */
+.sa-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.sa-metric {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.sa-metric__label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--sa-text-main);
+}
+
+.sa-metric__val {
+    font-size: 1.125rem;
+    font-weight: 700;
+}
+
+/* ─── Chart Placeholder (Aesthetics) ─── */
+.sa-chart-wrap {
+    height: 180px;
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+    padding: 0.5rem;
+}
+
+.sa-chart-bar {
+    flex: 1;
+    background: var(--sa-accent);
+    opacity: 0.2;
+    border-radius: 0.25rem 0.25rem 0 0;
+    transition: all 0.3s;
+}
+
+.sa-chart-bar:hover {
+    opacity: 0.8;
+}
+
+/* ─── Prediction / AI Box ─── */
+.sa-ai-box {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    background: #eff6ff;
+    border: 1px solid #dbeafe;
+    display: flex;
+    gap: 1rem;
+}
+
+.sa-ai-icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.5rem;
+    background: white;
+    color: var(--sa-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.sa-ai-text {
+    font-size: 0.875rem;
+    color: #1e40af;
+    line-height: 1.5;
+}

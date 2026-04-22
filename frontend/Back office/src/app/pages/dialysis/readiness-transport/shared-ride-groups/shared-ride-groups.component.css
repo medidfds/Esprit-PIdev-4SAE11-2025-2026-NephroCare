@@ -1,0 +1,631 @@
+/* ─── Wrapper ─────────────────────────────────────────── */
+.srg-wrapper {
+    padding: 28px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 24px !important;
+    font-family: 'Inter', 'Segoe UI', sans-serif !important;
+    background: #f8fafc !important;
+    min-height: 100% !important;
+}
+
+/* ─── Header ──────────────────────────────────────────── */
+.srg-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+    gap: 16px !important;
+    background: white !important;
+    padding: 20px 24px !important;
+    border-radius: 14px !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05) !important;
+}
+
+.srg-header-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 14px !important;
+}
+
+.srg-icon-box {
+    width: 46px !important;
+    height: 46px !important;
+    background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(99,102,241,0.35) !important;
+    flex-shrink: 0 !important;
+}
+
+.srg-title {
+    font-size: 1.15rem !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.srg-subtitle {
+    font-size: 0.8rem !important;
+    color: #94a3b8 !important;
+    margin: 2px 0 0 !important;
+    padding: 0 !important;
+}
+
+.srg-auto-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 10px 20px !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 14px rgba(99,102,241,0.4) !important;
+    transition: transform 0.15s, opacity 0.15s !important;
+}
+
+.srg-auto-btn:hover:not(:disabled) {
+    transform: translateY(-1px) !important;
+    opacity: 0.92 !important;
+}
+
+.srg-auto-btn:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+}
+
+/* ─── Loading ─────────────────────────────────────────── */
+.srg-loading {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 12px !important;
+    padding: 56px 20px !important;
+    color: #94a3b8 !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    background: white !important;
+    border-radius: 14px !important;
+    border: 1px solid #e2e8f0 !important;
+}
+
+.srg-spinner {
+    width: 22px !important;
+    height: 22px !important;
+    border: 2.5px solid #e2e8f0 !important;
+    border-top-color: #6366f1 !important;
+    border-radius: 50% !important;
+    animation: srgSpin 0.7s linear infinite !important;
+    flex-shrink: 0 !important;
+}
+
+@keyframes srgSpin { to { transform: rotate(360deg); } }
+
+/* ─── Grid ────────────────────────────────────────────── */
+.srg-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 20px !important;
+}
+
+/* ─── Card ────────────────────────────────────────────── */
+.srg-card {
+    background: white !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 14px !important;
+    padding: 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.05) !important;
+    transition: box-shadow 0.2s, transform 0.2s !important;
+}
+
+.srg-card:hover {
+    box-shadow: 0 6px 24px rgba(0,0,0,0.09) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* ─── Card Top ────────────────────────────────────────── */
+.srg-card-top {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    margin-bottom: 16px !important;
+}
+
+.srg-card-info {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    min-width: 0 !important;
+}
+
+.srg-zone-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    background: #eff6ff !important;
+    color: #2563eb !important;
+    border: 1px solid #bfdbfe !important;
+    border-radius: 999px !important;
+    padding: 3px 10px !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    width: fit-content !important;
+}
+
+.srg-group-id {
+    font-size: 1rem !important;
+    font-weight: 800 !important;
+    color: #1e293b !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-family: 'Courier New', monospace !important;
+}
+
+.srg-shift-info {
+    font-size: 0.75rem !important;
+    color: #94a3b8 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.score-high { color: #16a34a !important; font-weight: 700 !important; }
+.score-low  { color: #d97706 !important; font-weight: 700 !important; }
+
+.srg-card-meta {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+}
+
+.srg-patient-count {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    background: #f1f5f9 !important;
+    color: #475569 !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 6px !important;
+    padding: 3px 9px !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+}
+
+/* ─── Status Badges ───────────────────────────────────── */
+.srg-status-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 3px 10px !important;
+    border-radius: 999px !important;
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    border: 1px solid transparent !important;
+    white-space: nowrap !important;
+}
+
+.badge-dot {
+    width: 6px !important;
+    height: 6px !important;
+    border-radius: 50% !important;
+    background: currentColor !important;
+    flex-shrink: 0 !important;
+}
+
+.status-proposed  { background: #dbeafe !important; color: #1d4ed8 !important; border-color: #bfdbfe !important; }
+.status-validated { background: #dcfce7 !important; color: #15803d !important; border-color: #bbf7d0 !important; }
+.status-dispatched{ background: #fef9c3 !important; color: #a16207 !important; border-color: #fde68a !important; }
+
+/* ─── Patients List ───────────────────────────────────── */
+.srg-patients {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    margin-bottom: 16px !important;
+}
+
+.srg-patient-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    padding: 8px 12px !important;
+}
+
+.srg-patient-avatar {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    border-radius: 50% !important;
+    background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
+    color: white !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+}
+
+.srg-patient-info {
+    overflow: hidden !important;
+    min-width: 0 !important;
+}
+
+.srg-patient-session {
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    font-family: 'Courier New', monospace !important;
+}
+
+.srg-patient-id {
+    font-size: 0.72rem !important;
+    color: #94a3b8 !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* ─── Card Footer ─────────────────────────────────────── */
+.srg-card-footer {
+    border-top: 1px solid #f1f5f9 !important;
+    padding-top: 14px !important;
+    margin-top: auto !important;
+}
+
+.srg-action-row {
+    display: flex !important;
+    gap: 8px !important;
+}
+
+.srg-btn {
+    flex: 1 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 7px 12px !important;
+    border-radius: 8px !important;
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    border: 1.5px solid transparent !important;
+    transition: background 0.15s, transform 0.15s !important;
+}
+
+.srg-btn-validate {
+    background: #dcfce7 !important;
+    color: #15803d !important;
+    border-color: #bbf7d0 !important;
+}
+
+.srg-btn-validate:hover {
+    background: #16a34a !important;
+    color: white !important;
+    border-color: #16a34a !important;
+    transform: translateY(-1px) !important;
+}
+
+.srg-btn-reject {
+    background: #fee2e2 !important;
+    color: #b91c1c !important;
+    border-color: #fecaca !important;
+}
+
+.srg-btn-reject:hover {
+    background: #dc2626 !important;
+    color: white !important;
+    border-color: #dc2626 !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ─── Assigned Vehicle ────────────────────────────────── */
+.srg-assigned-vehicle {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    background: #dcfce7 !important;
+    border: 1px solid #bbf7d0 !important;
+    border-radius: 9px !important;
+    padding: 9px 14px !important;
+}
+
+.srg-assigned-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+    color: #15803d !important;
+}
+
+.srg-vehicle-code {
+    font-size: 0.875rem !important;
+    font-weight: 800 !important;
+    color: #15803d !important;
+    font-family: 'Courier New', monospace !important;
+}
+
+/* ─── Assign Row ──────────────────────────────────────── */
+.srg-assign-row {
+    display: flex !important;
+    gap: 8px !important;
+    align-items: center !important;
+}
+
+.srg-select {
+    flex: 1 !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    padding: 7px 10px !important;
+    font-size: 0.82rem !important;
+    color: #1e293b !important;
+    background: white !important;
+    outline: none !important;
+    height: 36px !important;
+    box-sizing: border-box !important;
+}
+
+.srg-select:focus {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.12) !important;
+}
+
+.srg-assign-btn {
+    background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 0 16px !important;
+    height: 36px !important;
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    transition: opacity 0.15s !important;
+}
+
+.srg-assign-btn:disabled {
+    opacity: 0.45 !important;
+    cursor: not-allowed !important;
+}
+
+.srg-assign-btn:not(:disabled):hover { opacity: 0.88 !important; }
+
+/* ─── Empty State ─────────────────────────────────────── */
+.srg-empty {
+    grid-column: 1 / -1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 64px 20px !important;
+    background: white !important;
+    border: 2px dashed #e2e8f0 !important;
+    border-radius: 14px !important;
+    gap: 8px !important;
+}
+
+.srg-empty-icon {
+    width: 64px !important;
+    height: 64px !important;
+    background: #f1f5f9 !important;
+    border-radius: 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: #94a3b8 !important;
+    margin-bottom: 4px !important;
+}
+
+.srg-empty-title {
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    margin: 0 !important;
+}
+
+.srg-empty-sub {
+    font-size: 0.82rem !important;
+    color: #94a3b8 !important;
+    margin: 0 !important;
+    text-align: center !important;
+    max-width: 320px !important;
+}
+
+.srg-empty-btn {
+    margin-top: 8px !important;
+    background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 9px !important;
+    padding: 9px 22px !important;
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 12px rgba(99,102,241,0.3) !important;
+}
+
+/* ─── Trash Button and Meta Actions ─────────────────────── */
+.srg-meta-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-bottom: 2px !important;
+}
+
+.srg-btn-icon {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 4px !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    transition: all 0.15s !important;
+}
+
+.srg-btn-trash {
+    color: #94a3b8 !important;
+}
+
+.srg-btn-trash:hover {
+    color: #ef4444 !important;
+    background: #fef2f2 !important;
+}
+
+/* ─── Modal ───────────────────────────────────────────── */
+.srg-modal-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(15, 23, 42, 0.4) !important;
+    backdrop-filter: blur(3px) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 9999 !important;
+    padding: 20px !important;
+    box-sizing: border-box !important;
+}
+
+.srg-modal-content {
+    background: white !important;
+    border-radius: 16px !important;
+    width: 100% !important;
+    max-width: 440px !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+    overflow: hidden !important;
+    animation: srgModalFadeIn 0.2s ease-out !important;
+}
+
+@keyframes srgModalFadeIn {
+    0% { opacity: 0; transform: scale(0.95) translateY(10px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.srg-modal-header {
+    padding: 24px 24px 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 16px !important;
+}
+
+.srg-modal-icon {
+    width: 48px !important;
+    height: 48px !important;
+    background: #fef2f2 !important;
+    color: #dc2626 !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+}
+
+.srg-modal-header h3 {
+    margin: 0 !important;
+    font-size: 1.25rem !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+}
+
+.srg-modal-body {
+    padding: 0 24px 24px !important;
+}
+
+.srg-modal-body p {
+    margin: 0 0 16px !important;
+    color: #475569 !important;
+    font-size: 0.95rem !important;
+    line-height: 1.5 !important;
+}
+
+.srg-modal-warning {
+    background: #fffbeb !important;
+    border: 1px solid #fde68a !important;
+    color: #92400e !important;
+    padding: 12px 16px !important;
+    border-radius: 8px !important;
+    font-size: 0.85rem !important;
+    line-height: 1.4 !important;
+}
+
+.srg-modal-warning strong {
+    color: #b45309 !important;
+}
+
+.srg-modal-actions {
+    padding: 16px 24px !important;
+    background: #f8fafc !important;
+    border-top: 1px solid #e2e8f0 !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 12px !important;
+}
+
+.srg-modal-btn {
+    border: none !important;
+    padding: 10px 20px !important;
+    border-radius: 8px !important;
+    font-size: 0.9rem !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.15s !important;
+}
+
+.srg-modal-btn-cancel {
+    background: white !important;
+    color: #475569 !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+.srg-modal-btn-cancel:hover {
+    background: #f1f5f9 !important;
+}
+
+.srg-modal-btn-delete {
+    background: #ef4444 !important;
+    color: white !important;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2) !important;
+}
+
+.srg-modal-btn-delete:hover {
+    background: #dc2626 !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ─── Responsive ──────────────────────────────────────── */
+@media (max-width: 1280px) {
+    .srg-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+@media (max-width: 768px) {
+    .srg-grid { grid-template-columns: 1fr !important; }
+    .srg-wrapper { padding: 16px !important; }
+}

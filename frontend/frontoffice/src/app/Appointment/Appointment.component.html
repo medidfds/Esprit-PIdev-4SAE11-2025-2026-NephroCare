@@ -1,0 +1,373 @@
+<!-- appointment-table.component.html -->
+<div class="page-shell">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <span class="module-tag">planningService · :8799 (proxy)</span>
+      <h1 class="page-title">Rendez-vous &amp; Planning</h1>
+    </div>
+    <div class="header-right">
+      <div class="search-wrap" *ngIf="activeTab === 'list'">
+        <span class="search-icon">⌕</span>
+        <input class="search-input" [(ngModel)]="searchTerm" placeholder="Patient, médecin…" (ngModelChange)="applyFilters()"/>
+      </div>
+      <select class="filter-select" [(ngModel)]="filterStatus" (ngModelChange)="applyFilters()" *ngIf="activeTab === 'list'">
+        <option value="">Tous statuts</option>
+        <option value="SCHEDULED">Planifié</option>
+        <option value="CONFIRMED">Confirmé</option>
+        <option value="RESCHEDULED">Reprogrammé</option>
+        <option value="NO_SHOW">Absent</option>
+        <option value="CANCELLED">Annulé</option>
+        <option value="COMPLETED">Terminé</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Metrics Bar -->
+  <div class="metrics-bar">
+    <div class="metric" *ngFor="let m of metricsData">
+      <div class="metric-dot" [style.background]="m.color"></div>
+      <div class="metric-value">{{ m.value }}</div>
+      <div class="metric-label">{{ m.label }}</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn" [class.active]="activeTab==='list'" (click)="activeTab='list'; load()">
+      📋 Liste des RDV
+    </button>
+    <button class="tab-btn" [class.active]="activeTab==='conflicts'" (click)="activeTab='conflicts'">
+      ⚠️ F1 — Conflits
+    </button>
+    <button class="tab-btn" [class.active]="activeTab==='history'" (click)="activeTab='history'">
+      📂 F2 — Historique Patient
+    </button>
+    <button class="tab-btn" [class.active]="activeTab==='stats'" (click)="activeTab='stats'">
+      📊 F3 — Statistiques Médecin
+    </button>
+    <button class="tab-btn" [class.active]="activeTab==='session'" (click)="activeTab='session'">
+      🔗 F5 — Lier Session
+    </button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- TAB 1: LIST -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <ng-container *ngIf="activeTab === 'list'">
+    <div class="table-wrap">
+      <div style="padding:2rem;text-align:center;color:#64748b" *ngIf="loading">⏳ Chargement…</div>
+      <div style="padding:2rem;text-align:center;color:#ef4444" *ngIf="error">{{ error }}</div>
+      <div style="padding:2rem;text-align:center;color:#64748b" *ngIf="!loading && filtered.length === 0 && !error">
+        📅 Aucun rendez-vous trouvé.
+      </div>
+      <table class="data-table" *ngIf="!loading && filtered.length > 0">
+        <thead>
+          <tr>
+            <th>Patient</th>
+            <th>Médecin</th>
+            <th>Date &amp; heure</th>
+            <th>Durée</th>
+            <th>Type</th>
+            <th>Statut</th>
+            <th>Notes</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let a of filtered; trackBy: trackById" class="table-row" [ngClass]="'row-' + a.status">
+            <td><div class="person-name">{{ a.patientNom || '—' }}</div></td>
+            <td>
+              <div class="person-name">Dr. {{ a.medecinNom || '—' }}</div>
+              <div style="font-size:0.75rem;color:#64748b">{{ a.medecinSpecialite }}</div>
+            </td>
+            <td>
+              <div class="date-main">{{ a.appointmentDate | date:'dd/MM/yyyy' }}</div>
+              <div class="date-sub">{{ a.appointmentDate | date:'HH:mm' }}</div>
+              <div style="font-size:0.75rem;color:#f59e0b" *ngIf="a.previousDate">↻ {{ a.previousDate | date:'dd/MM HH:mm' }}</div>
+            </td>
+            <td><span style="font-weight:600">{{ a.durationMinutes }} min</span></td>
+            <td><span class="type-pill">{{ a.type }}</span></td>
+            <td>
+              <span class="status-pill" [ngClass]="'status-' + a.status">
+                <span class="status-dot"></span>{{ a.status }}
+              </span>
+            </td>
+            <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+              {{ a.notes || '—' }}
+            </td>
+            <td>
+              <button class="act-btn" (click)="openEdit(a)" title="Éditer">✏️</button>
+              <button class="act-btn" *ngIf="a.status === 'SCHEDULED'" (click)="confirm(a.id)" title="Confirmer" style="color:#15803d">✓</button>
+              <button class="act-btn" *ngIf="a.status !== 'CANCELLED' && a.status !== 'COMPLETED'" (click)="openReschedule(a)" title="Reprogrammer">📅</button>
+              <button class="act-btn" *ngIf="a.status !== 'CANCELLED' && a.status !== 'COMPLETED'" (click)="cancel(a.id)" title="Annuler" style="color:#ef4444">✕</button>
+              <button class="act-btn" (click)="delete(a.id)" title="Supprimer">🗑</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="table-footer" *ngIf="filtered.length > 0">
+        {{ filtered.length }} RDV affiché(s) sur {{ appointments.length }} au total
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- TAB F1: CONFLICTS -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <ng-container *ngIf="activeTab === 'conflicts'">
+    <div class="feature-panel">
+      <h3>⚠️ F1 — Détection de Conflits de Créneaux</h3>
+      <p style="color:#64748b;font-size:0.85rem;margin:0 0 1.2rem">
+        Vérifiez si un créneau est déjà occupé pour un médecin ou patient avant de créer un RDV.
+      </p>
+      <div class="panel-form">
+        <div class="field">
+          <label>ID Médecin</label>
+          <input type="text" [(ngModel)]="conflictReq.medecinId" placeholder="UUID du médecin">
+        </div>
+        <div class="field">
+          <label>ID Patient</label>
+          <input type="text" [(ngModel)]="conflictReq.patientId" placeholder="UUID du patient">
+        </div>
+        <div class="field">
+          <label>Date / Heure</label>
+          <input type="datetime-local" [(ngModel)]="conflictReq.appointmentDate">
+        </div>
+        <div class="field">
+          <label>Durée (min)</label>
+          <input type="number" [(ngModel)]="conflictReq.durationMinutes" style="min-width:100px">
+        </div>
+        <div class="field">
+          <label>Exclure RDV ID (optionnel)</label>
+          <input type="text" [(ngModel)]="conflictReq.excludeAppointmentId" placeholder="UUID à exclure">
+        </div>
+        <button class="btn-run" (click)="runConflictCheck()">🔍 Vérifier</button>
+      </div>
+
+      <div class="result-box" *ngIf="conflictResult">
+        <div style="margin-bottom:0.75rem">
+          Résultat :
+          <span class="conflict-badge" [ngClass]="conflictResult.hasConflict ? 'conflict-yes' : 'conflict-no'">
+            {{ conflictResult.hasConflict ? '🚫 CONFLIT DÉTECTÉ' : '✅ AUCUN CONFLIT' }}
+          </span>
+          <span style="margin-left:0.75rem;color:#64748b">{{ conflictResult.message }}</span>
+        </div>
+        <pre *ngIf="conflictResult.conflicts?.length">{{ conflictResult.conflicts | json }}</pre>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- TAB F2: PATIENT HISTORY -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <ng-container *ngIf="activeTab === 'history'">
+    <div class="feature-panel">
+      <h3>📂 F2 — Historique Patient par Matricule</h3>
+      <p style="color:#64748b;font-size:0.85rem;margin:0 0 1.2rem">
+        Consultez tous les rendez-vous passés d'un patient via son matricule.
+      </p>
+      <div class="panel-form">
+        <div class="field">
+          <label for="historyMatricule">Matricule Patient</label>
+          <input id="historyMatricule" type="text" [(ngModel)]="historyMatricule" placeholder="ex: MAT-001">
+        </div>
+        <button class="btn-run" (click)="runHistory()">📂 Charger historique</button>
+      </div>
+
+      <div style="color:#ef4444;margin-top:1rem;font-size:0.9rem" *ngIf="historyError">{{ historyError }}</div>
+
+      <div class="result-box" *ngIf="historyResult.length > 0">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="background:#f1f5f9">
+              <th style="padding:0.5rem;text-align:left;font-size:0.75rem;text-transform:uppercase">Date</th>
+              <th style="padding:0.5rem;text-align:left;font-size:0.75rem;text-transform:uppercase">Type</th>
+              <th style="padding:0.5rem;text-align:left;font-size:0.75rem;text-transform:uppercase">Statut</th>
+              <th style="padding:0.5rem;text-align:left;font-size:0.75rem;text-transform:uppercase">Médecin</th>
+              <th style="padding:0.5rem;text-align:left;font-size:0.75rem;text-transform:uppercase">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let h of historyResult" style="border-bottom:1px solid #e2e8f0">
+              <td style="padding:0.5rem;font-size:0.85rem">{{ h.appointmentDate | date:'dd/MM/yyyy HH:mm' }}</td>
+              <td style="padding:0.5rem;font-size:0.85rem">{{ h.type }}</td>
+              <td style="padding:0.5rem;font-size:0.85rem">
+                <span class="status-pill" [ngClass]="'status-' + h.status">{{ h.status }}</span>
+              </td>
+              <td style="padding:0.5rem;font-size:0.85rem">{{ h.medecinNom || '—' }}</td>
+              <td style="padding:0.5rem;font-size:0.85rem;max-width:200px">{{ h.notes || '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- TAB F3: STATS -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <ng-container *ngIf="activeTab === 'stats'">
+    <div class="feature-panel">
+      <h3>📊 F3 — Statistiques par Médecin</h3>
+      <p style="color:#64748b;font-size:0.85rem;margin:0 0 1.2rem">
+        Obtenez les statistiques de rendez-vous pour un médecin sur une période donnée.
+      </p>
+      <div class="panel-form">
+        <div class="field">
+          <label for="statsMedecinId">ID Médecin</label>
+          <input id="statsMedecinId" type="text" [(ngModel)]="statsMedecinId" placeholder="UUID du médecin">
+        </div>
+        <div class="field">
+          <label for="statsFrom">Du</label>
+          <input id="statsFrom" type="datetime-local" [(ngModel)]="statsFrom">
+        </div>
+        <div class="field">
+          <label for="statsTo">Au</label>
+          <input id="statsTo" type="datetime-local" [(ngModel)]="statsTo">
+        </div>
+        <button class="btn-run" (click)="runStats()">📊 Obtenir stats</button>
+      </div>
+      <div style="color:#ef4444;margin-top:1rem;font-size:0.9rem" *ngIf="statsError">{{ statsError }}</div>
+      <div class="result-box" *ngIf="statsResult.length > 0">
+        <pre>{{ statsResult | json }}</pre>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- TAB F5: LINK SESSION -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <ng-container *ngIf="activeTab === 'session'">
+    <div class="feature-panel">
+      <h3>🔗 F5 — Lier un RDV à une Session</h3>
+      <p style="color:#64748b;font-size:0.85rem;margin:0 0 1.2rem">
+        Associez un identifiant de session de dialyse ou de traitement à un rendez-vous existant.
+      </p>
+      <div class="panel-form">
+        <div class="field">
+          <label>ID du Rendez-vous</label>
+          <input type="text" [(ngModel)]="sessionAptId" placeholder="UUID du RDV">
+        </div>
+        <div class="field">
+          <label>ID de Session</label>
+          <input type="text" [(ngModel)]="sessionId" placeholder="UUID de la session">
+        </div>
+        <button class="btn-run" (click)="runLinkSession()">🔗 Lier</button>
+      </div>
+      <div style="color:#ef4444;margin-top:1rem;font-size:0.9rem" *ngIf="sessionError">{{ sessionError }}</div>
+      <div class="result-box" *ngIf="sessionResult">
+        <pre>{{ sessionResult | json }}</pre>
+      </div>
+    </div>
+  </ng-container>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- MODAL: CRÉER / MODIFIER RDV -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div *ngIf="showCreate" class="modal-backdrop">
+  <div class="modal-card">
+    <h3 class="modal-title">
+      {{ isEdit ? '✏️ Modifier Rendez-vous' : '📅 Nouveau Rendez-vous' }}
+    </h3>
+
+    <form #appointmentForm="ngForm" (ngSubmit)="submitCreate()">
+      <!-- Patient -->
+      <div class="form-group">
+        <label class="form-label">Patient <span class="req">*</span></label>
+        <select class="form-select" 
+                name="patientId"
+                [(ngModel)]="newApt.patientId" 
+                (change)="onPatientChange()" 
+                required
+                #patientModel="ngModel"
+                [class.invalid]="patientModel.invalid && patientModel.touched">
+          <option value="">Sélectionnez un patient...</option>
+          <option *ngFor="let p of patients" [value]="p.id">{{ p.firstName }} {{ p.lastName }} ({{ p.username }})</option>
+        </select>
+        <div *ngIf="patientModel.invalid && patientModel.touched" class="error-msg">
+          Le patient est obligatoire.
+        </div>
+        <p *ngIf="patients.length === 0" class="warning-msg">⚠️ Aucun patient trouvé dans Keycloak.</p>
+      </div>
+
+      <!-- Médecin -->
+      <div class="form-group">
+        <label class="form-label">Médecin <span class="req">*</span></label>
+        <select class="form-select" 
+                name="medecinId"
+                [(ngModel)]="newApt.medecinId" 
+                (change)="onDoctorChange()" 
+                required
+                #doctorModel="ngModel"
+                [class.invalid]="doctorModel.invalid && doctorModel.touched">
+          <option value="">Sélectionnez un médecin...</option>
+          <option *ngFor="let d of doctors" [value]="d.id">{{ d.firstName }} {{ d.lastName }}</option>
+        </select>
+        <div *ngIf="doctorModel.invalid && doctorModel.touched" class="error-msg">
+          Le médecin est obligatoire.
+        </div>
+        <p *ngIf="doctors.length === 0" class="warning-msg">⚠️ Aucun médecin trouvé dans Keycloak.</p>
+      </div>
+
+      <div class="form-row">
+        <div class="form-col" style="flex:2">
+          <label class="form-label">Date et Heure <span class="req">*</span></label>
+          <input type="datetime-local" 
+                 name="appointmentDate"
+                 [(ngModel)]="newApt.appointmentDate" 
+                 [min]="getMinDate()" 
+                 required
+                 #dateModel="ngModel"
+                 class="form-input"
+                 [class.invalid]="dateModel.invalid && dateModel.touched">
+          <div *ngIf="dateModel.invalid && dateModel.touched" class="error-msg">
+            La date et l'heure sont obligatoires.
+          </div>
+        </div>
+        <div class="form-col" style="flex:1">
+          <label class="form-label">Durée (min) <span class="req">*</span></label>
+          <input type="number" 
+                 name="durationMinutes"
+                 min="1" 
+                 [(ngModel)]="newApt.durationMinutes" 
+                 required
+                 #durationModel="ngModel"
+                 class="form-input"
+                 [class.invalid]="durationModel.invalid && durationModel.touched">
+          <div *ngIf="durationModel.invalid && durationModel.touched" class="error-msg">
+            Durée requise.
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Type de RDV <span class="req">*</span></label>
+        <select name="type" [(ngModel)]="newApt.type" class="form-select" required #typeModel="ngModel">
+          <option value="CONSULTATION">CONSULTATION</option>
+          <option value="POST_TRANSPLANT">POST_TRANSPLANT</option>
+          <option value="FOLLOW_UP">FOLLOW_UP</option>
+          <option value="BIOPSY">BIOPSY</option>
+          <option value="DIAGNOSTIC">DIAGNOSTIC</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea name="notes" [(ngModel)]="newApt.notes" rows="3" class="form-textarea" placeholder="Observations, remarques…"></textarea>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" (click)="showCreate = false">Annuler</button>
+        <button type="submit" 
+                class="btn-submit" 
+                [disabled]="appointmentForm.invalid">
+          {{ isEdit ? 'Mettre à jour' : 'Créer le RDV' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

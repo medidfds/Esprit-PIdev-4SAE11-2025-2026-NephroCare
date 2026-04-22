@@ -1,0 +1,80 @@
+<div class="el-card">
+    
+    <!-- Header -->
+    <div class="el-header">
+        <div class="el-header__title-group">
+            <div class="el-header__icon">
+                <i class="bi bi-shield-exclamation text-xl"></i>
+            </div>
+            <div>
+                <h3 class="el-header__title">Escalation Logs</h3>
+                <p class="el-header__subtitle">History of critical readiness alerts and system overrides</p>
+            </div>
+        </div>
+        <button class="el-btn el-btn--outline" (click)="loadLogs()">
+            <i class="bi bi-arrow-repeat"></i>
+        </button>
+    </div>
+
+    <!-- Body / Loading -->
+    @if (isLoading) {
+        <div class="el-loading">
+            <div class="el-spinner"></div>
+            <p>Loading escalation history...</p>
+        </div>
+    } @else {
+        
+        <!-- Table -->
+        @if (logs.length > 0) {
+            <div class="el-table-wrap">
+                <table class="el-table">
+                    <thead>
+                        <tr>
+                            <th>Patient Name</th>
+                            <th>Event Level</th>
+                            <th>Triggered At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (log of logs; track log.id) {
+                            <tr class="el-row">
+                                <!-- Patient Name -->
+                                <td>
+                                    <div class="el-log" title="System Session ID: {{ log.scheduledSessionId }}">
+                                        <i class="bi bi-person-circle el-log__icon"></i>
+                                        <span class="font-medium text-black dark:text-white">
+                                            {{ patientNames[log.patientId] || 'Pending Verification...' }}
+                                        </span>
+                                    </div>
+                                </td>
+
+                                <!-- Event Level -->
+                                <td>
+                                    <span class="el-badge" [ngClass]="getLevelClass(log.level)">
+                                        {{ getLevelLabel(log.level) }}
+                                    </span>
+                                </td>
+
+                                <!-- Triggered At -->
+                                <td>
+                                    <div class="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                        {{ log.triggeredAt | date:'medium' }}
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        } @else {
+            <!-- Empty State -->
+            <div class="el-empty">
+                <div class="el-empty__icon">
+                    <i class="bi bi-check2-shield text-6xl"></i>
+                </div>
+                <h4 class="el-empty__title">System clear</h4>
+                <p class="el-empty__sub">No escalation events have been logged yet.</p>
+            </div>
+        }
+    }
+</div>

@@ -1,0 +1,275 @@
+<div class="vm-wrapper">
+
+    <!-- Header -->
+    <div class="vm-header">
+        <div class="vm-header-left">
+            <div class="vm-icon-box">
+                <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M8 17h8M3 11l2-6h14l2 6M3 11h18M5 17l-1 3h16l-1-3" />
+                </svg>
+            </div>
+            <div>
+                <h2 class="vm-title">Vehicle Management</h2>
+                <p class="vm-subtitle">Manage transport fleet registry and physical resources</p>
+            </div>
+        </div>
+        <button (click)="openCreateModal()" class="vm-add-btn">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+            </svg>
+            Add Vehicle
+        </button>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="vm-stats">
+        <div class="vm-stat-card">
+            <span class="vm-stat-number">{{ vehicles.length }}</span>
+            <span class="vm-stat-label">Total Vehicles</span>
+        </div>
+        <div class="vm-stat-card active">
+            <span class="vm-stat-number">{{ vehicles | activeVehicles }}</span>
+            <span class="vm-stat-label">Active</span>
+        </div>
+        <div class="vm-stat-card idle">
+            <span class="vm-stat-number">{{ vehicles | statusCount:'IDLE' }}</span>
+            <span class="vm-stat-label">Idle</span>
+        </div>
+        <div class="vm-stat-card maintenance">
+            <span class="vm-stat-number">{{ vehicles | statusCount:'MAINTENANCE' }}</span>
+            <span class="vm-stat-label">Maintenance</span>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="vm-table-wrapper">
+        <table class="vm-table">
+            <thead>
+            <tr>
+                <th>Vehicle</th>
+                <th>Capacity</th>
+                <th>Wheelchair</th>
+                <th>Status</th>
+                <th>Active</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let vehicle of vehicles" class="vm-row">
+                <td>
+                    <div class="vm-vehicle-code">
+                        <div class="vm-code-dot"></div>
+                        {{ vehicle.code }}
+                    </div>
+                </td>
+                <td>
+            <span class="vm-capacity-badge">
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" />
+              </svg>
+                {{ vehicle.capacity }} Seats
+            </span>
+                </td>
+                <td>
+            <span class="vm-badge" [ngClass]="vehicle.wheelchairSupported ? 'badge-success' : 'badge-neutral'">
+              <span class="badge-dot"></span>
+                {{ vehicle.wheelchairSupported ? 'Supported' : 'No' }}
+            </span>
+                </td>
+                <td>
+            <span class="vm-badge" [ngClass]="{
+                'badge-idle': vehicle.status === 'IDLE',
+                'badge-assigned': vehicle.status === 'ASSIGNED',
+                'badge-onroute': vehicle.status === 'ON_ROUTE',
+                'badge-maintenance': vehicle.status === 'MAINTENANCE'
+              }">
+              <span class="badge-dot"></span>
+                {{ vehicle.status | titlecase }}
+            </span>
+                </td>
+                <td>
+            <span class="vm-badge" [ngClass]="vehicle.active ? 'badge-success' : 'badge-danger'">
+              <span class="badge-dot"></span>
+                {{ vehicle.active ? 'Active' : 'Inactive' }}
+            </span>
+                </td>
+                <td class="vm-actions-td" style="display: flex; gap: 8px; align-items: center;">
+                    <button (click)="openEditModal(vehicle)" title="Edit" style="background:none; border:none; cursor:pointer; color:#6B7280;">
+                        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    </button>
+                    <button (click)="toggleVehicleActive(vehicle)" [title]="vehicle.active ? 'Deactivate' : 'Activate'" style="background:none; border:none; cursor:pointer; color:#6B7280;">
+                        <svg *ngIf="vehicle.active" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <svg *ngIf="!vehicle.active" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </button>
+                    <button (click)="openDeleteModal(vehicle)" title="Delete" style="background:none; border:none; cursor:pointer; color:#EF4444;">
+                        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                </td>
+            </tr>
+            <tr *ngIf="vehicles.length === 0">
+                <td colspan="6" class="vm-empty">
+                    <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                         style="opacity:0.3;margin-bottom:8px">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                              d="M8 17h8M3 11l2-6h14l2 6M3 11h18" />
+                    </svg>
+                    <p>No vehicles registered yet</p>
+                    <button (click)="openCreateModal()" class="vm-empty-btn">Add your first vehicle</button>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Overlay -->
+<div *ngIf="isModalOpen" class="vm-overlay" (click)="closeModal()">
+    <div class="vm-modal" (click)="$event.stopPropagation()">
+
+        <!-- Modal Header -->
+        <div class="vm-modal-header">
+            <div class="vm-modal-title-group">
+                <div class="vm-modal-icon">
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 17h8M3 11l2-6h14l2 6M3 11h18" />
+                    </svg>
+                </div>
+                <h3 class="vm-modal-title">{{ isEditMode ? 'Edit Vehicle' : 'Add New Vehicle' }}</h3>
+            </div>
+            <button (click)="closeModal()" class="vm-modal-close">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="vm-modal-body">
+            <div class="vm-field">
+                <label class="vm-label">Vehicle Code <span class="required">*</span></label>
+                <input type="text" [(ngModel)]="newVehicle.code" placeholder="e.g. AMB-001" class="vm-input" />
+            </div>
+
+            <div class="vm-field-row">
+                <div class="vm-field">
+                    <label class="vm-label">Capacity (Seats)</label>
+                    <input type="number" [(ngModel)]="newVehicle.capacity" min="1" class="vm-input" />
+                </div>
+                <div class="vm-field">
+                    <label class="vm-label">Initial Status</label>
+                    <select [(ngModel)]="newVehicle.status" class="vm-input">
+                        <option value="IDLE">Idle</option>
+                        <option value="MAINTENANCE">Maintenance</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="vm-toggles">
+                <label class="vm-toggle-label">
+                    <div class="vm-toggle-box">
+                        <div class="vm-toggle-icon wheelchair">
+                            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3m0 0v-3m0 3h-3m3 0h3M12 3a1 1 0 110-2 1 1 0 010 2z" />
+                            </svg>
+                        </div>
+                        <span>Wheelchair Supported</span>
+                    </div>
+                    <div class="vm-checkbox-wrapper">
+                        <input type="checkbox" [(ngModel)]="newVehicle.wheelchairSupported" />
+                    </div>
+                </label>
+
+                <label class="vm-toggle-label">
+                    <div class="vm-toggle-box">
+                        <div class="vm-toggle-icon active-icon">
+                            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <span>Ready (Active)</span>
+                    </div>
+                    <div class="vm-checkbox-wrapper">
+                        <input type="checkbox" [(ngModel)]="newVehicle.active" />
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="vm-modal-footer">
+            <button (click)="closeModal()" class="vm-btn-cancel">Cancel</button>
+            <button (click)="saveVehicle()" [disabled]="!newVehicle.code || isSubmitting" class="vm-btn-save">
+                <svg *ngIf="isSubmitting" class="spin-icon" width="16" height="16" fill="none" viewBox="0 0 24 24"
+                     stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {{ isSubmitting ? 'Saving...' : 'Save Vehicle' }}
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal Overlay -->
+<div *ngIf="isDeleteModalOpen" class="vm-overlay" (click)="closeDeleteModal()">
+    <div class="vm-modal" style="max-width: 400px;" (click)="$event.stopPropagation()">
+
+        <!-- Modal Header -->
+        <div class="vm-modal-header" style="border-bottom: none; padding-bottom: 0;">
+            <div class="vm-modal-title-group" style="align-items: flex-start;">
+                <div class="vm-modal-icon" style="background: #FEF2F2; color: #EF4444; margin-top: 4px;">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <div style="margin-left: 12px;">
+                    <h3 class="vm-modal-title" style="margin-bottom: 8px;">Delete Vehicle</h3>
+                    <p style="font-size: 14px; color: #6B7280; margin: 0; line-height: 1.5;">
+                        Are you sure you want to delete vehicle <strong>{{ vehicleToDelete?.code }}</strong>? This action cannot be undone.
+                    </p>
+                </div>
+            </div>
+            <button (click)="closeDeleteModal()" class="vm-modal-close" style="position: absolute; top: 20px; right: 20px;">
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Modal Body (Error Message) -->
+        <div class="vm-modal-body" style="padding-top: 16px; padding-bottom: 0;" *ngIf="deleteErrorMessage">
+            <div style="background-color: #FEF2F2; color: #B91C1C; padding: 12px; border-radius: 6px; font-size: 13px; font-weight: 500; display: flex; gap: 8px; align-items: center; border: 1px solid #FCA5A5;">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="flex-shrink: 0;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>{{ deleteErrorMessage }}</span>
+            </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="vm-modal-footer" style="background: #F9FAFB; margin-top: 24px; border-top: 1px solid #E5E7EB; padding: 16px 24px; display: flex; justify-content: flex-end; gap: 12px;">
+            <button (click)="closeDeleteModal()" class="vm-btn-cancel">Cancel</button>
+            <button (click)="confirmDelete()" [disabled]="isDeleting" class="vm-btn-save" style="background: #EF4444;">
+                <svg *ngIf="isDeleting" class="spin-icon" width="16" height="16" fill="none" viewBox="0 0 24 24"
+                     stroke="currentColor" style="margin-right: 8px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {{ isDeleting ? 'Deleting...' : 'Delete Vehicle' }}
+            </button>
+        </div>
+
+    </div>
+</div>

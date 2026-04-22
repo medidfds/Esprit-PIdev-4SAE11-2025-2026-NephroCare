@@ -1,0 +1,28 @@
+package org.example.apigateway;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.web.server.SecurityWebFilterChain;
+
+@Configuration
+@EnableWebFluxSecurity
+public class SecurityConfig {
+
+    @Bean
+    public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) throws Exception {
+        http
+            // ✅ CRITICAL: Do NOT add .cors() here
+            // GatewayConfig.java handles all CORS configuration
+            .csrf(csrf -> csrf.disable())
+            .authorizeExchange(authz -> authz
+                .pathMatchers("/error").permitAll()
+                .pathMatchers("/actuator/**").permitAll()
+                .anyExchange().permitAll()  // Allow all for now (can be restricted later)
+            )
+            .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}));
+
+        return http.build();
+    }
+}

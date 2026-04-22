@@ -1,0 +1,441 @@
+services:
+  # =====================================================
+  # INFRASTRUCTURE SERVICES
+  # =====================================================
+
+  mysql:
+    image: mysql:8.0
+    container_name: nephrocare-mysql
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-}
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-nephrocare_db}
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_USER: ${MYSQL_USER:-nephrocare}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-nephrocare_pass}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init-db:/docker-entrypoint-initdb.d
+    networks:
+      - nephrocare-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: nephrocare-phpmyadmin
+    environment:
+      PMA_HOST: mysql
+      PMA_ARBITRARY: 1
+      ALLOW_EMPTY_PASSWORD: "yes"
+    ports:
+      - "8088:80"
+    networks:
+      - nephrocare-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: nephrocare-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:-nephrocare}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:-nephrocare_pass}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MGMT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - nephrocare-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: nephrocare-keycloak
+    command: start-dev
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_DB: dev-file
+    ports:
+      - "8180:8080"
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+    networks:
+      - nephrocare-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+
+  # =====================================================
+  # CORE MICROSERVICES (Socle)
+  # =====================================================
+
+  discovery-service:
+    image: nephrocare/discovery-service:latest
+    build:
+      context: ../discovery-service
+    container_name: nephrocare-discovery-service
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health
+      MANAGEMENT_ENDPOINT_HEALTH_SHOW-DETAILS: always
+    ports:
+      - "${DISCOVERY_PORT:-8761}:8761"
+    networks:
+      - nephrocare-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8761/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    restart: unless-stopped
+
+  config-server:
+    image: nephrocare/config-server:latest
+    build:
+      context: ../config
+    container_name: nephrocare-config-server
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS: file:/app/configs/
+      EUREKA_CLIENT_SERVICE-URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+    ports:
+      - "${CONFIG_PORT:-8888}:8888"
+    volumes:
+      - ../config/src/main/resources/configs:/app/configs
+    networks:
+      - nephrocare-network
+    depends_on:
+      discovery-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8888/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    restart: unless-stopped
+
+  api-gateway:
+    image: nephrocare/api-gateway:latest
+    build:
+      context: ../Api-Gateway
+    container_name: nephrocare-api-gateway
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
+      EUREKA_CLIENT_SERVICE-URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+    ports:
+      - "${GATEWAY_PORT:-8075}:8080"
+    networks:
+      - nephrocare-network
+    depends_on:
+      discovery-service:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    restart: unless-stopped
+
+  # =====================================================
+  # BUSINESS MICROSERVICES
+  # Health checks disabled — actuator not available.
+  # Services are confirmed working; "unhealthy" was a
+  # false positive from wget hitting a missing endpoint.
+  # =====================================================
+
+  user-service:
+    image: nephrocare/user-service:latest
+    build:
+      context: ../user-service
+    container_name: nephrocare-user-service
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
+      EUREKA_CLIENT_SERVICE-URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-nephrocare_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-nephrocare}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-nephrocare_pass}
+    ports:
+      - "${USER_SERVICE_PORT:-8081}:8080"
+    networks:
+      - nephrocare-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    restart: unless-stopped
+
+  clinical-service:
+    image: nephrocare/clinical-service:latest
+    build:
+      context: ../clinical
+    container_name: nephrocare-clinical-service
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
+      EUREKA_CLIENT_SERVICE-URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-nephrocare_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-nephrocare}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-nephrocare_pass}
+    ports:
+      - "${CLINICAL_SERVICE_PORT:-8082}:8080"
+    networks:
+      - nephrocare-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    restart: unless-stopped
+
+  dialysis-service:
+    image: nephrocare/dialysis-service:latest
+    build:
+      context: ../dialysis-service
+    container_name: nephrocare-dialysis-service
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
+      EUREKA_CLIENT_SERVICE-URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-nephrocare_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-nephrocare}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-nephrocare_pass}
+    ports:
+      - "${DIALYSIS_SERVICE_PORT:-8083}:8080"
+    networks:
+      - nephrocare-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    restart: unless-stopped
+
+  dialysis-transport-service:
+    image: nephrocare/dialysis-transport-service:latest
+    build:
+      context: ../dialysis-readiness-transport-service
+    container_name: nephrocare-dialysis-transport-service
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
+      EUREKA_CLIENT_SERVICE-URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-nephrocare_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-nephrocare}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-nephrocare_pass}
+    ports:
+      - "${DIALYSIS_TRANSPORT_PORT:-8085}:8080"
+    networks:
+      - nephrocare-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    restart: unless-stopped
+
+  pharmacy-service:
+    image: nephrocare/pharmacy-service:latest
+    build:
+      context: ../pharmacy-service
+    container_name: nephrocare-pharmacy-service
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
+      EUREKA_CLIENT_SERVICE-URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-nephrocare_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-nephrocare}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-nephrocare_pass}
+    ports:
+      - "${PHARMACY_SERVICE_PORT:-8086}:8080"
+    networks:
+      - nephrocare-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    restart: unless-stopped
+
+  monitoring-service:
+    image: nephrocare/monitoring-service:latest
+    build:
+      context: ../monitoring-service
+    container_name: nephrocare-monitoring-service
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
+      EUREKA_CLIENT_SERVICE-URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-nephrocare_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-nephrocare}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-nephrocare_pass}
+    ports:
+      - "${MONITORING_SERVICE_PORT:-8799}:8080"
+    networks:
+      - nephrocare-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    restart: unless-stopped
+
+  hospitalization-service:
+    image: nephrocare/hospitalization-service:latest
+    build:
+      context: ../Hospitalization-service
+    container_name: nephrocare-hospitalization-service
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
+      EUREKA_CLIENT_SERVICE-URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-nephrocare_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-nephrocare}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-nephrocare_pass}
+    ports:
+      - "${HOSPITALIZATION_PORT:-8070}:8080"
+    networks:
+      - nephrocare-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    restart: unless-stopped
+
+  order-service:
+    image: nephrocare/order-service:latest
+    build:
+      context: ../order-service/order-service
+    container_name: nephrocare-order-service
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
+      EUREKA_CLIENT_SERVICE-URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-nephrocare_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-nephrocare}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-nephrocare_pass}
+    ports:
+      - "${ORDER_SERVICE_PORT:-8090}:8080"
+    networks:
+      - nephrocare-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    restart: unless-stopped
+
+  diagnostic-service:
+    image: nephrocare/diagnostic-service:latest
+    build:
+      context: ../diagnostic-service
+    container_name: nephrocare-diagnostic-service
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
+      EUREKA_CLIENT_SERVICE-URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-nephrocare_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-nephrocare}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-nephrocare_pass}
+    ports:
+      - "${DIAGNOSTIC_SERVICE_PORT:-8091}:8080"
+    networks:
+      - nephrocare-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      discovery-service:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # =====================================================
+  # NODE.JS SERVICES
+  # =====================================================
+
+  pdf-generator-service:
+    image: nephrocare/pdf-generator-service:latest
+    build:
+      context: ../pdf-generator-service
+      dockerfile: Dockerfile
+    container_name: nephrocare-pdf-generator-service
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      HOSPITALIZATION_SERVICE_URL: http://hospitalization-service:8080/api
+      MONITORING_SERVICE_URL: http://monitoring-service:8080/api
+    ports:
+      - "${PDF_GENERATOR_PORT:-4000}:4000"
+    networks:
+      - nephrocare-network
+    depends_on:
+      hospitalization-service:
+        condition: service_started
+      monitoring-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:4000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+networks:
+  nephrocare-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  rabbitmq_data:
+  keycloak_data:

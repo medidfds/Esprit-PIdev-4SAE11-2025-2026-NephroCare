@@ -1,0 +1,482 @@
+/* ─── Wrapper ─────────────────────────────────────────── */
+.vm-wrapper {
+    padding: 28px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 24px !important;
+    font-family: 'Inter', 'Segoe UI', sans-serif !important;
+    background: #f8fafc !important;
+    min-height: 100% !important;
+}
+
+/* ─── Header ──────────────────────────────────────────── */
+.vm-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+    gap: 16px !important;
+    background: white !important;
+    padding: 20px 24px !important;
+    border-radius: 14px !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05) !important;
+}
+
+.vm-header-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 14px !important;
+}
+
+.vm-icon-box {
+    width: 46px !important;
+    height: 46px !important;
+    background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35) !important;
+    flex-shrink: 0 !important;
+}
+
+.vm-title {
+    font-size: 1.2rem !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+}
+
+.vm-subtitle {
+    font-size: 0.8rem !important;
+    color: #94a3b8 !important;
+    margin: 2px 0 0 !important;
+    padding: 0 !important;
+}
+
+.vm-add-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 10px 20px !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4) !important;
+    transition: transform 0.15s, box-shadow 0.15s !important;
+}
+
+.vm-add-btn:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 18px rgba(99, 102, 241, 0.5) !important;
+}
+
+/* ─── Stats ───────────────────────────────────────────── */
+.vm-stats {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 14px !important;
+}
+
+.vm-stat-card {
+    background: white !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    padding: 16px 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    border-left: 4px solid #e2e8f0 !important;
+    transition: transform 0.15s !important;
+}
+
+.vm-stat-card:hover { transform: translateY(-2px) !important; }
+.vm-stat-card.active { border-left-color: #22c55e !important; }
+.vm-stat-card.idle   { border-left-color: #94a3b8 !important; }
+.vm-stat-card.maintenance { border-left-color: #f97316 !important; }
+
+.vm-stat-number {
+    font-size: 1.8rem !important;
+    font-weight: 800 !important;
+    color: #1e293b !important;
+    line-height: 1 !important;
+}
+
+.vm-stat-label {
+    font-size: 0.72rem !important;
+    color: #94a3b8 !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+}
+
+/* ─── Table ───────────────────────────────────────────── */
+.vm-table-wrapper {
+    background: white !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.04) !important;
+}
+
+.vm-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 0.875rem !important;
+}
+
+.vm-table thead tr {
+    background: #f8fafc !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.vm-table th {
+    padding: 13px 18px !important;
+    text-align: left !important;
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.07em !important;
+    color: #64748b !important;
+}
+
+.vm-row {
+    border-bottom: 1px solid #f1f5f9 !important;
+    transition: background 0.15s !important;
+}
+
+.vm-row:last-child { border-bottom: none !important; }
+.vm-row:hover { background: #f8fafc !important; }
+
+.vm-table td {
+    padding: 14px 18px !important;
+    vertical-align: middle !important;
+}
+
+.vm-vehicle-code {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    font-size: 0.9rem !important;
+}
+
+.vm-code-dot {
+    width: 8px !important;
+    height: 8px !important;
+    border-radius: 50% !important;
+    background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
+    flex-shrink: 0 !important;
+}
+
+.vm-capacity-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    background: #f1f5f9 !important;
+    color: #475569 !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 6px !important;
+    padding: 4px 10px !important;
+    font-size: 0.78rem !important;
+    font-weight: 500 !important;
+}
+
+/* ─── Badges ──────────────────────────────────────────── */
+.vm-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 4px 10px !important;
+    border-radius: 999px !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    border: 1px solid transparent !important;
+}
+
+.badge-dot {
+    width: 6px !important;
+    height: 6px !important;
+    border-radius: 50% !important;
+    background: currentColor !important;
+    flex-shrink: 0 !important;
+}
+
+.badge-success     { background: #dcfce7 !important; color: #16a34a !important; border-color: #bbf7d0 !important; }
+.badge-danger      { background: #fee2e2 !important; color: #dc2626 !important; border-color: #fecaca !important; }
+.badge-neutral     { background: #f1f5f9 !important; color: #64748b !important; border-color: #e2e8f0 !important; }
+.badge-idle        { background: #f1f5f9 !important; color: #64748b !important; border-color: #e2e8f0 !important; }
+.badge-assigned    { background: #dbeafe !important; color: #1d4ed8 !important; border-color: #bfdbfe !important; }
+.badge-onroute     { background: #dcfce7 !important; color: #15803d !important; border-color: #bbf7d0 !important; }
+.badge-maintenance { background: #ffedd5 !important; color: #c2410c !important; border-color: #fed7aa !important; }
+
+.vm-actions-pending {
+    font-size: 0.75rem !important;
+    color: #cbd5e1 !important;
+    font-style: italic !important;
+}
+
+/* ─── Empty State ─────────────────────────────────────── */
+.vm-empty {
+    text-align: center !important;
+    padding: 60px 20px !important;
+    color: #94a3b8 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+.vm-empty p {
+    margin: 0 !important;
+    font-size: 0.9rem !important;
+}
+
+.vm-empty-btn {
+    margin-top: 12px !important;
+    background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 8px 18px !important;
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+}
+
+/* ─── Modal Overlay ───────────────────────────────────── */
+.vm-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: rgba(15, 23, 42, 0.65) !important;
+    backdrop-filter: blur(4px) !important;
+    z-index: 9999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.vm-modal {
+    background: white !important;
+    border-radius: 18px !important;
+    width: 490px !important;
+    max-width: calc(100vw - 32px) !important;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.25) !important;
+    overflow: hidden !important;
+    margin: 16px !important;
+}
+
+/* ─── Modal Header ────────────────────────────────────── */
+.vm-modal-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 20px 24px 16px !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.vm-modal-title-group {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+}
+
+.vm-modal-icon {
+    width: 36px !important;
+    height: 36px !important;
+    background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
+    border-radius: 9px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: white !important;
+}
+
+.vm-modal-title {
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    margin: 0 !important;
+}
+
+.vm-modal-close {
+    background: #f1f5f9 !important;
+    border: none !important;
+    border-radius: 8px !important;
+    width: 32px !important;
+    height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: #64748b !important;
+    cursor: pointer !important;
+}
+
+.vm-modal-close:hover {
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
+}
+
+/* ─── Modal Body ──────────────────────────────────────── */
+.vm-modal-body {
+    padding: 20px 24px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 18px !important;
+}
+
+.vm-field {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 7px !important;
+    flex: 1 !important;
+}
+
+.vm-field-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 14px !important;
+}
+
+.vm-label {
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    color: #374151 !important;
+    display: block !important;
+}
+
+.required { color: #ef4444 !important; }
+
+.vm-input {
+    width: 100% !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 9px !important;
+    padding: 9px 13px !important;
+    font-size: 0.875rem !important;
+    color: #1e293b !important;
+    background: #fafafa !important;
+    outline: none !important;
+    box-sizing: border-box !important;
+    display: block !important;
+}
+
+.vm-input:focus {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
+    background: white !important;
+}
+
+/* ─── Toggles ─────────────────────────────────────────── */
+.vm-toggles {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+}
+
+.vm-toggle-label {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    background: #f8fafc !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 10px !important;
+    padding: 12px 16px !important;
+    cursor: pointer !important;
+}
+
+.vm-toggle-label:hover {
+    border-color: #6366f1 !important;
+    background: #f5f3ff !important;
+}
+
+.vm-toggle-box {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    color: #374151 !important;
+}
+
+.vm-toggle-icon {
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.vm-toggle-icon.wheelchair  { background: #dbeafe !important; color: #2563eb !important; }
+.vm-toggle-icon.active-icon { background: #dcfce7 !important; color: #16a34a !important; }
+
+.vm-checkbox-wrapper input[type="checkbox"] {
+    width: 18px !important;
+    height: 18px !important;
+    accent-color: #6366f1 !important;
+    cursor: pointer !important;
+}
+
+/* ─── Modal Footer ────────────────────────────────────── */
+.vm-modal-footer {
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 10px !important;
+    padding: 16px 24px 20px !important;
+    border-top: 1px solid #f1f5f9 !important;
+}
+
+.vm-btn-cancel {
+    background: white !important;
+    border: 1.5px solid #e2e8f0 !important;
+    border-radius: 9px !important;
+    padding: 9px 20px !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    color: #475569 !important;
+    cursor: pointer !important;
+}
+
+.vm-btn-cancel:hover { background: #f1f5f9 !important; }
+
+.vm-btn-save {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 9px !important;
+    padding: 9px 22px !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 12px rgba(99,102,241,0.35) !important;
+}
+
+.vm-btn-save:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+}
+
+.spin-icon { animation: vmSpin 1s linear infinite !important; }
+@keyframes vmSpin { to { transform: rotate(360deg); } }
+
+@media (max-width: 768px) {
+    .vm-stats { grid-template-columns: repeat(2, 1fr) !important; }
+    .vm-field-row { grid-template-columns: 1fr !important; }
+    .vm-wrapper { padding: 16px !important; }
+}
