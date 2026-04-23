@@ -72,6 +72,9 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<mainClass>esprit.config.ConfigApplication</mainClass>
+				</configuration>
 			</plugin>
 
 			<!-- Force Java 17 compiler -->

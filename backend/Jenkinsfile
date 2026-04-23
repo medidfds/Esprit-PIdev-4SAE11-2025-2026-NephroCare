@@ -1,0 +1,68 @@
+pipeline {
+  agent any
+
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+  }
+
+  environment {
+    DOCKERFILE_PATH = 'backend/Dockerfile'
+    BACKEND_ROOT = 'backend'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Build and Test Services') {
+      steps {
+        script {
+          def services = [
+            [name: 'discovery-service', path: 'backend/discovery-service', dockerPath: 'discovery-service'],
+            [name: 'config', path: 'backend/config', dockerPath: 'config'],
+            [name: 'api-gateway', path: 'backend/Api-Gateway', dockerPath: 'Api-Gateway'],
+            [name: 'user-service', path: 'backend/user-service', dockerPath: 'user-service'],
+            [name: 'clinical-service', path: 'backend/clinical', dockerPath: 'clinical'],
+            [name: 'diagnostic-service', path: 'backend/diagnostic-service', dockerPath: 'diagnostic-service'],
+            [name: 'dialysis-service', path: 'backend/dialysis-service', dockerPath: 'dialysis-service'],
+            [name: 'hospitalization-service', path: 'backend/Hospitalization-service', dockerPath: 'Hospitalization-service'],
+            [name: 'order-service', path: 'backend/order-service/order-service', dockerPath: 'order-service/order-service'],
+            [name: 'pharmacy-service', path: 'backend/pharmacy-service', dockerPath: 'pharmacy-service']
+          ]
+
+          for (svc in services) {
+            stage("Test ${svc.name}") {
+              dir(svc.path) {
+                sh 'mvn -B clean test'
+              }
+            }
+            stage("Package ${svc.name}") {
+              dir(svc.path) {
+                sh 'mvn -B -DskipTests package'
+              }
+            }
+            stage("Docker Build ${svc.name}") {
+              sh """
+                docker build \
+                  -f ${DOCKERFILE_PATH} \
+                  --build-arg SERVICE_PATH=${svc.dockerPath} \
+                  -t nephrocare/${svc.name}:jenkins-${BUILD_NUMBER} \
+                  ${BACKEND_ROOT}
+              """
+            }
+          }
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      echo 'Pipeline finished.'
+    }
+  }
+}
