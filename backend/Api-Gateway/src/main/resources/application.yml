@@ -1,5 +1,3 @@
-# config-server/src/main/resources/configs/Api-Gateway.yml
-
 server:
   port: 8070
 
@@ -9,6 +7,7 @@ spring:
   cloud:
     gateway:
       default-filters:
+        # Avoid CORS failure: multiple Access-Control-Allow-Origin values.
         - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
       globalcors:
         add-to-simple-url-handler-mapping: true
@@ -27,6 +26,9 @@ spring:
             allowedHeaders:
               - "*"
             allowCredentials: true
+      discovery:
+        locator:
+          enabled: false
       routes:
         - id: hospitalization-service
           uri: http://hospitalization-service:8076
@@ -63,7 +65,7 @@ spring:
           filters:
             - StripPrefix=1
 
-        # Notification endpoints live in dialysis-service but the UI calls /api/notifications/**
+        # UI calls /api/notifications/** (no service prefix)
         - id: notifications
           uri: http://dialysis-service:8075
           predicates:
@@ -86,4 +88,10 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://discovery-service:8761/eureka/}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

@@ -21,15 +21,22 @@ export class UserDropdownComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     try {
+      const isLoggedIn = await this.keycloakService.isLoggedIn();
+      if (!isLoggedIn) {
+        this.displayName = 'User';
+        this.email = '';
+        return;
+      }
+
       const tokenParsed = this.keycloakService.getKeycloakInstance().tokenParsed as Record<string, any>;
       this.username = tokenParsed?.['preferred_username'] || 'User';
+      const tokenName = `${tokenParsed?.['given_name'] ?? ''} ${tokenParsed?.['family_name'] ?? ''}`.trim();
+      const tokenEmail = tokenParsed?.['email'] ?? '';
 
-      const profile = await this.keycloakService.loadUserProfile();
-      const fullName = `${profile.firstName ?? ''} ${profile.lastName ?? ''}`.trim();
-      this.displayName = fullName || profile.username || this.username;
-      this.email = profile.email ?? '';
+      // Use token claims only (avoids Keycloak /account CORS noise).
+      this.displayName = tokenName || this.username;
+      this.email = tokenEmail;
     } catch (err) {
-      console.error('Failed to resolve navbar user profile', err);
       this.displayName = this.username;
       this.email = '';
     }

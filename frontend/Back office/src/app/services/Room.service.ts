@@ -2,6 +2,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface Room {
   id:               number;
@@ -18,7 +19,7 @@ export class RoomService {
 
   // Routed through the API Gateway:
   //   Gateway path /hospitalization/**  →  stripPrefix(1)  →  /api/rooms/**
-  private readonly baseUrl = 'http://localhost:8070/hospitalization/api/rooms';
+  private readonly baseUrl = `${environment.apiUrl}/hospitalization/api/rooms`;
 
   constructor(private http: HttpClient) {}
 

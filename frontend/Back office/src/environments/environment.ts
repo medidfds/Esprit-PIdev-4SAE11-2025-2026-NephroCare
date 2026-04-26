@@ -1,4 +1,5 @@
 export const environment = {
     production: false,
-    apiUrl: 'http://localhost:8070' // API Gateway port
+    // When backend runs in Kubernetes (NodePort 30070)
+    apiUrl: 'http://localhost:30070'
 };

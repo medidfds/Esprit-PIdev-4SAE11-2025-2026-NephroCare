@@ -16,7 +16,7 @@ export class AlertService {
     }
 
     getAlertsByPatient(patientId: string): Observable<Alert[]> {
-        return this.http.get<Alert[]>(${this.baseUrl}/patient/${patientId});
+        return this.http.get<Alert[]>(`${this.baseUrl}/patient/${patientId}`);
     }
 
     acknowledge(alertId: string): Observable<Alert> {

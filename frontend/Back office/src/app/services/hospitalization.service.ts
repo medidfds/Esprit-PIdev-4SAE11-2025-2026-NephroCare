@@ -2,6 +2,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface HospitalizationRoom {
   id:              number;
@@ -43,7 +44,7 @@ export interface HospitalizationPayload {
 export class HospitalizationService {
 
   // ── URL fixed: removed the extra /hospitalization prefix ──────────────
-  private readonly backendUrl = 'http://localhost:8070/hospitalization/api/hospitalizations';
+  private readonly backendUrl = `${environment.apiUrl}/hospitalization/api/hospitalizations`;
 
   constructor(private http: HttpClient) {}
 

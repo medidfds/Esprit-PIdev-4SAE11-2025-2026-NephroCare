@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 export interface Consultation {
   id?: number;
@@ -97,9 +98,9 @@ export interface DoctorEfficiencyMetric {
   providedIn: 'root'
 })
 export class ClinicalService {
-  private consulationBaseUrl = 'http://localhost:8079/api/consultations';
-  private medicalHistoryBaseUrl = 'http://localhost:8079/api/medical-histories';
-  private triageBaseUrl = 'http://localhost:8079/api/triage';
+  private consulationBaseUrl = `${environment.apiUrl}/clinical/api/consultations`;
+  private medicalHistoryBaseUrl = `${environment.apiUrl}/clinical/api/medical-histories`;
+  private triageBaseUrl = `${environment.apiUrl}/clinical/api/triage`;
 
   constructor(private http: HttpClient) {}
 

@@ -2,6 +2,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 export interface Hospitalization {
   id?: number;
@@ -18,7 +19,7 @@ export interface Hospitalization {
   providedIn: 'root'
 })
 export class HospitalizationService {
-  private backendUrl = 'http://localhost:8070/hospitalization/api/hospitalizations';
+  private backendUrl = `${environment.apiUrl}/hospitalization/api/hospitalizations`;
 
   constructor(private http: HttpClient) {}
 
