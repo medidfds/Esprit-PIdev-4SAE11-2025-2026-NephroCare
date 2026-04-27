@@ -7,18 +7,20 @@ pipeline {
   }
 
   environment {
+    REPO_URL = 'https://github.com/medidfds/Esprit-PIdev-4SAE11-2025-2026-NephroCare.git'
+    BRANCH_NAME = 'main'
     DOCKERFILE_PATH = 'backend/Dockerfile'
     BACKEND_ROOT = 'backend'
   }
 
   stages {
-    stage('Checkout') {
+    stage('Checkout from Git') {
       steps {
-        checkout scm
+        git branch: "${BRANCH_NAME}", url: "${REPO_URL}"
       }
     }
 
-    stage('Build and Test Services') {
+    stage('Build/Test/Package/Docker per service') {
       steps {
         script {
           def services = [
@@ -40,11 +42,13 @@ pipeline {
                 sh 'mvn -B clean test'
               }
             }
+
             stage("Package ${svc.name}") {
               dir(svc.path) {
                 sh 'mvn -B -DskipTests package'
               }
             }
+
             stage("Docker Build ${svc.name}") {
               sh """
                 docker build \
@@ -61,7 +65,14 @@ pipeline {
   }
 
   post {
+    success {
+      echo 'Pipeline SUCCESS ✅'
+    }
+    failure {
+      echo 'Pipeline FAILED ❌'
+    }
     always {
+      archiveArtifacts artifacts: '**/target/*.jar', allowEmptyArchive: true
       echo 'Pipeline finished.'
     }
   }

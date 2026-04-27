@@ -134,3 +134,7 @@ kubectl -n nephrocare get pods -w
 # Open api gateway and keycloack and eureka server 
 
 Start-Process powershell -ArgumentList '-NoExit','-Command','kubectl -n nephrocare port-forward svc/api-gateway 30070:8070'; Start-Process powershell -ArgumentList '-NoExit','-Command','kubectl -n nephrocare port-forward svc/keycloak 30180:8180'; Start-Process powershell -ArgumentList '-NoExit','-Command','kubectl -n nephrocare port-forward svc/discovery-service 8762:8761'
+
+#jenkins
+
+mdp : 115a8e02de424b628ba9ed7d275f6a01
