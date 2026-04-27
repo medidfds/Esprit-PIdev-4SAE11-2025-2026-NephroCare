@@ -140,3 +140,5 @@ Start-Process powershell -ArgumentList '-NoExit','-Command','kubectl -n nephroca
 mdp : 115a8e02de424b628ba9ed7d275f6a01
 
 #git token : ghp_XXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+run jenkins docker run -d -p 8080:8080 -p 50000:50000 -v jenkins_home:/var/jenkins_home -v /var/run/docker.sock:/var/run/docker.sock jenkins-docker
