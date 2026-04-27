@@ -47,8 +47,12 @@ export class HospitalizationComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     try {
-      const profile = await this.keycloakService.loadUserProfile();
-      this.currentUserId = profile.id ?? null;
+      const tokenParsed: any = this.keycloakService.getKeycloakInstance().tokenParsed ?? {};
+      this.currentUserId =
+        tokenParsed.sub ??
+        tokenParsed.preferred_username ??
+        tokenParsed.email ??
+        null;
     } catch (err) {
       console.error('Failed to load Keycloak user profile', err);
       this.currentUserId = null;

@@ -45,7 +45,7 @@ export type DialysisSessionDto = {
 export class DialysisFrontService {
   // Replace with environment.apiUrl if you have it.
   // Example: private readonly baseUrl = environment.apiUrl;
-  private readonly baseUrl = 'http://localhost:8075/api';
+  private readonly baseUrl = 'http://localhost:30070/dialysis/api';
 
   constructor(private http: HttpClient) {}
 

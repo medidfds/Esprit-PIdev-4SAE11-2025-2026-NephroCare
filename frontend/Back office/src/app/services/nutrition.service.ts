@@ -2,6 +2,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface NutritionPlan {
   id?:                number;
@@ -89,7 +90,7 @@ export interface HospitalizationInfo {
 @Injectable({ providedIn: 'root' })
 export class NutritionService {
 
-  private readonly base = 'http://localhost:8070/hospitalization/api/nutrition';
+  private readonly base = `${environment.apiUrl}/hospitalization/api/nutrition`;
 
   constructor(private http: HttpClient) {}
 

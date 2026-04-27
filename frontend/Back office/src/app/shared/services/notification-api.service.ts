@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { Observable } from 'rxjs';
+import { Observable, catchError, of } from 'rxjs';
 
 export interface NotificationDto {
     id: string;
@@ -22,11 +22,15 @@ export class NotificationApiService {
     constructor(private http: HttpClient) {}
 
     my(): Observable<NotificationDto[]> {
-        return this.http.get<NotificationDto[]>(`${this.baseUrl}/my`);
+        return this.http.get<NotificationDto[]>(`${this.baseUrl}/my`).pipe(
+            catchError(() => of([]))
+        );
     }
 
     unreadCount(): Observable<number> {
-        return this.http.get<number>(`${this.baseUrl}/my/unread-count`);
+        return this.http.get<number>(`${this.baseUrl}/my/unread-count`).pipe(
+            catchError(() => of(0))
+        );
     }
 
     markRead(id: string): Observable<void> {

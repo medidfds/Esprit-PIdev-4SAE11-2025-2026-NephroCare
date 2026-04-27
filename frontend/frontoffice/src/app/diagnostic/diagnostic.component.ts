@@ -61,7 +61,7 @@ const POPUP_DURATIONS: Record<string, number> = {
 export class DiagnosticComponent implements OnInit, OnDestroy {
 
   // ── Orders ────────────────────────────────────────────────────────────────
-  backendUrl      = 'http://localhost:8070/diagnostic/diagnostic-orders';
+  backendUrl      = 'http://localhost:30070/diagnostic/diagnostic-orders';
   orders:          DiagnosticOrder[] = [];
   filteredOrders:  DiagnosticOrder[] = [];
   form:            FormGroup;
@@ -71,6 +71,7 @@ export class DiagnosticComponent implements OnInit, OnDestroy {
   searchQuery  = '';
   sortField:    SortField = '';
   sortDir:      SortDir   = 'asc';
+  todayIso = this.toLocalDatetimeInputValue(new Date());
 
   // ── Notifications (panneau in-page) ───────────────────────────────────────
   notifications:     DiagnosticNotification[] = [];
@@ -191,9 +192,19 @@ export class DiagnosticComponent implements OnInit, OnDestroy {
 
   private formatDateForBackend(dateStr: string): string {
     if (!dateStr) return '';
-    if (dateStr.includes('T') && dateStr.length > 10) return dateStr;
-    const now = new Date();
-    return `${dateStr}T${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+
+    const parsed = new Date(dateStr);
+    if (Number.isNaN(parsed.getTime())) return '';
+
+    // Keep a safety margin to avoid @PastOrPresent failures caused by clock skew.
+    const safetyNow = new Date(Date.now() - 2 * 60 * 1000);
+    const safeDate = parsed.getTime() > safetyNow.getTime() ? safetyNow : parsed;
+    return safeDate.toISOString().slice(0, 19);
+  }
+
+  private toLocalDatetimeInputValue(date: Date): string {
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16);
   }
 
   saveOrder(): void {
@@ -231,7 +242,7 @@ export class DiagnosticComponent implements OnInit, OnDestroy {
     this.editingId = order.id || null;
     this.form.patchValue({
       ...order,
-      orderDate: order.orderDate ? order.orderDate.substring(0, 10) : ''
+      orderDate: order.orderDate ? order.orderDate.substring(0, 16) : ''
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }

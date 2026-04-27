@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
  
 export interface OrderStats {
   totalOrders:       number;
@@ -45,7 +46,7 @@ export interface GlobalStats {
 @Injectable({ providedIn: 'root' })
 export class StatsService {
  
-  private readonly BASE = 'http://localhost:8089/api/stats';
+  private readonly BASE = `${environment.apiUrl}/orders/api/stats`;
  
   constructor(private http: HttpClient) {}
  

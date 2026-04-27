@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
  
 export type DeliveryStatus =
   | 'SCHEDULED' | 'IN_TRANSIT' | 'DELIVERED' | 'FAILED' | 'RETURNED';
@@ -31,7 +32,7 @@ export interface DeliveryResponse {
 @Injectable({ providedIn: 'root' })
 export class DeliveryService {
  
-  private base = 'http://localhost:8070/orders/api/deliveries';
+  private base = `${environment.apiUrl}/orders/api/deliveries`;
  
   constructor(private http: HttpClient) {}
  

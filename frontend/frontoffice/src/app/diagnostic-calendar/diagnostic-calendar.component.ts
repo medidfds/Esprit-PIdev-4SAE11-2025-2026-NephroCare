@@ -32,7 +32,7 @@ interface CalendarDay {
 })
 export class DiagnosticCalendarComponent implements OnInit {
 
-  private backendUrl = 'http://localhost:8070/diagnostic/diagnostic-orders';
+  private backendUrl = 'http://localhost:30070/diagnostic/diagnostic-orders';
 
   orders: DiagnosticOrder[] = [];
   calendarWeeks: CalendarDay[][] = [];

@@ -2,11 +2,12 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { DeliveryResponse, DeliveryStatus } from './delivery.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class DriverService {
 
-  private readonly BASE = 'http://localhost:8070/orders/api/deliveries';
+  private readonly BASE = `${environment.apiUrl}/orders/api/deliveries`;
 
 
   constructor(private http: HttpClient) {}

@@ -18,7 +18,7 @@ export interface Hospitalization {
   providedIn: 'root'
 })
 export class HospitalizationService {
-  private backendUrl = 'http://localhost:8070/hospitalization/api/hospitalizations';
+  private backendUrl = 'http://localhost:30070/hospitalization/api/hospitalizations';
 
   constructor(private http: HttpClient) {}
 

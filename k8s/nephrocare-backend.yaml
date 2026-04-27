@@ -24,6 +24,7 @@ metadata:
 data:
   SPRING_PROFILES_ACTIVE: docker
   EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+  EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
   CONFIG_SERVER_URL: http://config-server:8888
   KEYCLOAK_URL: http://keycloak:8180
   KEYCLOAK_REALM_ISSUER: http://keycloak:8180/realms/nephro-realm
@@ -249,7 +250,7 @@ spec:
       containers:
         - name: config-server
           image: nephrocare/config-server:local
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8888
           env:
@@ -292,7 +293,7 @@ spec:
       containers:
         - name: api-gateway
           image: nephrocare/api-gateway:local
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8070
           env:

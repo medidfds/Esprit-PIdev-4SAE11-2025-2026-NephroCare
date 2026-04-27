@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export type MovementType   = 'IN' | 'OUT';
 export type MovementReason =
@@ -46,7 +47,7 @@ export interface StockStats {
 @Injectable({ providedIn: 'root' })
 export class StockService {
 
-  private base = 'http://localhost:8070/pharmacy/api/stock';
+  private base = `${environment.apiUrl}/pharmacy/api/stock`;
 
   // ✅ Options communes — désactive Keycloak interceptor
   private opts = { withCredentials: false };

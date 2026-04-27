@@ -131,3 +131,6 @@ kubectl -n nephrocare get pods -w
 - Hard refresh the browser (`Ctrl+F5`)
 - If you get `401` after CORS is OK: logout/login again (stale token)
 
+# Open api gateway and keycloack and eureka server 
+
+Start-Process powershell -ArgumentList '-NoExit','-Command','kubectl -n nephrocare port-forward svc/api-gateway 30070:8070'; Start-Process powershell -ArgumentList '-NoExit','-Command','kubectl -n nephrocare port-forward svc/keycloak 30180:8180'; Start-Process powershell -ArgumentList '-NoExit','-Command','kubectl -n nephrocare port-forward svc/discovery-service 8762:8761'

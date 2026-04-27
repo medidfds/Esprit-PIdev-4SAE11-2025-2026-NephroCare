@@ -18,7 +18,7 @@ export class RoomService {
 
   // Routed through the API Gateway:
   //   Gateway path /hospitalization/**  →  stripPrefix(1)  →  /api/rooms/**
-  private readonly baseUrl = 'http://localhost:8070/hospitalization/api/rooms';
+  private readonly baseUrl = 'http://localhost:30070/hospitalization/api/rooms';
 
   constructor(private http: HttpClient) {}
 

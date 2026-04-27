@@ -1,13 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { Subscription, interval, startWith, switchMap, forkJoin, of, finalize } from 'rxjs';
+import { Subscription, switchMap, forkJoin, finalize } from 'rxjs';
 
 import { DropdownComponent} from "../../../../shared/components/ui/dropdown/dropdown.component";
 import { DropdownItemComponent} from "../../../../shared/components/ui/dropdown/dropdown-item/dropdown-item.component";
 
 import { NotificationApiService, NotificationDto} from "../../../../shared/services/notification-api.service";
 import { DialysisService} from "../../../../shared/services/dialysis.service";
+import { KeycloakService } from "keycloak-angular";
 
 @Component({
   selector: 'app-dialysis-notification',
@@ -17,6 +18,7 @@ import { DialysisService} from "../../../../shared/services/dialysis.service";
 })
 export class DialysisNotificationComponent implements OnInit, OnDestroy {
   isOpen = false;
+  canReadNotifications = false;
 
   notifying = false;      // ping dot
   unread = 0;             // unread count
@@ -29,11 +31,12 @@ export class DialysisNotificationComponent implements OnInit, OnDestroy {
 
   constructor(
       private notifApi: NotificationApiService,
-      private dialysisApi: DialysisService
+      private dialysisApi: DialysisService,
+      private keycloak: KeycloakService
   ) {}
 
   ngOnInit(): void {
-    this.startPolling();
+    void this.initNotificationAccess();
   }
 
   ngOnDestroy(): void {
@@ -41,28 +44,38 @@ export class DialysisNotificationComponent implements OnInit, OnDestroy {
   }
 
   private startPolling() {
+    // Intentionally no background polling to avoid repeated unauthorized calls.
+    // Data is refreshed on demand when opening the dropdown.
     this.pollSub?.unsubscribe();
-    this.pollSub = interval(3000).pipe(
-        startWith(0),
-        switchMap(() => forkJoin({
-          list: this.notifApi.my(),
-          unread: this.notifApi.unreadCount(),
-        }))
-    ).subscribe({
-      next: (res) => {
-        const prevUnread = this.unread;
+  }
 
-        this.notifications = res.list ?? [];
-        this.unread = res.unread ?? 0;
+  private async initNotificationAccess(): Promise<void> {
+    const allowedRoles = ['admin', 'ADMIN', 'doctor', 'DOCTOR', 'nurse', 'NURSE'];
+    const checks = await Promise.all(allowedRoles.map((role) => this.keycloak.isUserInRole(role)));
+    this.canReadNotifications = checks.some(Boolean);
 
-        // ping when new unread arrives
-        this.notifying = this.unread > 0 && this.unread !== prevUnread;
-      },
-    });
+    if (this.canReadNotifications) {
+      this.startPolling();
+      return;
+    }
+
+    this.disableNotifications();
+  }
+
+  private disableNotifications(): void {
+    this.canReadNotifications = false;
+    this.unread = 0;
+    this.notifications = [];
+    this.notifying = false;
+    this.pollSub?.unsubscribe();
   }
 
   toggleDropdown() {
     this.isOpen = !this.isOpen;
+    if (!this.canReadNotifications) {
+      this.notifying = false;
+      return;
+    }
     if (this.isOpen) {
       this.notifying = false;
       this.refreshOnce();
@@ -74,12 +87,14 @@ export class DialysisNotificationComponent implements OnInit, OnDestroy {
   }
 
   refreshOnce() {
+    if (!this.canReadNotifications) return;
     forkJoin({
       list: this.notifApi.my(),
       unread: this.notifApi.unreadCount(),
     }).subscribe((res) => {
       this.notifications = res.list ?? [];
       this.unread = res.unread ?? 0;
+      this.notifying = this.unread > 0;
     });
   }
 

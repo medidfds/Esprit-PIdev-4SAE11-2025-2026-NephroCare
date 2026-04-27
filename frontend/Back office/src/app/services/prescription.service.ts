@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Medication } from './pharmacy.service';
+import { environment } from '../../environments/environment';
 
 export type PrescriptionStatus =
   | 'PENDING'
@@ -27,7 +28,7 @@ export interface Prescription {
 })
 export class PrescriptionService {
 
-  private baseUrl = 'http://localhost:8070/pharmacy/api/pharmacy/prescriptions';
+  private baseUrl = `${environment.apiUrl}/pharmacy/api/pharmacy/prescriptions`;
 
   constructor(private http: HttpClient) {}
 

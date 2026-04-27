@@ -21,7 +21,7 @@ export class DiagnosticResultComponent implements OnInit {
   form!: FormGroup;
   editingId: string | null = null;
   searchTerm = '';
-  todayIso = new Date().toISOString().slice(0, 16);
+  todayIso = this.toLocalDatetimeInputValue(new Date());
 
   ngOnInit(): void {
     this.initForm();
@@ -56,9 +56,10 @@ export class DiagnosticResultComponent implements OnInit {
     if (this.form.invalid) return;
 
     const raw = this.form.value;
+    const resultDate = this.normalizeResultDate(raw.resultDate);
     const payload = {
       ...raw,
-      resultDate: raw.resultDate ? raw.resultDate + ':00' : null
+      resultDate
     };
 
     const obs = this.editingId
@@ -120,5 +121,22 @@ export class DiagnosticResultComponent implements OnInit {
     return isAbnormal
       ? 'bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-400'
       : 'bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-400';
+  }
+
+  private normalizeResultDate(rawValue: string | null): string | null {
+    if (!rawValue) return null;
+
+    const parsed = new Date(rawValue);
+    if (Number.isNaN(parsed.getTime())) return null;
+
+    const nowUtc = new Date();
+    const safeUtc = parsed.getTime() > nowUtc.getTime() ? nowUtc : parsed;
+
+    return safeUtc.toISOString().slice(0, 19);
+  }
+
+  private toLocalDatetimeInputValue(date: Date): string {
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16);
   }
 }

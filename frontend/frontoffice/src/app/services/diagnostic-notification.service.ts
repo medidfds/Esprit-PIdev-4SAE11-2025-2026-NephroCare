@@ -48,7 +48,7 @@ const OVERDUE_HOURS = 24;
 @Injectable({ providedIn: 'root' })
 export class DiagnosticNotificationService implements OnDestroy {
 
-  private readonly backendUrl = 'http://localhost:8070/diagnostic/diagnostic-orders';
+  private readonly backendUrl = 'http://localhost:30070/diagnostic/diagnostic-orders';
   private readonly POLL_INTERVAL_MS = 30_000; // 30 s
 
   private notifications$ = new BehaviorSubject<DiagnosticNotification[]>([]);

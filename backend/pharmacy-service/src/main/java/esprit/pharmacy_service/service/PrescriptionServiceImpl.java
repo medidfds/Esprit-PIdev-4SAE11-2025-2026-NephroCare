@@ -28,12 +28,12 @@ public class PrescriptionServiceImpl implements IPrescriptionService {
 
     @Override
     public List<Prescription> findAll() {
-        return prescriptionRepository.findAll();
+        return prescriptionRepository.findAllWithMedications();
     }
 
     @Override
     public Prescription findById(String id) {
-        return prescriptionRepository.findById(id)
+        return prescriptionRepository.findByIdWithMedications(id)
                 .orElseThrow(() -> new RuntimeException("Prescription not found"));
     }
 

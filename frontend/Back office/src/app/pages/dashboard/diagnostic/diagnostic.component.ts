@@ -19,7 +19,7 @@ export class DiagnosticComponent implements OnInit {
   editingId: string | null = null;
   searchTerm: string = '';
 
-  todayIso = new Date().toISOString().slice(0, 16);
+  todayIso = this.toLocalDatetimeInputValue(new Date());
 
   orderTypes = ['LABORATORY', 'RADIOLOGY', 'ULTRASOUND', 'CT_SCAN', 'MRI', 'X_RAY'];
   priorities = ['ROUTINE', 'URGENT', 'STAT', 'EMERGENCY'];
@@ -64,9 +64,10 @@ export class DiagnosticComponent implements OnInit {
     if (this.form.invalid) return;
 
     const raw = this.form.value;
+    const orderDate = this.normalizeOrderDate(raw.orderDate);
     const payload = {
       ...raw,
-      orderDate: raw.orderDate ? raw.orderDate + ':00' : null
+      orderDate
     };
 
     const obs = this.editingId
@@ -77,6 +78,27 @@ export class DiagnosticComponent implements OnInit {
       next: () => { this.loadAll(); this.cancel(); },
       error: err => console.error('Save error:', err)
     });
+  }
+
+  private normalizeOrderDate(rawValue: string | null): string | null {
+    if (!rawValue) return null;
+
+    const parsed = new Date(rawValue);
+    if (Number.isNaN(parsed.getTime())) return null;
+
+    // Backend uses @PastOrPresent. In distributed env (browser vs k8s pod clock drift),
+    // "current minute" can still be rejected as future.
+    // Keep a small safety margin to avoid intermittent 500 on create.
+    const nowUtc = new Date();
+    const safetyNowUtc = new Date(nowUtc.getTime() - 2 * 60 * 1000);
+    const safeUtc = parsed.getTime() > safetyNowUtc.getTime() ? safetyNowUtc : parsed;
+
+    return safeUtc.toISOString().slice(0, 19);
+  }
+
+  private toLocalDatetimeInputValue(date: Date): string {
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16);
   }
 
   edit(order: any): void {

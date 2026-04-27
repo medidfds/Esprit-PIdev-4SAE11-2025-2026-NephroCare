@@ -121,10 +121,10 @@
 
           <!-- CHAMP PATIENT — Dropdown Keycloak -->
           <div class="form-group user-select-group">
-            <label><i class="fas fa-user"></i> Patient</label>
+            <label for="rx-user-search"><i class="fas fa-user"></i> Patient</label>
             <div class="user-search-wrap">
               <i class="fas fa-search user-search-icon"></i>
-              <input type="text" class="user-search-input"
+              <input id="rx-user-search" name="rxUserSearch" type="text" class="user-search-input"
                      [(ngModel)]="userSearchQuery" [ngModelOptions]="{ standalone: true }"
                      (input)="onUserSearch()"
                      (focus)="showUserDropdown = true; filteredUsers = keycloakUsers"
@@ -147,7 +147,7 @@
                 <span class="uo-tag">@{{ u.username }}</span>
               </div>
             </div>
-            <input type="hidden" formControlName="userId" />
+            <input id="rx-user-id" name="rxUserId" type="hidden" formControlName="userId" />
             <small class="user-id-confirm" *ngIf="prescriptionForm.get('userId')?.value">
               <i class="fas fa-check-circle"></i>
               ID : {{ prescriptionForm.get('userId')?.value | slice:0:20 }}...
@@ -155,23 +155,23 @@
           </div>
 
           <div class="form-group">
-            <label><i class="fas fa-user-md"></i> Prescribed By</label>
-            <input type="text" formControlName="prescribedBy" placeholder="Doctor name" />
+            <label for="rx-prescribed-by"><i class="fas fa-user-md"></i> Prescribed By</label>
+            <input id="rx-prescribed-by" name="prescribedBy" type="text" formControlName="prescribedBy" placeholder="Doctor name" />
           </div>
           <div class="form-group">
-            <label><i class="fas fa-stethoscope"></i> Consultation ID</label>
-            <input type="text" formControlName="consultationId" placeholder="Optional" />
+            <label for="rx-consultation-id"><i class="fas fa-stethoscope"></i> Consultation ID</label>
+            <input id="rx-consultation-id" name="consultationId" type="text" formControlName="consultationId" placeholder="Optional" />
           </div>
           <div class="form-group">
-            <label><i class="fas fa-tag"></i> Status</label>
-            <select formControlName="status">
+            <label for="rx-status"><i class="fas fa-tag"></i> Status</label>
+            <select id="rx-status" name="status" formControlName="status">
               <option *ngFor="let s of statuses" [value]="s">{{ s }}</option>
             </select>
           </div>
 
           <div class="form-group">
-            <label><i class="fas fa-calendar-alt"></i> Prescription Date</label>
-            <input type="date" formControlName="prescriptionDate"
+            <label for="rx-prescription-date"><i class="fas fa-calendar-alt"></i> Prescription Date</label>
+            <input id="rx-prescription-date" name="prescriptionDate" type="date" formControlName="prescriptionDate"
                    [min]="today()" (change)="onPrescriptionDateChange()" />
             <small class="field-error"
                    *ngIf="prescriptionForm.get('prescriptionDate')?.errors?.['pastDate'] &&
@@ -181,8 +181,8 @@
           </div>
 
           <div class="form-group">
-            <label><i class="fas fa-calendar-check"></i> Valid Until</label>
-            <input type="date" formControlName="validUntil"
+            <label for="rx-valid-until"><i class="fas fa-calendar-check"></i> Valid Until</label>
+            <input id="rx-valid-until" name="validUntil" type="date" formControlName="validUntil"
                    [min]="getPrescriptionMinValidUntil()" />
             <small class="field-error"
                    *ngIf="prescriptionForm.errors?.['endBeforeStart'] &&
@@ -192,8 +192,8 @@
           </div>
 
           <div class="form-group full">
-            <label><i class="fas fa-align-left"></i> Instructions</label>
-            <textarea formControlName="instructions" placeholder="Special instructions..."></textarea>
+            <label for="rx-instructions"><i class="fas fa-align-left"></i> Instructions</label>
+            <textarea id="rx-instructions" name="instructions" formControlName="instructions" placeholder="Special instructions..."></textarea>
           </div>
         </div>
 
@@ -215,51 +215,51 @@
             </div>
             <div class="form-grid">
               <div class="form-group">
-                <label><i class="fas fa-pills"></i> Name</label>
-                <select formControlName="medicationName" (change)="onMedicationNameChange(i)">
+                <label [attr.for]="'rx-med-name-' + i"><i class="fas fa-pills"></i> Name</label>
+                <select [attr.id]="'rx-med-name-' + i" [attr.name]="'medicationName-' + i" formControlName="medicationName" (change)="onMedicationNameChange(i)">
                   <option value="" disabled>Select medication</option>
                   <option *ngFor="let m of KIDNEY_MEDS" [value]="m">{{ m }}</option>
                 </select>
               </div>
               <div class="form-group">
-                <label><i class="fas fa-flask"></i> Dosage</label>
-                <select formControlName="dosage" *ngIf="getDosages(i).length > 0; else freeDosage">
+                <label [attr.for]="'rx-med-dosage-' + i"><i class="fas fa-flask"></i> Dosage</label>
+                <select [attr.id]="'rx-med-dosage-' + i" [attr.name]="'dosage-' + i" formControlName="dosage" *ngIf="getDosages(i).length > 0; else freeDosage">
                   <option value="" disabled>Select dosage</option>
                   <option *ngFor="let d of getDosages(i)" [value]="d">{{ d }}</option>
                 </select>
                 <ng-template #freeDosage>
-                  <input type="text" formControlName="dosage" placeholder="e.g. 500mg" />
+                  <input [attr.id]="'rx-med-dosage-' + i" [attr.name]="'dosage-' + i" type="text" formControlName="dosage" placeholder="e.g. 500mg" />
                 </ng-template>
               </div>
               <div class="form-group">
-                <label><i class="fas fa-redo"></i> Frequency (×/day)</label>
-                <input type="number" formControlName="frequency" min="1" (input)="enforceMin($event, 1)" placeholder="Min 1" />
+                <label [attr.for]="'rx-med-frequency-' + i"><i class="fas fa-redo"></i> Frequency (×/day)</label>
+                <input [attr.id]="'rx-med-frequency-' + i" [attr.name]="'frequency-' + i" type="number" formControlName="frequency" min="1" (input)="enforceMin($event, 1)" placeholder="Min 1" />
                 <small class="field-error" *ngIf="medicationsArray.at(i).get('frequency')?.invalid && medicationsArray.at(i).get('frequency')?.touched">Must be ≥ 1</small>
               </div>
               <div class="form-group">
-                <label><i class="fas fa-route"></i> Route</label>
-                <select formControlName="route">
+                <label [attr.for]="'rx-med-route-' + i"><i class="fas fa-route"></i> Route</label>
+                <select [attr.id]="'rx-med-route-' + i" [attr.name]="'route-' + i" formControlName="route">
                   <option [ngValue]="null" disabled>Select</option>
                   <option *ngFor="let r of routes" [value]="r">{{ r }}</option>
                 </select>
               </div>
               <div class="form-group">
-                <label><i class="fas fa-clock"></i> Duration (days)</label>
-                <input type="number" formControlName="duration" min="1" (input)="enforceMin($event, 1)" placeholder="Min 1" />
+                <label [attr.for]="'rx-med-duration-' + i"><i class="fas fa-clock"></i> Duration (days)</label>
+                <input [attr.id]="'rx-med-duration-' + i" [attr.name]="'duration-' + i" type="number" formControlName="duration" min="1" (input)="enforceMin($event, 1)" placeholder="Min 1" />
                 <small class="field-error" *ngIf="medicationsArray.at(i).get('duration')?.invalid && medicationsArray.at(i).get('duration')?.touched">Must be ≥ 1</small>
               </div>
               <div class="form-group">
-                <label><i class="fas fa-boxes"></i> Quantity</label>
-                <input type="number" formControlName="quantity" min="1" (input)="enforceMin($event, 1)" placeholder="Min 1" />
+                <label [attr.for]="'rx-med-quantity-' + i"><i class="fas fa-boxes"></i> Quantity</label>
+                <input [attr.id]="'rx-med-quantity-' + i" [attr.name]="'quantity-' + i" type="number" formControlName="quantity" min="1" (input)="enforceMin($event, 1)" placeholder="Min 1" />
                 <small class="field-error" *ngIf="medicationsArray.at(i).get('quantity')?.invalid && medicationsArray.at(i).get('quantity')?.touched">Must be ≥ 1</small>
               </div>
               <div class="form-group">
-                <label><i class="fas fa-calendar-plus"></i> Start Date</label>
-                <input type="date" formControlName="startDate" [min]="today()" (change)="onMedStartDateChange(i)" />
+                <label [attr.for]="'rx-med-start-date-' + i"><i class="fas fa-calendar-plus"></i> Start Date</label>
+                <input [attr.id]="'rx-med-start-date-' + i" [attr.name]="'startDate-' + i" type="date" formControlName="startDate" [min]="today()" (change)="onMedStartDateChange(i)" />
               </div>
               <div class="form-group">
-                <label><i class="fas fa-calendar-alt"></i> End Date</label>
-                <input type="date" formControlName="endDate" [min]="getMedMinEndDate(i)" />
+                <label [attr.for]="'rx-med-end-date-' + i"><i class="fas fa-calendar-alt"></i> End Date</label>
+                <input [attr.id]="'rx-med-end-date-' + i" [attr.name]="'endDate-' + i" type="date" formControlName="endDate" [min]="getMedMinEndDate(i)" />
                 <small class="field-error" *ngIf="medicationsArray.at(i).errors?.['endBeforeStart'] && medicationsArray.at(i).get('endDate')?.touched">
                   ⚠️ La date de fin doit être après la date de début
                 </small>
@@ -321,7 +321,7 @@
                 <button class="btn btn-labeled edit" (click)="editPrescription(p)">
                   <i class="fas fa-pen"></i> Modifier
                 </button>
-                <select class="status-select" [value]="p.status"
+                <select class="status-select" [attr.id]="'rx-list-status-' + p.id" [attr.name]="'listStatus-' + p.id" [value]="p.status"
                         (change)="updateStatus(p.id!, $any($event.target).value)">
                   <option *ngFor="let s of statuses" [value]="s">{{ s }}</option>
                 </select>
@@ -396,7 +396,7 @@
     <!-- Vue principale stock -->
     <div *ngIf="!historyMed">
       <div class="stock-filters">
-        <div class="sf-search"><i class="fas fa-search"></i><input type="text" [(ngModel)]="stockSearch" placeholder="Search medication..." /></div>
+        <div class="sf-search"><i class="fas fa-search"></i><input id="stock-search" name="stockSearch" type="text" [(ngModel)]="stockSearch" placeholder="Search medication..." /></div>
         <div class="sf-chips">
           <button class="chip" [class.chip--active]="stockFilter === ''" (click)="stockFilter = ''">Tous</button>
           <button class="chip chip--ok" [class.chip--active]="stockFilter === 'ok'" (click)="stockFilter = stockFilter === 'ok' ? '' : 'ok'"><i class="fas fa-check-circle"></i> En stock</button>
@@ -580,20 +580,20 @@
         <div class="adj-error" *ngIf="stockMedError"><i class="fas fa-exclamation-circle"></i> {{ stockMedError }}</div>
         <form [formGroup]="stockMedForm">
           <div class="form-grid">
-            <div class="form-group"><label><i class="fas fa-pills"></i> Nom</label><select formControlName="medicationName" (change)="onStockMedNameChange()"><option value="" disabled>Sélectionner...</option><option *ngFor="let m of KIDNEY_MEDS" [value]="m">{{ m }}</option></select></div>
-            <div class="form-group"><label><i class="fas fa-flask"></i> Dosage</label><select formControlName="dosage" *ngIf="getStockFormDosages().length > 0; else freeDosageStock"><option value="" disabled>Sélectionner...</option><option *ngFor="let d of getStockFormDosages()" [value]="d">{{ d }}</option></select><ng-template #freeDosageStock><input type="text" formControlName="dosage" placeholder="ex: 500mg" /></ng-template></div>
-            <div class="form-group"><label><i class="fas fa-redo"></i> Fréquence (×/j)</label><input type="number" formControlName="frequency" min="1" (input)="enforceMin($event, 1)" placeholder="Min 1" /></div>
-            <div class="form-group"><label><i class="fas fa-route"></i> Voie</label><select formControlName="route"><option [ngValue]="null" disabled>Sélectionner...</option><option *ngFor="let r of routes" [value]="r">{{ r }}</option></select></div>
-            <div class="form-group"><label><i class="fas fa-clock"></i> Durée (jours)</label><input type="number" formControlName="duration" min="1" (input)="enforceMin($event, 1)" placeholder="Min 1" /></div>
-            <div class="form-group"><label><i class="fas fa-boxes"></i> Quantité initiale</label><input type="number" formControlName="quantity" min="1" (input)="enforceMin($event, 1)" placeholder="Min 1" /></div>
+            <div class="form-group"><label for="stock-med-name"><i class="fas fa-pills"></i> Nom</label><select id="stock-med-name" name="stockMedicationName" formControlName="medicationName" (change)="onStockMedNameChange()"><option value="" disabled>Sélectionner...</option><option *ngFor="let m of KIDNEY_MEDS" [value]="m">{{ m }}</option></select></div>
+            <div class="form-group"><label for="stock-med-dosage"><i class="fas fa-flask"></i> Dosage</label><select id="stock-med-dosage" name="stockDosage" formControlName="dosage" *ngIf="getStockFormDosages().length > 0; else freeDosageStock"><option value="" disabled>Sélectionner...</option><option *ngFor="let d of getStockFormDosages()" [value]="d">{{ d }}</option></select><ng-template #freeDosageStock><input id="stock-med-dosage" name="stockDosage" type="text" formControlName="dosage" placeholder="ex: 500mg" /></ng-template></div>
+            <div class="form-group"><label for="stock-med-frequency"><i class="fas fa-redo"></i> Fréquence (×/j)</label><input id="stock-med-frequency" name="stockFrequency" type="number" formControlName="frequency" min="1" (input)="enforceMin($event, 1)" placeholder="Min 1" /></div>
+            <div class="form-group"><label for="stock-med-route"><i class="fas fa-route"></i> Voie</label><select id="stock-med-route" name="stockRoute" formControlName="route"><option [ngValue]="null" disabled>Sélectionner...</option><option *ngFor="let r of routes" [value]="r">{{ r }}</option></select></div>
+            <div class="form-group"><label for="stock-med-duration"><i class="fas fa-clock"></i> Durée (jours)</label><input id="stock-med-duration" name="stockDuration" type="number" formControlName="duration" min="1" (input)="enforceMin($event, 1)" placeholder="Min 1" /></div>
+            <div class="form-group"><label for="stock-med-quantity"><i class="fas fa-boxes"></i> Quantité initiale</label><input id="stock-med-quantity" name="stockQuantity" type="number" formControlName="quantity" min="1" (input)="enforceMin($event, 1)" placeholder="Min 1" /></div>
             <div class="form-group">
-              <label><i class="fas fa-calendar-plus"></i> Date de début</label>
-              <input type="date" formControlName="startDate" [min]="today()" (change)="onStockStartDateChange()" />
+              <label for="stock-med-start-date"><i class="fas fa-calendar-plus"></i> Date de début</label>
+              <input id="stock-med-start-date" name="stockStartDate" type="date" formControlName="startDate" [min]="today()" (change)="onStockStartDateChange()" />
               <small class="field-error" *ngIf="stockMedForm.get('startDate')?.errors?.['pastDate'] && stockMedForm.get('startDate')?.touched">⚠️ Date dans le passé</small>
             </div>
             <div class="form-group">
-              <label><i class="fas fa-calendar-alt"></i> Date de fin</label>
-              <input type="date" formControlName="endDate" [min]="getStockMinEndDate()" />
+              <label for="stock-med-end-date"><i class="fas fa-calendar-alt"></i> Date de fin</label>
+              <input id="stock-med-end-date" name="stockEndDate" type="date" formControlName="endDate" [min]="getStockMinEndDate()" />
               <small class="field-error" *ngIf="stockMedForm.errors?.['endBeforeStart'] && stockMedForm.get('endDate')?.touched">⚠️ Date de fin avant date de début</small>
             </div>
           </div>
@@ -647,8 +647,8 @@
             <button class="stepper-btn" (click)="adjustForm.quantityChange = adjustForm.quantityChange + 1"><i class="fas fa-plus"></i></button>
           </div>
         </div>
-        <div class="adj-field"><label class="adj-label"><i class="fas fa-tag"></i> Raison</label><select class="adj-select" [(ngModel)]="adjustForm.reason"><option *ngFor="let r of REASONS" [value]="r.value">{{ r.label }}</option></select></div>
-        <div class="adj-field"><label class="adj-label"><i class="fas fa-comment"></i> Notes (optionnel)</label><textarea class="adj-textarea" [(ngModel)]="adjustForm.notes" placeholder="Remarques..." rows="2"></textarea></div>
+        <div class="adj-field"><label class="adj-label" for="adjust-reason"><i class="fas fa-tag"></i> Raison</label><select id="adjust-reason" name="adjustReason" class="adj-select" [(ngModel)]="adjustForm.reason"><option *ngFor="let r of REASONS" [value]="r.value">{{ r.label }}</option></select></div>
+        <div class="adj-field"><label class="adj-label" for="adjust-notes"><i class="fas fa-comment"></i> Notes (optionnel)</label><textarea id="adjust-notes" name="adjustNotes" class="adj-textarea" [(ngModel)]="adjustForm.notes" placeholder="Remarques..." rows="2"></textarea></div>
         <button class="adj-submit"
                 [class.adj-submit--add]="adjustForm.isAddition"
                 [class.adj-submit--remove]="!adjustForm.isAddition"

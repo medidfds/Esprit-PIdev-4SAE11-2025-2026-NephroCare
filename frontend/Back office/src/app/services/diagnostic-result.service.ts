@@ -1,13 +1,14 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class DiagnosticResultService {
   // Gateway route for diagnostic-service: /diagnostic/** with stripPrefix(1)
-  private baseUrl = 'http://localhost:8070/diagnostic/api/diagnostic-results';
+  private baseUrl = `${environment.apiUrl}/diagnostic/api/diagnostic-results`;
 
   constructor(private http: HttpClient) {}
 

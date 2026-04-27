@@ -7,7 +7,7 @@ import { Observable } from 'rxjs';
   providedIn: 'root'
 })
 export class DiagnosticService {
-  private backendUrl = 'http://localhost:8070/diagnostic/diagnostic-orders';
+  private backendUrl = 'http://localhost:30070/diagnostic/diagnostic-orders';
 
   constructor(private http: HttpClient) {}
 

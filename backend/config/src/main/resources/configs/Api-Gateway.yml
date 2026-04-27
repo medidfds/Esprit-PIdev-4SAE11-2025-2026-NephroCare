@@ -16,7 +16,7 @@ spring:
           '[/**]':
             allowedOrigins:
               - "http://localhost:4369"
-              - "http://localhost:4201"
+              - "http://localhost:4200"
             allowedMethods:
               - GET
               - POST
@@ -86,4 +86,4 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://discovery-service:8761/eureka/}

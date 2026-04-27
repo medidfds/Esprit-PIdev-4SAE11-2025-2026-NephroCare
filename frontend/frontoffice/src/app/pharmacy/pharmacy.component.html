@@ -83,6 +83,8 @@
         <div class="search-bar">
           <i class="fas fa-search search-icon"></i>
           <input type="text"
+                 id="rx-search"
+                 name="rxSearch"
                  [(ngModel)]="searchRx"
                  placeholder="Search by doctor, instructions, status..."
                  class="search-input"/>
@@ -124,12 +126,12 @@
           </div>
 
           <div class="filter-right">
-            <select class="filter-select" [(ngModel)]="filterValidity">
+            <select id="rx-filter-validity" name="rxFilterValidity" class="filter-select" [(ngModel)]="filterValidity">
               <option value="">All Validity</option>
               <option value="valid">Valid only</option>
               <option value="expired">Expired only</option>
             </select>
-            <select class="filter-select" [(ngModel)]="sortRx">
+            <select id="rx-sort" name="rxSort" class="filter-select" [(ngModel)]="sortRx">
               <option value="date-desc">Newest first</option>
               <option value="date-asc">Oldest first</option>
               <option value="doctor">By doctor</option>
@@ -262,16 +264,16 @@
             </div>
             <div class="badge-form-grid">
               <div class="badge-fg full">
-                <label>First &amp; Last Name <span class="req">*</span></label>
-                <input type="text" [(ngModel)]="badgeForm.patientName" placeholder="E.g. John Smith"/>
+                <label for="badge-patient-name">First &amp; Last Name <span class="req">*</span></label>
+                <input id="badge-patient-name" name="badgePatientName" type="text" [(ngModel)]="badgeForm.patientName" placeholder="E.g. John Smith"/>
               </div>
               <div class="badge-fg">
-                <label>Age</label>
-                <input type="text" [(ngModel)]="badgeForm.patientAge" placeholder="E.g. 42 years old"/>
+                <label for="badge-patient-age">Age</label>
+                <input id="badge-patient-age" name="badgePatientAge" type="text" [(ngModel)]="badgeForm.patientAge" placeholder="E.g. 42 years old"/>
               </div>
               <div class="badge-fg">
-                <label>Blood Type <span class="req">*</span></label>
-                <select [(ngModel)]="badgeForm.bloodGroup">
+                <label for="badge-blood-group">Blood Type <span class="req">*</span></label>
+                <select id="badge-blood-group" name="badgeBloodGroup" [(ngModel)]="badgeForm.bloodGroup">
                   <option *ngFor="let bg of BLOOD_GROUPS" [value]="bg">{{ bg }}</option>
                 </select>
               </div>
@@ -288,34 +290,34 @@
               </div>
             </div>
             <div class="badge-fg full">
-              <label>Primary condition <span class="req">*</span></label>
-              <select [(ngModel)]="badgeForm.condition">
+              <label for="badge-condition">Primary condition <span class="req">*</span></label>
+              <select id="badge-condition" name="badgeCondition" [(ngModel)]="badgeForm.condition">
                 <option value="" disabled>Select...</option>
                 <option *ngFor="let c of CONDITIONS" [value]="c">{{ c }}</option>
               </select>
             </div>
             <div class="badge-fg full" *ngIf="badgeForm.condition==='Custom...'">
-              <label>Specify your condition</label>
-              <input type="text" [(ngModel)]="badgeForm.customCond" placeholder="E.g. Cystic Fibrosis"/>
+              <label for="badge-custom-condition">Specify your condition</label>
+              <input id="badge-custom-condition" name="badgeCustomCondition" type="text" [(ngModel)]="badgeForm.customCond" placeholder="E.g. Cystic Fibrosis"/>
             </div>
             <div class="badge-fg full">
-              <label>Medications NOT to administer</label>
-              <input type="text" [(ngModel)]="badgeForm.allergies"
+              <label for="badge-allergies">Medications NOT to administer</label>
+              <input id="badge-allergies" name="badgeAllergies" type="text" [(ngModel)]="badgeForm.allergies"
                      placeholder="E.g. NSAIDs, Ibuprofen (comma-separated)"/>
             </div>
             <div class="badge-fg full">
-              <label>Reason / Risk</label>
-              <input type="text" [(ngModel)]="badgeForm.allergyReason"
+              <label for="badge-allergy-reason">Reason / Risk</label>
+              <input id="badge-allergy-reason" name="badgeAllergyReason" type="text" [(ngModel)]="badgeForm.allergyReason"
                      placeholder="E.g. Risk of immediate nephrotoxicity"/>
             </div>
             <div class="badge-form-grid">
               <div class="badge-fg">
-                <label>Latest lab result</label>
-                <input type="text" [(ngModel)]="badgeForm.creatinine" placeholder="E.g. 110 µmol/L"/>
+                <label for="badge-creatinine">Latest lab result</label>
+                <input id="badge-creatinine" name="badgeCreatinine" type="text" [(ngModel)]="badgeForm.creatinine" placeholder="E.g. 110 µmol/L"/>
               </div>
               <div class="badge-fg">
-                <label>Status</label>
-                <input type="text" [(ngModel)]="badgeForm.lastExam" placeholder="E.g. Stable"/>
+                <label for="badge-last-exam">Status</label>
+                <input id="badge-last-exam" name="badgeLastExam" type="text" [(ngModel)]="badgeForm.lastExam" placeholder="E.g. Stable"/>
               </div>
             </div>
           </div>
@@ -333,6 +335,8 @@
                  class="badge-treat-row">
               <div class="badge-treat-num">{{ i + 1 }}</div>
               <input type="text"
+                     [attr.id]="'badge-treatment-' + i"
+                     [attr.name]="'badgeTreatment' + i"
                      [(ngModel)]="badgeForm.treatments[i]"
                      placeholder="E.g. ADVAGRAF 5mg (Immunosuppressant)"/>
               <button type="button"
@@ -362,7 +366,7 @@
             </div>
 
             <div class="badge-fg full">
-              <label>Your passion / activity <span class="req">*</span></label>
+              <span class="badge-field-title">Your passion / activity <span class="req">*</span></span>
               <div class="passion-grid">
                 <button type="button"
                         *ngFor="let p of PASSIONS"
@@ -376,18 +380,18 @@
             </div>
 
             <div class="badge-fg full" *ngIf="badgeForm.passion==='custom'">
-              <label>Specify your passion</label>
-              <input type="text" [(ngModel)]="badgeForm.customPassion" placeholder="E.g. Skydiving"/>
+              <label for="badge-custom-passion">Specify your passion</label>
+              <input id="badge-custom-passion" name="badgeCustomPassion" type="text" [(ngModel)]="badgeForm.customPassion" placeholder="E.g. Skydiving"/>
             </div>
 
             <div class="badge-form-grid">
               <div class="badge-fg">
-                <label>Pharmacy emergency number <span class="req">*</span></label>
-                <input type="tel" [(ngModel)]="badgeForm.emergencyPhone" placeholder="01 44 22 33 44"/>
+                <label for="badge-emergency-phone">Pharmacy emergency number <span class="req">*</span></label>
+                <input id="badge-emergency-phone" name="badgeEmergencyPhone" type="tel" [(ngModel)]="badgeForm.emergencyPhone" placeholder="01 44 22 33 44"/>
               </div>
               <div class="badge-fg">
-                <label>Clinic name <span class="req">*</span></label>
-                <input type="text" [(ngModel)]="badgeForm.clinicName" placeholder="E.g. Renal Clinic"/>
+                <label for="badge-clinic-name">Clinic name <span class="req">*</span></label>
+                <input id="badge-clinic-name" name="badgeClinicName" type="text" [(ngModel)]="badgeForm.clinicName" placeholder="E.g. Renal Clinic"/>
               </div>
             </div>
           </div>
@@ -659,32 +663,32 @@
       <div class="modal-body">
         <div class="detail-grid">
           <div class="detail-item">
-            <label>Prescribed By</label>
+            <span class="detail-label">Prescribed By</span>
             <span>{{ viewingPrescription.prescribedBy || '—' }}</span>
           </div>
           <div class="detail-item">
-            <label>Date</label>
+            <span class="detail-label">Date</span>
             <span>{{ viewingPrescription.prescriptionDate | date:'mediumDate' }}</span>
           </div>
           <div class="detail-item">
-            <label>Valid Until</label>
+            <span class="detail-label">Valid Until</span>
             <span [class.text-danger]="isExpired(viewingPrescription.validUntil)">
               {{ viewingPrescription.validUntil | date:'mediumDate' }}
               <span *ngIf="isExpired(viewingPrescription.validUntil)"> ⚠️ Expired</span>
             </span>
           </div>
           <div class="detail-item">
-            <label>Status</label>
+            <span class="detail-label">Status</span>
             <span class="status-badge" [ngClass]="statusClass(viewingPrescription.status)">
               {{ viewingPrescription.status }}
             </span>
           </div>
           <div class="detail-item" *ngIf="viewingPrescription.consultationId">
-            <label>Consultation ID</label>
+            <span class="detail-label">Consultation ID</span>
             <span>{{ viewingPrescription.consultationId }}</span>
           </div>
           <div class="detail-item full" *ngIf="viewingPrescription.instructions">
-            <label>Instructions</label>
+            <span class="detail-label">Instructions</span>
             <span>{{ viewingPrescription.instructions }}</span>
           </div>
         </div>
@@ -693,7 +697,12 @@
           <i class="fas fa-pills"></i> Medications
         </div>
 
-        <div class="med-list" *ngIf="viewingPrescription.medications?.length; else noMeds">
+        <div class="pf-state" *ngIf="loadingPrescriptionDetails">
+          <i class="fas fa-spinner fa-spin pf-state-icon"></i>
+          <p>Loading medications...</p>
+        </div>
+
+        <div class="med-list" *ngIf="!loadingPrescriptionDetails && viewingPrescription.medications?.length; else noMeds">
           <div class="med-item" *ngFor="let m of viewingPrescription.medications">
             <div class="med-item__name">
               <i class="fas fa-capsules"></i> {{ m.medicationName }}
@@ -715,7 +724,7 @@
         </div>
 
         <ng-template #noMeds>
-          <p class="no-meds-text">No medications in this prescription.</p>
+          <p class="no-meds-text" *ngIf="!loadingPrescriptionDetails">No medications in this prescription.</p>
         </ng-template>
 
       </div>

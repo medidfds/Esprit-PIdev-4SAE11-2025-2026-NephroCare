@@ -2,13 +2,14 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { KeycloakService } from 'keycloak-angular';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class UserService {
 
-  private apiUrl = 'http://localhost:8082/api/users'; // Your backend URL
+  private apiUrl = `${environment.apiUrl}/users/api/users`;
 
   constructor(private http: HttpClient, private keycloak: KeycloakService) {}
 

@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { catchError, finalize, of, timeout } from 'rxjs';
 import { PharmacyService, Medication } from '../services/pharmacy.service';
 import { PrescriptionService, Prescription } from '../services/prescription.service';
 import { BadgeUrlService } from '../services/badge-url.service';
@@ -180,6 +181,7 @@ export class PharmacyComponent implements OnInit {
   loadingRx          = false;
   errorRx            = false;
   viewingPrescription: Prescription | null = null;
+  loadingPrescriptionDetails = false;
   searchRx           = '';
   filterStatus       = '';
   filterValidity     = '';
@@ -592,8 +594,26 @@ export class PharmacyComponent implements OnInit {
   // HELPERS
   // ════════════════════════════════════════════════════════════════════════════
 
-  view(p: Prescription): void { this.viewingPrescription = p; }
-  closeView():           void { this.viewingPrescription = null; }
+  view(p: Prescription): void {
+    this.viewingPrescription = p;
+    if (!p.id || (p.medications && p.medications.length > 0)) return;
+
+    this.loadingPrescriptionDetails = true;
+    this.prescriptionService.getById(p.id).pipe(
+      timeout(7000),
+      catchError(() => of(p)),
+      finalize(() => {
+        this.loadingPrescriptionDetails = false;
+      })
+    ).subscribe(full => {
+      const meds = full.medications ?? [];
+      this.viewingPrescription = { ...p, ...full, medications: meds };
+    });
+  }
+  closeView(): void {
+    this.viewingPrescription = null;
+    this.loadingPrescriptionDetails = false;
+  }
 
   isExpiringSoon(dateStr?: string): boolean {
     if (!dateStr) return false;

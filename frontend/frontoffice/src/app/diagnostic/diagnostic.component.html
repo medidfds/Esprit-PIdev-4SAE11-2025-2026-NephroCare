@@ -202,6 +202,7 @@
             <div class="col-md-4">
               <label class="form-label fw-semibold small">Order Date *</label>
               <input type="datetime-local" class="form-control" formControlName="orderDate"
+                     [max]="todayIso"
                      [class.is-invalid]="isFieldInvalid('orderDate')"/>
               <div class="invalid-feedback">Order date is required.</div>
             </div>

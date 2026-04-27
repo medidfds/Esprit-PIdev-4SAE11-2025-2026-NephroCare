@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { MedicationRoute } from './medication-route.enum';
+import { environment } from '../../environments/environment';
 
 export interface Medication {
   id?: string;
@@ -20,7 +21,7 @@ export interface Medication {
 })
 export class PharmacyService {
 
-  private baseUrl = 'http://localhost:8070/pharmacy/api/medications';
+  private baseUrl = `${environment.apiUrl}/pharmacy/api/medications`;
 
   constructor(private http: HttpClient) {}
 
