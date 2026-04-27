@@ -139,4 +139,4 @@ Start-Process powershell -ArgumentList '-NoExit','-Command','kubectl -n nephroca
 
 mdp : 115a8e02de424b628ba9ed7d275f6a01
 
-#git token : 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
+#git token : ghp_XXXXXXXXXXXXXXXXXXXXXXXXXXXX
