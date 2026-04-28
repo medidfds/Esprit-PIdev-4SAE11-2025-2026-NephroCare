@@ -39,11 +39,13 @@
       "directAccessGrantsEnabled": true,
       "redirectUris": [
         "http://localhost:4369/*",
-        "http://localhost:4200/*"
+        "http://localhost:4200/*",
+        "http://localhost:30880/*"
       ],
       "webOrigins": [
         "http://localhost:4369",
-        "http://localhost:4200"
+        "http://localhost:4200",
+        "http://localhost:30880"
       ]
     },
     {

@@ -16,9 +16,9 @@ public class GatewayConfig {
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration corsConfig = new CorsConfiguration();
 
-        corsConfig.setAllowedOrigins(Arrays.asList(
-                "http://localhost:4200",
-                "http://localhost:4369"
+        corsConfig.setAllowedOriginPatterns(Arrays.asList(
+                "http://localhost:*",
+                "http://127.0.0.1:*"
         ));
 
         corsConfig.setAllowedMethods(Arrays.asList(

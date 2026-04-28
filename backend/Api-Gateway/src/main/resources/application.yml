@@ -16,6 +16,7 @@ spring:
             allowedOrigins:
               - "http://localhost:4369"
               - "http://localhost:4201"
+              - "http://localhost:30880"
             allowedMethods:
               - GET
               - POST
@@ -30,40 +31,31 @@ spring:
         locator:
           enabled: false
       routes:
-        - id: hospitalization-service
-          uri: http://hospitalization-service:8076
-          predicates:
-            - Path=/hospitalization/**
-          filters:
-            - StripPrefix=1
-
-        - id: diagnostic-service
-          uri: http://diagnostic-service:8778
-          predicates:
-            - Path=/diagnostic/**
-          filters:
-            - StripPrefix=1
-
-        - id: dialysis-service
-          uri: http://dialysis-service:8075
-          predicates:
-            - Path=/dialysis/**
-          filters:
-            - StripPrefix=1
-
-        - id: pharmacy-service
-          uri: http://pharmacy-service:8087
-          predicates:
-            - Path=/pharmacy/**
-          filters:
-            - StripPrefix=1
-
         - id: clinical-service
           uri: http://clinical-service:8079
           predicates:
             - Path=/clinical/**
           filters:
             - StripPrefix=1
+            - name: Cors
+              args:
+                allowedOrigins: "http://localhost:30880,http://localhost:4369,http://localhost:4201"
+                allowedMethods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+                allowedHeaders: "*"
+                allowCredentials: true
+
+        - id: hospitalization-service
+          uri: http://hospitalization-service:8076
+          predicates:
+            - Path=/hospitalization/**
+          filters:
+            - StripPrefix=1
+            - name: Cors
+              args:
+                allowedOrigins: "http://localhost:30880,http://localhost:4369,http://localhost:4201"
+                allowedMethods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+                allowedHeaders: "*"
+                allowCredentials: true
 
         # UI calls /api/notifications/** (no service prefix)
         - id: notifications
