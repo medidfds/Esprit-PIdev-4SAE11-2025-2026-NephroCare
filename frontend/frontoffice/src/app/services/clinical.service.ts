@@ -29,8 +29,8 @@ export interface MedicalHistory {
   providedIn: 'root'
 })
 export class ClinicalService {
-  private consulationBaseUrl = 'http://localhost:30070/clinical/api/consultations';
-  private medicalHistoryBaseUrl = 'http://localhost:30070/clinical/api/medical-histories';
+  private consulationBaseUrl = 'http://localhost:8070/clinical/api/consultations';
+  private medicalHistoryBaseUrl = 'http://localhost:8070/clinical/api/medical-histories';
 
   constructor(private http: HttpClient) {}
 

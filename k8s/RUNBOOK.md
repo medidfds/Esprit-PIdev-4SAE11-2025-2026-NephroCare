@@ -1,6 +1,7 @@
 ## NephroCare Kubernetes runbook (stop / start / reopen)
 
 This file is a copy/paste guide to close and reopen your local setup:
+
 - Backend in Kubernetes (namespace `nephrocare`)
 - Frontend locally (Angular)
 - Port-forwards for API Gateway + Keycloak
@@ -11,8 +12,10 @@ This file is a copy/paste guide to close and reopen your local setup:
 
 - **Kubernetes workloads**: pods in `nephrocare` are `Running` / `Ready`
 - **Port-forward terminals**: you must keep them open while you use the frontend
-  - API Gateway: local `30070` → cluster `api-gateway:8070`
-  - Keycloak: local `30180` → cluster `keycloak:8180`
+  - API Gateway: local `8070` → cluster `api-gateway:8070`
+  - Keycloak: local `8180` → cluster `keycloak:8180`
+  - Frontoffice: local `4200` → cluster `frontoffice-ui:80`
+  - Backoffice: local `4369` → cluster `backoffice-ui:80`
 
 ---
 
@@ -23,8 +26,10 @@ This file is a copy/paste guide to close and reopen your local setup:
 Just close the terminals where you ran:
 
 ```powershell
-kubectl -n nephrocare port-forward svc/api-gateway 30070:8070
-kubectl -n nephrocare port-forward svc/keycloak 30180:8180
+kubectl -n nephrocare port-forward svc/api-gateway 8070:8070
+kubectl -n nephrocare port-forward svc/keycloak 8180:8180
+kubectl -n nephrocare port-forward svc/frontoffice-ui 4200:80
+kubectl -n nephrocare port-forward svc/backoffice-ui 4369:80
 ```
 
 If a terminal is stuck, press `Ctrl+C` in that terminal.
@@ -34,14 +39,14 @@ If a terminal is stuck, press `Ctrl+C` in that terminal.
 Find and kill the process holding the port:
 
 ```powershell
-netstat -ano | findstr ":30070"
+netstat -ano | findstr ":8070"
 taskkill /PID <PID_FROM_NETSTAT> /F
 ```
 
 And for Keycloak:
 
 ```powershell
-netstat -ano | findstr ":30180"
+netstat -ano | findstr ":8180"
 taskkill /PID <PID_FROM_NETSTAT> /F
 ```
 
@@ -66,13 +71,25 @@ kubectl -n nephrocare logs deploy/<service-name> --tail=200
 Terminal 1 (API Gateway):
 
 ```powershell
-kubectl -n nephrocare port-forward svc/api-gateway 30070:8070
+kubectl -n nephrocare port-forward svc/api-gateway 8070:8070
 ```
 
 Terminal 2 (Keycloak):
 
 ```powershell
-kubectl -n nephrocare port-forward svc/keycloak 30180:8180
+kubectl -n nephrocare port-forward svc/keycloak 8180:8180
+```
+
+Terminal 3 (Frontoffice):
+
+```powershell
+kubectl -n nephrocare port-forward svc/frontoffice-ui 4200:80
+```
+
+Terminal 4 (Backoffice):
+
+```powershell
+kubectl -n nephrocare port-forward svc/backoffice-ui 4369:80
 ```
 
 ### 3) Quick “is it up?” checks
@@ -80,13 +97,13 @@ kubectl -n nephrocare port-forward svc/keycloak 30180:8180
 In a third terminal:
 
 ```powershell
-iwr -UseBasicParsing http://localhost:30070/actuator/health
+iwr -UseBasicParsing http://localhost:8070/actuator/health
 ```
 
 Optional (Keycloak should respond with HTML/JSON, not connection refused):
 
 ```powershell
-iwr -UseBasicParsing http://localhost:30180
+iwr -UseBasicParsing http://localhost:8180
 ```
 
 ---
@@ -139,19 +156,31 @@ If you want the Angular apps in Kubernetes, apply the frontend manifest:
 kubectl apply -f .\k8s\nephrocare-frontend.yaml
 ```
 
-Access the UI from the host:
+Access the UI from the host (via port-forward):
 
-- Backoffice: `http://localhost:30880`
-- Frontoffice: `http://localhost:30881`
+- Backoffice: `http://localhost:4369`
+- Frontoffice: `http://localhost:4200`
 
-# Open api gateway and keycloack and eureka server 
+# Open API Gateway, Keycloak and Eureka
 
-Start-Process powershell -ArgumentList '-NoExit','-Command','kubectl -n nephrocare port-forward svc/api-gateway 30070:8070'; Start-Process powershell -ArgumentList '-NoExit','-Command','kubectl -n nephrocare port-forward svc/keycloak 30180:8180'; Start-Process powershell -ArgumentList '-NoExit','-Command','kubectl -n nephrocare port-forward svc/discovery-service 8762:8761'
-
-#jenkins
-
-mdp : 115a8e02de424b628ba9ed7d275f6a01
-
-#git token : ghp_XXXXXXXXXXXXXXXXXXXXXXXXXXXX
+Start-Process powershell -ArgumentList '-NoExit','-Command','kubectl -n nephrocare port-forward svc/api-gateway 8070:8070'; Start-Process powershell -ArgumentList '-NoExit','-Command','kubectl -n nephrocare port-forward svc/keycloak 8180:8180'; Start-Process powershell -ArgumentList '-NoExit','-Command','kubectl -n nephrocare port-forward svc/frontoffice-ui 4200:80'; Start-Process powershell -ArgumentList '-NoExit','-Command','kubectl -n nephrocare port-forward svc/backoffice-ui 4369:80'; Start-Process powershell -ArgumentList '-NoExit','-Command','kubectl -n nephrocare port-forward svc/discovery-service 8761:8761'
 
 run jenkins docker run -d -p 8080:8080 -p 50000:50000 -v jenkins_home:/var/jenkins_home -v /var/run/docker.sock:/var/run/docker.sock jenkins-docker
+
+
+
+
+
+
+
+
+
+*kubectl -n nephrocare port-forward svc/backoffice-ui 4369:80*
+
+*kubectl -n nephrocare port-forward svc/frontoffice-ui 4200:80*
+
+*kubectl -n nephrocare port-forward svc/api-gateway 8070:8070*
+
+*kubectl -n nephrocare port-forward svc/keycloak 8180:8180*
+
+*kubectl -n nephrocare port-forward svc/discovery-service 8761:8761*

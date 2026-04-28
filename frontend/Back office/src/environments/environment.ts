@@ -1,5 +1,5 @@
 export const environment = {
     production: false,
-    // When backend runs in Kubernetes (NodePort 30070)
-    apiUrl: 'http://localhost:30070'
+    // Stable local access via kubectl port-forward svc/api-gateway 8070:8070
+    apiUrl: 'http://localhost:8070'
 };

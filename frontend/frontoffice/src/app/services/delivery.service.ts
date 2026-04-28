@@ -25,7 +25,7 @@ export interface DeliveryResponse {
 
 @Injectable({ providedIn: 'root' })
 export class DeliveryService {
-  private readonly API = 'http://localhost:30070/orders/api/deliveries';
+  private readonly API = 'http://localhost:8070/orders/api/deliveries';
 
   constructor(private http: HttpClient) {}
 

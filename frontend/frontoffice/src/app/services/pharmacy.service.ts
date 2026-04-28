@@ -20,7 +20,7 @@ export interface Medication {
 })
 export class PharmacyService {
 
-  private baseUrl = 'http://localhost:30070/pharmacy/api/medications';
+  private baseUrl = 'http://localhost:8070/pharmacy/api/medications';
 
   constructor(private http: HttpClient) {}
 

@@ -25,7 +25,7 @@ type SortDir   = 'asc' | 'desc';
 })
 export class DiagnosticResultComponent implements OnInit {
 
-  backendUrl = 'http://localhost:30070/diagnostic/api/diagnostic-results';
+  backendUrl = 'http://localhost:8070/diagnostic/api/diagnostic-results';
   results:         DiagnosticResult[] = [];
   filteredResults: DiagnosticResult[] = [];
   form:            FormGroup;

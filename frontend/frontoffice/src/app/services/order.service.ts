@@ -55,7 +55,7 @@ export interface OrderResponse {
 
 @Injectable({ providedIn: 'root' })
 export class OrderService {
-  private readonly API = 'http://localhost:30070/orders/api/orders';
+  private readonly API = 'http://localhost:8070/orders/api/orders';
 
   constructor(private http: HttpClient) {}
 

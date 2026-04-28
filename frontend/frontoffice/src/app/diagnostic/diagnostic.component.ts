@@ -61,7 +61,7 @@ const POPUP_DURATIONS: Record<string, number> = {
 export class DiagnosticComponent implements OnInit, OnDestroy {
 
   // ── Orders ────────────────────────────────────────────────────────────────
-  backendUrl      = 'http://localhost:30070/diagnostic/diagnostic-orders';
+  backendUrl      = 'http://localhost:8070/diagnostic/diagnostic-orders';
   orders:          DiagnosticOrder[] = [];
   filteredOrders:  DiagnosticOrder[] = [];
   form:            FormGroup;

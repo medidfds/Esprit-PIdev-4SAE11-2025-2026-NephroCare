@@ -29,12 +29,12 @@ Set-Location ..
 kubectl apply -f .\k8s\nephrocare-backend.yaml
 ```
 
-### 3) Access from your local frontend
+### 3) Access from your local frontend (recommended: port-forward)
 
-- API Gateway NodePort: `http://localhost:30070`
-- Keycloak NodePort: `http://localhost:30180`
-
-Your backoffice Angular app was configured to use `http://localhost:30070`.
+- API Gateway: `http://localhost:8070`
+- Keycloak: `http://localhost:8180`
+- Frontoffice UI: `http://localhost:4200`
+- Backoffice UI: `http://localhost:4369`
 
 ### Runbook (close / reopen everything)
 
@@ -46,13 +46,15 @@ On some Docker Desktop + WSL2 setups, NodePort ports may not be reachable from t
 Use port-forward instead (keep this terminal open):
 
 ```powershell
-kubectl -n nephrocare port-forward svc/api-gateway 30070:8070
+kubectl -n nephrocare port-forward svc/api-gateway 8070:8070
+kubectl -n nephrocare port-forward svc/frontoffice-ui 4200:80
+kubectl -n nephrocare port-forward svc/backoffice-ui 4369:80
 ```
 
 And if you need Keycloak locally:
 
 ```powershell
-kubectl -n nephrocare port-forward svc/keycloak 30180:8180
+kubectl -n nephrocare port-forward svc/keycloak 8180:8180
 ```
 
 ### MySQL init note (first bootstrap)
@@ -74,3 +76,4 @@ Then verify:
 kubectl -n nephrocare get pods
 kubectl -n nephrocare logs deploy/mysql --tail=100
 ```
+

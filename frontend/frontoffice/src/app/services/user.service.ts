@@ -8,7 +8,7 @@ import { firstValueFrom } from 'rxjs';
 })
 export class UserService {
 
-  private apiUrl = 'http://localhost:8082/api/users'; // Your backend URL
+  private apiUrl = 'http://localhost:8070/users/api/users';
 
   constructor(private http: HttpClient, private keycloak: KeycloakService) {}
 

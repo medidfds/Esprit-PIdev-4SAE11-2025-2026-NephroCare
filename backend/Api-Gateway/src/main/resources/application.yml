@@ -15,8 +15,7 @@ spring:
           '[/**]':
             allowedOrigins:
               - "http://localhost:4369"
-              - "http://localhost:4201"
-              - "http://localhost:30880"
+              - "http://localhost:4200"
             allowedMethods:
               - GET
               - POST
@@ -39,7 +38,7 @@ spring:
             - StripPrefix=1
             - name: Cors
               args:
-                allowedOrigins: "http://localhost:30880,http://localhost:4369,http://localhost:4201"
+                allowedOrigins: "http://localhost:4369,http://localhost:4200"
                 allowedMethods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
                 allowedHeaders: "*"
                 allowCredentials: true
@@ -52,7 +51,7 @@ spring:
             - StripPrefix=1
             - name: Cors
               args:
-                allowedOrigins: "http://localhost:30880,http://localhost:4369,http://localhost:4201"
+                allowedOrigins: "http://localhost:4369,http://localhost:4200"
                 allowedMethods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
                 allowedHeaders: "*"
                 allowCredentials: true
