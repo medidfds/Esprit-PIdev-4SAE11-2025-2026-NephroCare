@@ -162,10 +162,11 @@ class QRCodeGenerator {
 export class PharmacyComponent implements OnInit {
 
   // ── Onglet actif (Dose Calculator supprimé) ──────────────────────────────────
-  activeTab: 'medications' | 'prescriptions' | 'badge' = 'medications';
+  activeTab: 'medications' | 'prescriptions' | 'badge' = 'prescriptions';
 
   // ── Utilisateur connecté ─────────────────────────────────────────────────────
   currentUserId = '';
+  private userIdentifiers: string[] = [];
 
   // ── Médicaments ──────────────────────────────────────────────────────────────
   medications:  Medication[] = [];
@@ -256,9 +257,10 @@ export class PharmacyComponent implements OnInit {
   // ── Initialisation ───────────────────────────────────────────────────────────
   ngOnInit(): void {
     try {
-      // Lire le token JWT Keycloak — "sub" = UUID unique de l'utilisateur
+      // Build a robust list of possible identifiers from token claims.
       const token = this.keycloak.getKeycloakInstance().tokenParsed as any;
-      this.currentUserId = token?.sub || '';
+      this.userIdentifiers = this.extractUserIdentifiers(token);
+      this.currentUserId = this.userIdentifiers[0] || '';
 
       // Pré-remplir le nom dans le formulaire badge
       const firstName = token?.given_name        || '';
@@ -283,6 +285,7 @@ export class PharmacyComponent implements OnInit {
   loadMedications(): void {
     if (!this.currentUserId) {
       this.loadingMeds = false;
+      this.errorMeds = true;
       return;
     }
     this.loadingMeds = true;
@@ -359,16 +362,63 @@ export class PharmacyComponent implements OnInit {
   loadPrescriptions(): void {
     if (!this.currentUserId) {
       this.loadingRx = false;
+      this.errorRx = true;
       return;
     }
     this.loadingRx = true;
     this.errorRx   = false;
 
-    // Charge uniquement les prescriptions du patient connecté
+    // Prefer direct endpoint first. If it returns empty (or fails), fallback to
+    // getAll + local filter using all known user identifiers.
     this.prescriptionService.getByUser(this.currentUserId).subscribe({
-      next:  data => { this.prescriptions = data; this.loadingRx = false; },
-      error: ()   => { this.loadingRx = false; this.errorRx = true; }
+      next: data => {
+        if (data.length > 0) {
+          this.prescriptions = data;
+          this.loadingRx = false;
+          return;
+        }
+        this.fallbackLoadPrescriptions();
+      },
+      error: () => this.fallbackLoadPrescriptions()
     });
+  }
+
+  private fallbackLoadPrescriptions(): void {
+    this.prescriptionService.getAll().subscribe({
+      next: all => {
+        const ids = new Set(this.userIdentifiers.map(v => String(v).toLowerCase()));
+        this.prescriptions = all.filter(p => ids.has(String(p.userId || '').toLowerCase()));
+        this.loadingRx = false;
+        this.errorRx = false;
+      },
+      error: () => {
+        this.loadingRx = false;
+        this.errorRx = true;
+      }
+    });
+  }
+
+  private extractUserIdentifiers(token: any): string[] {
+    const candidates = [
+      token?.sub,
+      token?.id,
+      token?.userId,
+      token?.user_id,
+      token?.patientId,
+      token?.patient_id,
+      token?.preferred_username,
+      token?.username,
+      token?.email
+    ];
+
+    return Array.from(
+      new Set(
+        candidates
+          .filter((v: unknown) => v !== undefined && v !== null)
+          .map(v => String(v).trim())
+          .filter(v => v.length > 0)
+      )
+    );
   }
 
   get filteredPrescriptions(): Prescription[] {

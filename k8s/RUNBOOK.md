@@ -167,14 +167,6 @@ Start-Process powershell -ArgumentList '-NoExit','-Command','kubectl -n nephroca
 
 run jenkins docker run -d -p 8080:8080 -p 50000:50000 -v jenkins_home:/var/jenkins_home -v /var/run/docker.sock:/var/run/docker.sock jenkins-docker
 
-
-
-
-
-
-
-
-
 *kubectl -n nephrocare port-forward svc/backoffice-ui 4369:80*
 
 *kubectl -n nephrocare port-forward svc/frontoffice-ui 4200:80*

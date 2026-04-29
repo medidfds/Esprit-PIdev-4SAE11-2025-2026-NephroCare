@@ -36,12 +36,6 @@ spring:
             - Path=/clinical/**
           filters:
             - StripPrefix=1
-            - name: Cors
-              args:
-                allowedOrigins: "http://localhost:4369,http://localhost:4200"
-                allowedMethods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
-                allowedHeaders: "*"
-                allowCredentials: true
 
         - id: hospitalization-service
           uri: http://hospitalization-service:8076
@@ -49,12 +43,6 @@ spring:
             - Path=/hospitalization/**
           filters:
             - StripPrefix=1
-            - name: Cors
-              args:
-                allowedOrigins: "http://localhost:4369,http://localhost:4200"
-                allowedMethods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
-                allowedHeaders: "*"
-                allowCredentials: true
 
         # UI calls /api/notifications/** (no service prefix)
         - id: notifications

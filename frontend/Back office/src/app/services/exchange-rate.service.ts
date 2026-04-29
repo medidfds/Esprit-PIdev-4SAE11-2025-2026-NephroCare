@@ -6,8 +6,8 @@ import { map, catchError } from 'rxjs/operators';
 @Injectable({ providedIn: 'root' })
 export class ExchangeRateService {
 
-  // ✅ Base EUR → on lit le taux TND depuis cette réponse
-  private readonly API = 'https://open.er-api.com/v6/latest/EUR';
+  // Use a browser-friendly endpoint (CORS enabled) for EUR -> TND.
+  private readonly API = 'https://api.exchangerate.host/latest?base=EUR&symbols=TND';
   private readonly FALLBACK_RATE = 3.33; // 1 EUR ≈ 3.33 TND
 
   private cachedRate: number | null = null;
