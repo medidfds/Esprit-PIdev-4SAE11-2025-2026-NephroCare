@@ -27,8 +27,10 @@ pipeline {
     stage('Prepare Tags') {
       steps {
         script {
+          echo 'Jenkinsfile marker v2 - backend/Jenkinsfile loaded'
           env.SHORT_SHA = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
           env.IMAGE_TAG = "jenkins-${BUILD_NUMBER}-${SHORT_SHA}"
+          echo "Resolved IMAGE_TAG=${env.IMAGE_TAG}"
         }
       }
     }
@@ -95,7 +97,7 @@ pipeline {
           ]
 
           for (svc in services) {
-            def imageRef = "${REGISTRY_NAMESPACE}/${svc.image}:${IMAGE_TAG}"
+            def imageRef = "${env.REGISTRY_NAMESPACE}/${svc.image}:${env.IMAGE_TAG}"
             sh """
               docker build \
                 -f ${DOCKERFILE_PATH} \
@@ -118,7 +120,7 @@ pipeline {
           ]
 
           for (ui in frontends) {
-            def imageRef = "${REGISTRY_NAMESPACE}/${ui.image}:${IMAGE_TAG}"
+            def imageRef = "${env.REGISTRY_NAMESPACE}/${ui.image}:${env.IMAGE_TAG}"
             sh """
               docker build \
                 -f ${FRONTEND_DOCKERFILE_PATH} \
